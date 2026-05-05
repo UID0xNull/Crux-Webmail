@@ -1,0 +1,64 @@
+# ============================================================================
+# Crux-Webmail — Postfix Header Checks
+# Anti-forging, anti-phishing, strict header validation
+# ============================================================================
+# Format: REGEX ACTION [details]
+# Actions: REJECT, DISCARD, WARN, DUNNO, IGNORE
+# ============================================================================
+
+# ------------------------------------------------------------------
+# Block forged Return-Path (empty or missing)
+# ------------------------------------------------------------------
+/^Return-Path: <>/    WARN forged_return_path
+
+# ------------------------------------------------------------------
+# Block suspicious X-Originating-IP (common in spam)
+# ------------------------------------------------------------------
+/^X-Originating-IP:/  REJECT header_forged_originating_ip
+
+# ------------------------------------------------------------------
+# Block HTML messages with embedded JavaScript/iframe
+# ------------------------------------------------------------------
+/<script\s*/i          REJECT html_script_injected
+/<\/script>/i         REJECT html_script_injected
+/<iframe/i            REJECT html_iframe_injected
+/<object/i            REJECT html_object_injected
+/<embed/i             REJECT html_embed_injected
+/on[a-z]+\s*=/i       REJECT html_event_handler_injected
+/javascript:/i        REJECT javascript_uri_detected
+/vbscript:/i          REJECT vbscript_uri_detected
+/data:text\/html/i    REJECT data_html_uri_detected
+
+# ------------------------------------------------------------------
+# Block missing Message-ID (forged mail)
+# ------------------------------------------------------------------
+# (Note: enforced by Postfix core, not header_checks)
+
+# ------------------------------------------------------------------
+# Block spoofed From headers (basic check — full SPF/DKIM via Amavis)
+# ------------------------------------------------------------------
+/^From: .*@crux\.local/i WARN possible_from_spoofing
+
+# ------------------------------------------------------------------
+# Block MIME multipart with excessive nesting (DoS protection)
+# ------------------------------------------------------------------
+# (Enforced by Amavis max_parts = 50, not header_checks)
+
+# ------------------------------------------------------------------
+# Block content-type sniffing
+# ------------------------------------------------------------------
+/^Content-Type:.*application\/octet-stream.*;\s*name=.*/i  WARN suspicious_content_type
+
+# ------------------------------------------------------------------
+# Reject messages with null bytes in headers
+# ------------------------------------------------------------------
+/\x00/               REJECT null_byte_in_header
+
+# ------------------------------------------------------------------
+# Reject header injection attempts
+# ------------------------------------------------------------------
+/^\./                REJECT header_injection_attempt
+/^From:/             REJECT header_injection_from
+/^Subject:/          REJECT header_injection_subject
+/^To:/               REJECT header_injection_to
+/^Cc:/               REJECT header_injection_cc

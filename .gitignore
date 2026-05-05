@@ -1,0 +1,81 @@
+# ============================================================================
+# Crux-Webmail — .gitignore
+# ============================================================================
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.production
+infra/secrets/*.txt
+infra/secrets/*.pem
+infra/secrets/*.key
+infra/secrets/*.crt
+infra/certs/*.key
+infra/certs/*.pem
+infra/certs/*.srl
+infra/certs/*.sr
+infra/certs/*.csr
+infra/nginx/certs/*.pem
+infra/nginx/certs/*.key
+infra/nginx/certs/*.crt
+
+# --- Docker ---
+.distribution/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+*.swo
+*~
+
+# --- Logs ---
+*.log
+logs/
+infra/logs/
+
+# --- IDE ---
+.vscode/
+.idea/
+*.sublime-*
+
+# --- Node.js (Step 2+ prep) ---
+node_modules/
+npm-debug.log*
+yarn-error.log
+coverage/
+.nyc_output/
+
+# --- Build artifacts (Step 2+ prep) ---
+dist/
+build/
+.next/
+.svelte-kit/
+
+# --- Data volumes ---
+var/
+data/
+
+# --- Terraform ---
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+
+# --- Go (Rust WASM Step 3) ---
+go.sum
+bin/
+
+# --- Rust (WASM sanitizer) ---
+target/
+Cargo.lock
+
+# --- Test artifacts ---
+test-results/
+playwright-report/
+blazare-report/
+
+# --- Temporary ---
+tmp/
+temp/
+.cache/

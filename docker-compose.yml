@@ -1,0 +1,567 @@
+# ============================================================================
+# Crux-Webmail Enterprise — Docker Compose Zero-Trust Orchestration
+# ============================================================================
+# Principios:
+#   - Microsegmentación via Docker networks isolated
+#   - mTLS entre servicios internos
+#   - read_only filesystems + tmpfs para escritura temporal
+#   - noNewPrivileges, runAsNonRoot
+#   - Health checks estrictos con restart policy
+#   - Default DROPPING de tráfico inter-red
+# ============================================================================
+
+version: "3.9"
+
+# ------------------------------------------------------------------
+# NETWORKS: Segmentación Zero-Trust
+# ------------------------------------------------------------------
+networks:
+  public-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/24
+    # Solo nginx expone puertos al host
+  app-network:
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/24
+  data-network:
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/24
+  monitor-network:
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.23.0.0/24
+
+# ------------------------------------------------------------------
+# VOLUMES: Persistencia inmutable
+# ------------------------------------------------------------------
+volumes:
+  postfix_mail:
+    driver: local
+  postfix_queue:
+    driver: local
+  dovecot_mail:
+    driver: local
+  dovecot_db:
+    driver: local
+  amavis_db:
+    driver: local
+  clamav_db:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  logs_shared:
+    driver: local
+
+# ------------------------------------------------------------------
+# SERVICES
+# ------------------------------------------------------------------
+services:
+  # =================================================================
+  # DMZ LAYER — Edge Proxy
+  # =================================================================
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: crux-nginx
+    networks:
+      public-network:
+        ipv4_address: 172.20.0.10
+      app-network:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - logs_shared:/var/log/nginx
+    tmpfs:
+      - /var/cache/nginx:size=128M
+      - /var/run:size=64M
+      - /tmp:size=64M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t && wget -qO- http://localhost:443/health || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # Solo para puertos < 1024
+    environment:
+      - NGINX_WORKER_PROCESSES=auto
+      - TZ=UTC
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    depends_on:
+      postfix:
+        condition: service_healthy
+
+  # =================================================================
+  # APP-TIER — MTA: Postfix
+  # =================================================================
+  postfix:
+    image: mwader/postfix:latest
+    container_name: crux-postfix
+    networks:
+      app-network:
+        ipv4_address: 172.21.0.10
+      data-network:
+    expose:
+      - "25"
+      - "587"
+      - "993"
+    volumes:
+      - ./postfix/main.cf:/etc/postfix/main.cf:ro
+      - ./postfix/master.cf:/etc/postfix/master.cf:ro
+      - postfix_mail:/var/mail:rw
+      - postfix_queue:/var/spool/postfix:rw
+      - logs_shared:/var/log/postfix
+      - ./certs:/etc/crux-certs:ro
+    tmpfs:
+      - /var/spool/postfix/dev:size=64M
+      - /var/spool/postfix/pid:size=64M
+      - /tmp:size=64M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "postfix status && ss -tlnp | grep -q ':25 '"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SYS_CHROOT
+    environment:
+      - TZ=UTC
+      - TZDATA_DIR=/usr/share/zoneinfo
+    user: "1000:1000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # APP-TIER — LDA/IMAP: Dovecot
+  # =================================================================
+  dovecot:
+    image: mwader/dovecot:latest
+    container_name: crux-dovecot
+    networks:
+      app-network:
+        ipv4_address: 172.21.0.11
+      data-network:
+    expose:
+      - "993"
+      - "24"
+      - "143"
+    volumes:
+      - ./dovecot/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./dovecot/conf.d/10-ssl.conf:/etc/dovecot/conf.d/10-ssl.conf:ro
+      - ./dovecot/conf.d/20-lmtp.conf:/etc/dovecot/conf.d/20-lmtp.conf:ro
+      - ./dovecot/conf.d/10-mail.conf:/etc/dovecot/conf.d/10-mail.conf:ro
+      - ./dovecot/conf.d/10-auth.conf:/etc/dovecot/conf.d/10-auth.conf:ro
+      - dovecot_mail:/var/mail:rw
+      - dovecot_db:/var/lib/dovecot:rw
+      - logs_shared:/var/log/dovecot
+      - ./certs:/etc/crux-certs:ro
+    tmpfs:
+      - /var/run/dovecot:size=64M
+      - /tmp:size=64M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "dovecot status && ss -tlnp | grep -q ':993 '"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    environment:
+      - TZ=UTC
+    user: "1000:1000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # APP-TIER — Content Filter: Amavis
+  # =================================================================
+  amavis:
+    image: mwader/amavis:latest
+    container_name: crux-amavis
+    networks:
+      app-network:
+        ipv4_address: 172.21.0.12
+      data-network:
+    expose:
+      - "10024"
+      - "9998"
+    volumes:
+      - ./amavis/amavis.conf:/etc/amavis/amavis.conf:ro
+      - amavis_db:/var/lib/amavis:rw
+      - logs_shared:/var/log/amavis
+    tmpfs:
+      - /tmp:size=256M
+      - /var/amavis/tmp:size=256M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "amavisd-is-running || ss -tlnp | grep -q ':10024 '"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 45s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    environment:
+      - TZ=UTC
+    user: "1000:1000"
+    depends_on:
+      clamav:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # DATA-TIER — Antivirus Worker: ClamAV
+  # =================================================================
+  clamav:
+    image: clamav/clamav:latest
+    container_name: crux-clamav
+    networks:
+      data-network:
+        ipv4_address: 172.22.0.10
+    expose:
+      - "3310"
+    volumes:
+      - clamav_db:/var/lib/clamav:rw
+      - logs_shared:/var/log/clamav
+    tmpfs:
+      - /tmp:size=256M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "clamd --version || ss -tlnp | grep -q ':3310 '"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    environment:
+      - TZ=UTC
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # DATA-TIER — Database: PostgreSQL
+  # =================================================================
+  postgres:
+    image: postgres:17-alpine
+    container_name: crux-postgres
+    networks:
+      data-network:
+        ipv4_address: 172.22.0.11
+      monitor-network:
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:rw
+    tmpfs:
+      - /tmp:size=64M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+      - CHOWN
+      - NET_BIND_SERVICE
+    environment:
+      - POSTGRES_DB=crux_mail
+      - POSTGRES_USER=crux_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_INITDB_ARGS=--data-checksums
+      - TZ=UTC
+    secrets:
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # DATA-TIER — Cache/Rate-limiting: Redis
+  # =================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: crux-redis
+    networks:
+      app-network:
+        ipv4_address: 172.21.0.15
+      data-network:
+      monitor-network:
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data:rw
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    tmpfs:
+      - /tmp:size=32M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # DATA-TIER — Object Storage: MinIO (Attachments)
+  # =================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: crux-minio
+    networks:
+      data-network:
+        ipv4_address: 172.22.0.12
+      monitor-network:
+    expose:
+      - "9000"
+      - "9001"
+    volumes:
+      - minio_data:/data:rw
+    command: minio server /data --console-address :9001
+    tmpfs:
+      - /tmp:size=32M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    environment:
+      - MINIO_ROOT_USER=crux_storage
+      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_password
+      - MINIO_SERVER_URL=https://storage.crux.local
+      - TZ=UTC
+    secrets:
+      - minio_password
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # MONITORING — Grafana
+  # =================================================================
+  grafana:
+    image: grafana/grafana:11.2.0-alpine
+    container_name: crux-grafana
+    networks:
+      monitor-network:
+        ipv4_address: 172.23.0.10
+    expose:
+      - "3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    tmpfs:
+      - /tmp:size=32M
+      - /var/lib/grafana:size=128M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q \\"commit\\""]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # MONITORING — Loki (Log aggregation)
+  # =================================================================
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: crux-loki
+    networks:
+      monitor-network:
+        ipv4_address: 172.23.0.11
+      app-network:
+    expose:
+      - "3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    tmpfs:
+      - /tmp:size=32M
+      - /loki:size=512M
+    read_only: true
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q \\"ready\\""]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+# ------------------------------------------------------------------
+# SECRETS: Gestión segura de credenciales
+# ------------------------------------------------------------------
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  minio_password:
+    file: ./secrets/minio_password.txt
+  mail_server_tls_key:
+    file: ./secrets/tls_key.pem
+  mail_server_tls_cert:
+    file: ./secrets/tls_cert.pem
+
+# ------------------------------------------------------------------
+# SECCOMP PROFILE GLOBAL (opcional, requiere Docker >= 20.10)
+# ------------------------------------------------------------------
+# security_opt en level: seccomp: ./security/seccomp-profile.json

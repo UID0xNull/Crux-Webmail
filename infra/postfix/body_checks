@@ -1,0 +1,43 @@
+# ============================================================================
+# Crux-Webmail — Postfix Body Checks
+# Body-level content filtering for inbound SMTP
+# ============================================================================
+# Format: REGEX ACTION [details]
+# ============================================================================
+
+# ------------------------------------------------------------------
+# Block executable attachment references in body
+# ------------------------------------------------------------------
+# (Note: actual file filtering is done by Amavis/ClamAV)
+
+# ------------------------------------------------------------------
+# Detect phishing patterns
+# ------------------------------------------------------------------
+/https?:\/\/[^\s]*password[^\s]*reset/i    WARN phishing_password_reset
+/https?:\/\/[^\s]*verify\s*your\s*account/i WARN phishing_account_verify
+/urgent.*action.*required/i               WARN phishing_urgent_action
+/your\s*account\s*has\s*been\s*suspended/i WARN phishing_account_suspended
+
+# ------------------------------------------------------------------
+# Block inline scripts in HTML body
+# ------------------------------------------------------------------
+/<script[^>]*>.*<\/script>/i              REJECT inline_script_block
+/onerror\s*=\s*["']/i                    REJECT html_onerror_handler
+/onclick\s*=\s*["']/i                   REJECT html_onclick_handler
+/onmouseover\s*=\s*["']/i               REJECT html_onmouseover_handler
+
+# ------------------------------------------------------------------
+# Block data: URIs with HTML (common in XSS) 
+# ------------------------------------------------------------------
+/data:text\/html[^,]*,/i                  REJECT data_html_uri
+
+# ------------------------------------------------------------------
+# Detect potential credential harvesting forms
+# ------------------------------------------------------------------
+/<form.*action=.*https?:\/\/[^\"]*login/i WARN potential_credential_harvest
+/<input.*type="password"/i                WARN password_field_in_email
+
+# ------------------------------------------------------------------
+# Allow normal content (DUNNO = no action)
+# ------------------------------------------------------------------
+/^[\s]*$/                                  DUNNO empty_line

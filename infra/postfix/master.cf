@@ -1,0 +1,103 @@
+# ============================================================================
+# Crux-Webmail — Postfix MTA: master.cf
+# Service definitions for SMTP, submission, LMTP bounce
+# ============================================================================
+
+# =========================================================================
+# SMTP INBOUND — Port 25 (standard)
+# =========================================================================
+smtp      inet  n       -       y       -       -       smtpd
+    -o syslog_name=postfix/smtp
+    -o smtpd_tls_security_level=may
+    -o smtpd_tls_ask_ccert=yes
+
+# =========================================================================
+# SUBMISSION — Port 587 (authenticated clients)
+# =========================================================================
+submission inet  n       -       y       -       -       smtpd
+    -o syslog_name=postfix/submission
+    -o smtpd_tls_security_level=encrypt
+    -o smtpd_sasl_auth_enable=yes
+    -o smtpd_reject_unlisted_recipient=no
+    -o smtpd_relay_restrictions=permit_sasl_authenticated,reject
+    -o milter_macro_daemon_name=ORIGINATING
+
+# =========================================================================
+# SMTPS — Port 465 (legacy TLS-wrapped SMTP)
+# =========================================================================
+smtps     inet  n       -       y       -       -       smtpd
+    -o syslog_name=postfix/smtps
+    -o smtpd_tls_wrappermode=yes
+    -o smtpd_sasl_auth_enable=yes
+    -o smtpd_reject_unlisted_recipient=no
+    -o smtpd_relay_restrictions=permit_sasl_authenticated,reject
+    -o milter_macro_daemon_name=ORIGINATING
+
+# =========================================================================
+# AMAVIS RETURN — Filtered mail returns (10025)
+# =========================================================================
+127.0.0.1:10025 inet n  -       y       -       -       smtpd
+    -o syslog_name=postfix/amavis-return
+    -o content_filter=
+    -o smtpd_authorized_xforward_hosts=127.0.0.0/8
+    -o smtpd_client_restrictions=
+    -o smtpd_helo_restrictions=
+    -o smtpd_sender_restrictions=
+    -o smtpd_recipient_restrictions=permit_mynetworks,reject
+    -o mynetworks=127.0.0.0/8
+    -o strict_rfc821_envelopes=yes
+    -o receive_override_parameters=no_milters
+
+# =========================================================================
+# FLUSH SERVICE — Queue management
+# =========================================================================
+flush     unix  n       -       y       -       0       flush
+
+# =========================================================================
+# PICKUP — Local mail submission
+# =========================================================================
+pickup    unix  n       -       y       60      1       pickup
+    -o content_filter=
+
+# =========================================================================
+# CATCHALLS & UTILITIES
+# =========================================================================
+trace     unix  -       -       y       -       0       spawn
+    user=nobody argv=/usr/lib/postfix/trace
+verify    unix  -       -       y       -       1       verify
+
+# =========================================================================
+# QUEUE & ERROR HANDLING
+# =========================================================================
+qmgr      unix  n       -       n       300     1       qmgr
+tlsmgr    unix  -       -       y       1000?   1       tlsmgr
+scache    unix  -       -       y       -       1       scache
+
+# =========================================================================
+# LOCAL DELIVERY — Disabled (LMTP via Dovecot)
+# =========================================================================
+#local     unix  -       n       n       -       -       local
+
+# =========================================================================
+# REPLIES & BOUNCE
+# =========================================================================
+retry     unix  -       -       y       -       -       error
+default   unix  -       -       y       -       -       error
+bounce    unix  -       -       y       -       0       bounce
+defer     unix  -       -       y       -       0       bounce
+trace     unix  -       -       y       -       0       bounce
+verify    unix  -       -       y       -       1       verify
+flush     unix  -       -       y       -       100     flush
+proxymap  unix  -       -       n       -       -       proxymap
+proxywrite unix -       -       n       -       1       proxymap
+smtp      unix  -       -       y       -       -       smtp
+relay     unix  -       -       y       -       -       smtp
+    -o syslog_name=postfix/relay
+showq     unix  -       -       y       -       -       showq
+error     unix  -       -       y       -       -       error
+local     unix  -       n       n       -       -       local
+virtual   unix  -       n       n       -       -       virtual
+lmtp      unix  -       -       y       -       -       lmtp
+anvil     unix  -       -       y       -       1       anvil
+scache    unix  -       -       y       -       1       scache
+postlog   unix-dgram n  -       n       -       1       postlogd

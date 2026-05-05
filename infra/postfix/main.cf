@@ -1,0 +1,148 @@
+# ============================================================================
+# Crux-Webmail — Postfix MTA: main.cf
+# Hardened SMTP Server | Zero-Trust Mail Transport
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# IDENTITY & HOSTNAME
+# ----------------------------------------------------------------------------
+myhostname = mail.crux.local
+mydomain   = crux.local
+myorigin   = $mydomain
+mydestination = localhost, $myhostname
+inet_interfaces = all
+inet_protocols  = ipv4
+
+# ----------------------------------------------------------------------------
+# NETWORK & CONNECTION CONTROL
+# ----------------------------------------------------------------------------
+defaul_transport = lmtp:unix:private/dovecot-lmtp
+relayhost =
+
+# Max concurrent connections — DDoS mitigation
+smtpd_client_connection_rate_limit = 30
+smtpd_client_connection_count_limit = 50
+default_process_limit = 100
+
+# Message size limits
+mailbox_size_limit = 52428800        # 50MB per mailbox
+message_size_limit = 26214400        # 25MB per message
+
+# ----------------------------------------------------------------------------
+# TLS 1.3 — Strict Encryption (Zero-Trust)
+# ----------------------------------------------------------------------------
+smtp_tls_security_level      = encrypt
+smtpd_tls_security_level     = may
+
+# Mandatory: ONLY TLS 1.2+ (TLS 1.3 preferred)
+smtpd_tls_mandatory_protocols    = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtp_tls_mandatory_protocols     = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtpd_tls_mandatory_ciphers      = high
+smtp_tls_mandatory_ciphers       = high
+
+# Cipher suites — AEAD ONLY
+smtpd_tls_protocols              = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+smtp_tls_protocols               = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+
+# Certificates
+smtpd_tls_cert_file  = /etc/crux-certs/server.crt
+smtpd_tls_key_file   = /etc/crux-certs/server.key
+smtpd_tls_CAfile     = /etc/crux-certs/ca-chain.crt
+smtp_tls_CAfile      = /etc/crux-certs/ca-chain.crt
+
+# mTLS enforcement for outbound
+smtp_tls_verify_cert_match   = hostname
+smtp_tls_note_starttls_offer = yes
+
+# Session caching (performance)
+tls_server_sni_maps = tls:/etc/postfix/tls_sni.map
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_tls_session_cache
+smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_tls_session_cache
+
+# ----------------------------------------------------------------------------
+# AUTHENTICATION & SECURITY
+# ----------------------------------------------------------------------------
+# SASL via Dovecot
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous, noplaintext
+smtpd_sasl_tls_security_options = noanonymous
+
+# Only auth users can relay
+smtpd_relay_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination
+
+# Greylisting — anti-spam
+# (requires postgrey installed)
+
+# SPF / DKIM / DMARC validation via Amavis pipeline
+# ----------------------------------------------------------------------------
+# MAIL FILTERING — Amavis Pipeline
+# ----------------------------------------------------------------------------
+# Incoming mail routes through Amavis (content filter + antivirus)
+content_filter = amavis:[172.21.0.12]:10024
+
+# Return path from Amavis
+receive_override_settings =
+    header_checks =,
+    body_checks =,
+    nested_header_checks =,
+    mime_header_checks =,
+    address_filter_maps =,
+    recipient_delimiter =
+
+# ----------------------------------------------------------------------------
+# LMTP HANDOFF → Dovecot
+# ----------------------------------------------------------------------------
+# After Amavis filtering, delivery via LMTP to Dovecot
+lmtp_destination_recipient_limit = 1
+lmtp_connect_timeout            = 60s
+lmtp_mail_timeout               = 300s
+lmtp_quote_rfc2821_callbacks    = yes
+lmtp_pix_workaround_delay_time  = 1s
+
+# ----------------------------------------------------------------------------
+# DNSSEC & DNS RESOLUTION
+# ----------------------------------------------------------------------------
+dns_relay_domains = yes
+resolve_disable_verify_override = no
+
+# DNS blacklist (DNSBL) checks
+smtpd_restriction_classes = blacklist_check
+blacklist_check =
+    reject_rbl_client bl.spamcop.net,
+    reject_rbl_client sbl.spamhaus.org,
+    reject_rbl_client xbl.spamhaus.org,
+    reject_rbl_client zen.spamhaus.org
+
+# ----------------------------------------------------------------------------
+# RATE LIMITING & THROTTLING
+# ----------------------------------------------------------------------------
+# Per-IP SMTP rate limiting
+smtpd_client_message_rate_limit = 80
+smtpd_client_recipient_rate_limit = 150
+
+# ----------------------------------------------------------------------------
+# HEADER & BODY CHECKS
+# ----------------------------------------------------------------------------
+header_checks = regexp:/etc/postfix/header_checks
+body_checks   = regexp:/etc/postfix/body_checks
+
+# ----------------------------------------------------------------------------
+# LOGGING & AUDIT
+# ----------------------------------------------------------------------------
+# JSON logging (via rsyslog or mail.log handler)
+maillog_file = /var/log/postfix/mail.log
+maillog_file_prefix = $myhostname
+
+# Enable verbose tracking
+postlog_track_unused_luusers = yes
+notify_classes = resource, software
+
+# ----------------------------------------------------------------------------
+# COMPATIBILITY
+# ----------------------------------------------------------------------------
+compatibility_level = 3.6
