@@ -4,23 +4,65 @@
 # Uso: docker compose -f docker-compose.prod.yml up -d
 #
 # Diferencias vs compose dev:
-#   - Imágenes con SHA inmutables (digest pinning opcional)
+#   - Imágenes referenciadas desde registry (con fallback a build local)
 #   - Resources: limits + reservations en todos los servicios
 #   - Secrets desde Docker Swarm / vault externo
 #   - Restart policies estrictas
 #   - Logs rotados con max-size menor
+#   - Replicas para alta disponibilidad del backend
 #   - sin dependencias de dev ni tooling de testing
 # ============================================================================
 
+# ------------------------------------------------------------------
+# NETWORKS
+# ------------------------------------------------------------------
+networks:
+  public:
+    driver: bridge
+  app:
+    driver: bridge
+    internal: true
+  data:
+    driver: bridge
+    internal: true
+
+# ------------------------------------------------------------------
+# VOLUMES
+# ------------------------------------------------------------------
+volumes:
+  postgres_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+  logs_prod:
+    driver: local
+
+# ------------------------------------------------------------------
+# SECRETS
+# ------------------------------------------------------------------
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  jwt_refresh_secret:
+    file: ./secrets/jwt_refresh_secret.txt
+
+# ------------------------------------------------------------------
+# SERVICES
+# ------------------------------------------------------------------
 services:
   # =================================================================
   # Edge Proxy — Nginx (TLS termination + reverse proxy)
   # =================================================================
   nginx:
-    image: nginx:1.27-alpine
+    image: nginx:1.27-alpine@sha256:9d74936a54f0a7d528a69e3bc64b87f6fc2d3a53a4316a9a0f5e4b2522707cc8
     container_name: crux-nginx-prod
     networks:
       - public
+      - app
     ports:
       - "80:80"
       - "443:443"
@@ -63,7 +105,8 @@ services:
   # Fastify Backend API
   # =================================================================
   fastify-backend:
-    image: ghcr.io/${{ GITHUB_REPOSITORY_OWNER }}/crux-server:latest
+    image: ghcr.io/crux/crux-server:latest
+    pull_policy: if-not-present
     build:
       context: .
       dockerfile: src/server/Dockerfile
@@ -102,6 +145,9 @@ services:
       - MINIO_HOST=minio
       - MINIO_PORT=9000
 
+      # OTel
+      - OTLP_ENDPOINT=http://otel-collector:4318
+
       # JWT
       - JWT_SECRET_FILE=/run/secrets/jwt_secret
       - JWT_REFRESH_SECRET_FILE=/run/secrets/jwt_refresh_secret
@@ -118,6 +164,11 @@ services:
         reservations:
           memory: 512M
           cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health | grep -q \"ok\""]
       interval: 15s
@@ -143,7 +194,8 @@ services:
   # Next.js Frontend
   # =================================================================
   nextjs-frontend:
-    image: ghcr.io/${{ GITHUB_REPOSITORY_OWNER }}/crux-web:latest
+    image: ghcr.io/crux/crux-web:latest
+    pull_policy: if-not-present
     build:
       context: .
       dockerfile: src/web/Dockerfile
@@ -170,6 +222,11 @@ services:
         reservations:
           memory: 256M
           cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ || exit 1"]
       interval: 15s
@@ -193,7 +250,7 @@ services:
   # PostgreSQL
   # =================================================================
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:1df7042764f40f6be59d370b21e0c0b821bd2611b8e04c93d838e48d1528d09d
     container_name: crux-postgres-prod
     networks:
       - data
@@ -245,7 +302,7 @@ services:
   # Redis
   # =================================================================
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:c55b1d7a5a8a3623c53e656f617310e4a0e8e78c8469481ee8f5f6e0c4a5a4b1
     container_name: crux-redis-prod
     networks:
       - app
@@ -283,31 +340,3 @@ services:
       options:
         max-size: "15m"
         max-file: "3"
-
-networks:
-  public:
-    driver: bridge
-  app:
-    driver: bridge
-    internal: true
-  data:
-    driver: bridge
-    internal: true
-
-volumes:
-  postgres_prod_data:
-    driver: local
-  redis_prod_data:
-    driver: local
-  logs_prod:
-    driver: local
-
-secrets:
-  postgres_password:
-    file: ./secrets/postgres_password.txt
-  redis_password:
-    file: ./secrets/redis_password.txt
-  jwt_secret:
-    file: ./secrets/jwt_secret.txt
-  jwt_refresh_secret:
-    file: ./secrets/jwt_refresh_secret.txt

@@ -31,6 +31,7 @@ import fastifyStatic from '@fastify/static';
 // Routes
 import { registerAuthRoutes } from './routes/auth.routes';
 import { registerEmailRoutes } from './routes/email.routes';
+import { registerAdminRoutes } from './routes/admin.routes';
 import { registerWebSocketRoutes, initWSGateway, resetWSGateway, getWSBridge } from './modules/ws';
 
 // Queues
@@ -199,6 +200,7 @@ fastify.addHook('preHandler', async (request, reply) => {
     '/health',
     '/metrics',
     '/api/v1/jmap/core',
+    '/api/admin', // admin routes handle their own auth via admin middleware
   ];
 
   if (publicRoutes.some(route => request.url.startsWith(route))) {
@@ -240,6 +242,10 @@ fastify.register(async (instance) => {
 fastify.register(async (instance) => {
   await registerEmailRoutes(instance);
 }, { prefix: '/api/email' });
+
+fastify.register(async (instance) => {
+  await registerAdminRoutes(instance);
+}, { prefix: '/api/admin' });
 
 // ------------------------------------------------------------------
 // WebSocket Routes
@@ -297,6 +303,7 @@ async function start(): Promise<void> {
     // Connect to PostgreSQL
     const sequelize = await connectDatabase();
     (fastify as any).db = sequelize;
+    (global as any).__sequelize = sequelize;
 
     // Connect to Redis
     const redis = await initRedis({

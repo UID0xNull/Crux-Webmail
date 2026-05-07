@@ -1,0 +1,101 @@
+# ============================================================================
+# Prometheus — Crux-Webmail Production Monitoring
+# ============================================================================
+# Scrapes: Fastify backend, Postgres, Redis, Node exporter, Redis exporter,
+# PostgreSQL exporter, OpenTelemetry Collector, y service discovery.
+# ============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: 'crux-webmail-prod'
+    environment: 'production'
+
+# Alerting pipeline
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'crux-alertmanager:9093'
+
+# Rule files
+rule_files:
+  - '/etc/prometheus/rules/*.rules.yml'
+
+# Scrape configs
+scrape_configs:
+  # ------------------------------------------------------------------
+  # Crux-Webmail Fastify Backend
+  # ------------------------------------------------------------------
+  - job_name: 'crux-fastify'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['crux-fastify:3000']
+        labels:
+          service: 'fastify-backend'
+          environment: 'production'
+    scrape_interval: 10s
+    honor_labels: true
+
+  # ------------------------------------------------------------------
+  # PostgreSQL Exporter
+  # ------------------------------------------------------------------
+  - job_name: 'crux-postgres'
+    static_configs:
+      - targets: ['crux-postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+    scrape_interval: 15s
+
+  # ------------------------------------------------------------------
+  # Redis Exporter
+  # ------------------------------------------------------------------
+  - job_name: 'crux-redis'
+    static_configs:
+      - targets: ['crux-redis-exporter:9121']
+        labels:
+          service: 'redis'
+    scrape_interval: 15s
+
+  # ------------------------------------------------------------------
+  # Node Exporter (host metrics)
+  # ------------------------------------------------------------------
+  - job_name: 'crux-node'
+    static_configs:
+      - targets: ['crux-node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+    scrape_interval: 30s
+
+  # ------------------------------------------------------------------
+  # OpenTelemetry Collector (self-observability)
+  # ------------------------------------------------------------------
+  - job_name: 'crux-otel'
+    static_configs:
+      - targets: ['crux-otel:8889']
+        labels:
+          service: 'otel-collector'
+    scrape_interval: 15s
+
+  # ------------------------------------------------------------------
+  # Prometheus self-monitoring
+  # ------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+    scrape_interval: 15s
+
+  # ------------------------------------------------------------------
+  # MinIO metrics (S3-compatible storage)
+  # ------------------------------------------------------------------
+  - job_name: 'crux-minio'
+    metrics_path: '/minio/v2/metrics/cluster'
+    static_configs:
+      - targets: ['crux-minio:9000']
+        labels:
+          service: 'minio'
+    scrape_interval: 30s

@@ -1,0 +1,139 @@
+# ============================================================================
+# Prometheus Alert Rules — Crux-Webmail: Application & Backend
+# ============================================================================
+groups:
+  - name: application_alerts
+    interval: 15s
+    rules:
+      # ------------------------------------------------------------------
+      # Fastify Backend Health
+      # ------------------------------------------------------------------
+      - alert: FastifyBackendDown
+        expr: up{job="crux-fastify"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: application
+        annotations:
+          summary: "Fastify Backend no está respondiendo"
+          description: "El servicio crux-fastify está down desde hace más de 1 minuto."
+          runbook_url: "https://wiki.crux.local/runbooks/backend-down"
+
+      - alert: FastifyHighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="crux-fastify"}[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Latencia p95 alta en Fastify"
+          description: "p95 > 2s durante 5 min. Valor: {{ $value | humanize }}s"
+
+      - alert: FastifyHighErrorRate
+        expr: sum(rate(http_requests_total{job="crux-fastify",code=~"5.."}[5m])) / sum(rate(http_requests_total{job="crux-fastify"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: application
+        annotations:
+          summary: "Alta tasa de errores HTTP 5xx en Fastify"
+          description: "Más del 5% de las requests devuelven 5xx. Tasa: {{ $value | humanizePercentage }}"
+
+      - alert: FastifyHighRequestRate
+        expr: sum(rate(http_requests_total{job="crux-fastify"}[1m])) > 5000
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Rango inusual de requests en Fastify"
+          description: "RPM > 5000 durante 5 min. Posible DDoS o tráfico inusual."
+
+      # ------------------------------------------------------------------
+      # Node.js Process Metrics
+      # ------------------------------------------------------------------
+      - alert: NodeHeapHigh
+        expr: process_resident_memory_bytes{job="crux-fastify"} / 1073741824 > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Heap de Node.js alto"
+          description: "Memoria residente > 800MB. Posible memory leak."
+
+      - alert: NodeEventLoopLatency
+        expr: nodejs_eventloop_lag_seconds > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Event Loop bloqueado"
+          description: "Latencia del event loop > 100ms. Valor: {{ $value }}s"
+
+      # ------------------------------------------------------------------
+      # Email Queue (BullMQ)
+      # ------------------------------------------------------------------
+      - alert: MailQueueBacklog
+        expr: crux_mail_queue_pending_messages > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: mail
+        annotations:
+          summary: "Cola de correo con backlog"
+          description: "Más de 100 mensajes pendientes. Valor: {{ $value }}"
+
+      - alert: MailQueueCriticalBacklog
+        expr: crux_mail_queue_pending_messages > 500
+        for: 2m
+        labels:
+          severity: critical
+          category: mail
+        annotations:
+          summary: "Cola de correo con backlog crítico"
+          description: "Más de 500 mensajes pendientes. Posible fallo del worker."
+
+      - alert: MailProcessingSlow
+        expr: histogram_quantile(0.95, crux_email_process_duration_seconds_bucket) > 30
+        for: 10m
+        labels:
+          severity: warning
+          category: mail
+        annotations:
+          summary: "Procesamiento de email lento (p95)"
+          description: "p95 > 30s. Verificar conexiones IMAP/SMTP."
+
+      # ------------------------------------------------------------------
+      # Auth / Security
+      # ------------------------------------------------------------------
+      - alert: AuthFailuresSpike
+        expr: increase(crux_auth_failures_total[5m]) > 20
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Pico de fallos de autenticación"
+          description: "Más de 20 fallos en 5 minutos. Posible brute-force."
+
+      - alert: BruteForceDetected
+        expr: increase(crux_auth_failures_total[5m]) > 100
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "Ataque de brute-force detectado"
+          description: "Más de 100 fallos de auth en 5 min. Acciones automáticas en progreso."
+
+      - alert: RateLimitExceededHigh
+        expr: increase(crux_rate_limited_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Rate limiting activo a escala inusual"
+          description: "Más de 1000 requests bloqueadas en 5 min."

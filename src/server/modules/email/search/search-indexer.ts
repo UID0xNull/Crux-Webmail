@@ -5,8 +5,8 @@
 // stemming básico, y filtrado por stop words. Almacena índices en PostgreSQL.
 // ============================================================================
 
-import { UserModel } from '../../../models/User';
-import { auditLogger } from '../../../utils/audit-logger';
+import { UserModel } from 'models/User';
+import { auditLogger } from 'utils/audit-logger';
 
 // ------------------------------------------------------------------
 // Types
@@ -48,6 +48,13 @@ export interface IndexStatus {
   lastUpdated: string;
 }
 
+export interface SearchFilters {
+  folder?: string;
+  flag?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 // ------------------------------------------------------------------
 // Stop Words
 // ------------------------------------------------------------------
@@ -70,39 +77,39 @@ const STOP_WORDS = new Set([
 // Stemming (Porter-like simplified)
 // ------------------------------------------------------------------
 const STEM_RULES: [RegExp, string][] = [
-  [/(ational)$/, '\1tion'],
-  [/(tional)$/, '\1'],
-  [/(enci)$/, '\1ence'],
-  [/(anci)$/, '\1ance'],
-  [/(izer)$/, '\1ize'],
-  [/(abli)$/, '\1able'],
-  [/(alli)$/, '\1al'],
-  [/(entli)$/, '\1ent'],
-  [/(eli)$/, '\1e'],
-  [/(ousli)$/, '\1ous'],
-  [/(ization)$/, '\1ize'],
-  [/(ation)$/, '\1ate'],
-  [/(ator)$/, '\1ate'],
-  [/(alism)$/, '\1ali'],
-  [/(iveness)$/, '\1ive'],
-  [/(fulness)$/, '\1ful'],
-  [/(fulness)$/, '\1ful'],
-  [/(fulness)$/, '\1ful'],
-  [/(ness)$/, '\1'],
-  [/(nesses)$/, '\1'],
-  [/(ing)$/, '\1'],
-  [/(ed)$/, '\1'],
-  [/(er)$/, '\1'],
-  [/(ly)$/, '\1'],
-  [/(es)$/, '\1'],
-  [/(s)$/, '\1'],
+  [/(ational)$/, '$1tion'],
+  [/(tional)$/, '$1'],
+  [/(enci)$/, '$1ence'],
+  [/(anci)$/, '$1ance'],
+  [/(izer)$/, '$1ize'],
+  [/(abli)$/, '$1able'],
+  [/(alli)$/, '$1al'],
+  [/(entli)$/, '$1ent'],
+  [/(eli)$/, '$1e'],
+  [/(ousli)$/, '$1ous'],
+  [/(ization)$/, '$1ize'],
+  [/(ation)$/, '$1ate'],
+  [/(ator)$/, '$1ate'],
+  [/(alism)$/, '$1ali'],
+  [/(iveness)$/, '$1ive'],
+  [/(fulness)$/, '$1ful'],
+  [/(fulness)$/, '$1ful'],
+  [/(fulness)$/, '$1ful'],
+  [/(ness)$/, '$1'],
+  [/(nesses)$/, '$1'],
+  [/(ing)$/, '$1'],
+  [/(ed)$/, '$1'],
+  [/(er)$/, '$1'],
+  [/(ly)$/, '$1'],
+  [/(es)$/, '$1'],
+  [/(s)$/, '$1'],
 ];
 
 function stemWord(word: string): string {
   if (word.length <= 3) return word.toLowerCase();
   let result = word.toLowerCase();
   for (const [pattern, replacement] of STEM_RULES) {
-    result = result.replace(pattern, replacement as string);
+    result = result.replace(pattern, replacement);
   }
   return result;
 }
@@ -222,7 +229,7 @@ class InMemoryIndex {
     }
   }
 
-  search(queryTerms: string[], userId: string, filters?: Partial<SearchableMessage>): SearchableMessage[] {
+  search(queryTerms: string[], userId: string, filters?: SearchFilters): SearchableMessage[] {
     const docKey = this.getDocKey(userId);
     const userDocs = this.docs.get(docKey);
 
@@ -236,7 +243,10 @@ class InMemoryIndex {
       if (!termSet) continue;
 
       for (const docRef of termSet) {
-        const [refUser, uidStr] = docRef.split(':');
+        const parts = docRef.split(':');
+        if (parts.length < 2) continue;
+        const refUser = parts[0]!;
+        const uidStr = parts[1]!;
         if (refUser === docKey) {
           const uid = parseInt(uidStr, 10);
           candidates.set(uid, (candidates.get(uid) || 0) + 1);
@@ -252,10 +262,10 @@ class InMemoryIndex {
       if (!message) continue;
 
       // Apply filters
-      if (filters.folder && message.folder !== filters.folder) continue;
-      if (filters.flag && !message.flags.includes(filters.flag)) continue;
-      if (filters.dateFrom && message.date < filters.dateFrom) continue;
-      if (filters.dateTo && message.date > filters.dateTo) continue;
+      if (filters?.folder && message.folder !== filters.folder) continue;
+      if (filters?.flag && !message.flags.includes(filters.flag)) continue;
+      if (filters?.dateFrom && message.date < filters.dateFrom) continue;
+      if (filters?.dateTo && message.date > filters.dateTo) continue;
 
       const allText = [message.subject, message.body, message.from, message.to].join(' ');
       const docTerms = tokenize(allText);
@@ -373,7 +383,7 @@ export class SearchIndexer {
   ): Promise<SearchResults> {
     const queryTerms = tokenize(queryText);
 
-    const filters: Partial<SearchableMessage> = {};
+    const filters: SearchFilters = {};
     if (options.folder) filters.folder = options.folder;
     if (options.flag) filters.flag = options.flag;
     if (options.dateFrom) filters.dateFrom = options.dateFrom;
@@ -457,6 +467,3 @@ export async function onMovedEmail(
     await indexer.indexEmail(userId, { ...oldEntry, folder: newFolder });
   }
 }
-
-// Export helpers for testing
-export { tokenize, filterStopWords, stem };

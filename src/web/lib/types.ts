@@ -226,4 +226,118 @@ export interface SessionState {
   expiresAt: number;
   fingerprint: ClientFingerprint | null;
 }
+
+// ------------------------------------------------------------------
+// Admin Panel Types
+// ------------------------------------------------------------------
+
+export interface AdminUserStats {
+  total: number;
+  active: number;
+  inactive: number;
+  withMFA: number;
+  locked: number;
+  admins: number;
+}
+
+export interface AdminUserInfo {
+  id: string;
+  username: string;
+  display_name: string | null;
+  roles: string[];
+  is_active: boolean;
+  mfa_enabled: boolean;
+  failed_attempts: number;
+  locked_until: number | null;
+  last_login: string | null;
+  created_at: string;
+}
+
+export interface AdminAuditLogEntry {
+  id: string;
+  event_id: string;
+  timestamp: string;
+  source: string;
+  level: 'info' | 'warn' | 'error' | 'critical';
+  category: string;
+  message: string;
+  actor_id: string | null;
+  client_ip: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface AdminAuditLogSummary {
+  total: number;
+  byLevel: Record<string, number>;
+  byCategory: Record<string, number>;
+  last24h: number;
+  criticalEvents: number;
+}
+
+export interface AdminSystemHealth {
+  server: {
+    uptime: number;
+    memory: { usedMB: number; totalMB: number; percent: number };
+    cpuPercent: number;
+    nodeVersion: string;
+    environment: string;
+  };
+  postgres: { status: string; latencyMs: number; version?: string };
+  redis: { status: string; latencyMs: number; connectedClients?: number };
+  queues: { email: { waiting: number; active: number; failed: number } };
+}
+
+export interface AdminMailSystemStats {
+  postfix: { status: string; queue_size: number | null; host: string };
+  dovecot: { status: string; active_users: number | null; host: string };
+  amavis: { status: string; quarantine_count: number | null; host: string };
+  clamav: { status: string; host: string };
+  minio: { status: string; used_bytes: number | null; host: string };
+}
+
+export interface AdminSessionInfo {
+  session_id: string;
+  user_id: string;
+  username: string;
+  fingerprint: string;
+  created: string;
+  lastActive: string;
+  ip_hash: string;
+}
+
+export interface AdminAppSettings {
+  app_name: string;
+  app_version: string;
+  environment: string;
+  maintenance_mode: boolean;
+  registration_open: boolean;
+  max_password_length: number;
+  min_password_length: number;
+  max_concurrent_sessions: number;
+  rate_limit_api_rpm: number;
+  rate_limit_auth_rpm: number;
+  mfa_required: boolean;
+  session_ttl_ms: number;
+}
+
+export interface AdminDashboardData {
+  system: AdminSystemHealth;
+  users: AdminUserStats;
+  audits: AdminAuditLogSummary;
+  recentActivity: Array<{ timestamp: string; type: string; description: string }>;
+}
+
+export interface AdminPaginatedUsers {
+  users: AdminUserInfo[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface AdminPaginatedAuditLogs {
+  logs: AdminAuditLogEntry[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
 ---CODE---

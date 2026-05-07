@@ -1,0 +1,17 @@
+{
+  "name": "crux-webmail-load-tests",
+  "version": "1.0.0",
+  "description": "K6 load tests for Crux-Webmail production validation",
+  "private": true,
+  "scripts": {
+    "load:smoke": "k6 run --summary-export=results/smoke.json load/smoke-test.js",
+    "load:baseline": "k6 run --summary-export=results/baseline.json load/baseline-test.js",
+    "load:stress": "k6 run --summary-export=results/stress.json load/stress-test.js",
+    "load:spike": "k6 run --summary-export=results/spike.json load/spike-test.js",
+    "load:all": "npm run load:smoke && npm run load:baseline && npm run load:stress"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "k6": "latest"
+  }
+}

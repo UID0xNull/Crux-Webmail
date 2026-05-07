@@ -1,8 +1,8 @@
 # ============================================================================
 # Prometheus Configuration — Métricas para Crux-Webmail
 # ============================================================================
-# scrape_targets: Fastify backend, Node.js metrics, Redis exporter, PostgreSQL,
-# BullMQ queue metrics, process metrics.
+# scrape_targets: Fastify backend, Redis exporter, PostgreSQL,
+# BullMQ queue metrics, process metrics, Node Exporter.
 # ============================================================================
 
 global:
@@ -12,7 +12,7 @@ global:
 
   external_labels:
     cluster: 'crux-webmail'
-    environment: '${NODE_ENV:-development}'
+    environment: 'production'
 
 # --- Alerting ---
 alerting:
@@ -29,11 +29,12 @@ rule_files:
 scrape_configs:
   # ------------------------------------------------------------------
   # Fastify Backend — Métricas HTTP + custom metrics (/metrics)
+  # Dentro de Docker usar nombres de servicio de la red internal
   # ------------------------------------------------------------------
   - job_name: 'crux-backend'
     static_configs:
       - targets:
-          - 'host.docker.internal:3000'
+          - 'crux-fastify:3000'
         labels:
           service: 'fastify-api'
     metrics_path: '/metrics'

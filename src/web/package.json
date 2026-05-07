@@ -21,7 +21,8 @@
     "dompurify": "^3.2.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "lucide-react": "^0.468.0"
+    "lucide-react": "^0.468.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",

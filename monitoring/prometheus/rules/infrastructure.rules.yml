@@ -1,0 +1,93 @@
+# ============================================================================
+# Prometheus Alert Rules — Crux-Webmail: Infrastructure & Hosts
+# ============================================================================
+groups:
+  - name: infrastructure_alerts
+    interval: 15s
+    rules:
+      # ------------------------------------------------------------------
+      # Node Exporter — System Resources
+      # ------------------------------------------------------------------
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Alto consumo de CPU en {{ $labels.instance }}"
+          description: "CPU > 85% durante 5 minutos. Valor: {{ $value }}%"
+          runbook_url: "https://wiki.crux.local/runbooks/high-cpu"
+
+      - alert: CriticalCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "CPU crítica en {{ $labels.instance }}"
+          description: "CPU > 95% durante 2 min. Valor: {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Alto consumo de memoria en {{ $labels.instance }}"
+          description: "Memoria > 85% durante 5 min. Valor: {{ $value }}%"
+
+      - alert: CriticalMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Memoria crítica en {{ $labels.instance }}"
+          description: "Memoria > 95%. Solo queda {{ $value | humanize }}% libre."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Disco bajo en {{ $labels.instance }}{{ $labels.mountpoint }}"
+          description: "Menos del 15% de espacio disponible."
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 5
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Disco crítico en {{ $labels.instance }}"
+          description: "Menos del 5% de espacio disponible. Acción inmediata requerida."
+
+      - alert: NetworkBandwidthHigh
+        expr: rate(node_network_receive_bytes_total{device!="lo"}[5m]) > 100 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Alto tráfico de red en {{ $labels.instance }}"
+          description: "Recepción de red > 100 MB/s"
+
+      # ------------------------------------------------------------------
+      # Container health
+      # ------------------------------------------------------------------
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Contenedor {{ $labels.container }} con memoria alta"
+          description: "Memoria > 90% del límite. Valor: {{ $value }}"

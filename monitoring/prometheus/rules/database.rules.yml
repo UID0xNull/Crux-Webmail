@@ -1,0 +1,147 @@
+# ============================================================================
+# Prometheus Alert Rules — Crux-Webmail: Databases & Cache
+# ============================================================================
+groups:
+  - name: database_alerts
+    interval: 15s
+    rules:
+      # ------------------------------------------------------------------
+      # PostgreSQL
+      # ------------------------------------------------------------------
+      - alert: PostgreSQLDown
+        expr: up{job="crux-postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "PostgreSQL no está disponible"
+          description: "PostgreSQL ha estado down por más de 1 minuto."
+          runbook_url: "https://wiki.crux.local/runbooks/postgres-down"
+
+      - alert: PostgreSQLHighConnections
+        expr: pg_stat_activity_count > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "PostgreSQL con conexiones altas"
+          description: "Conexiones activas > 100. Valor: {{ $value }}"
+
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag > 30
+        for: 2m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Lag de replicación PostgreSQL"
+          description: "Replication lag > 30s. Valor: {{ $value }}s"
+
+      - alert: PostgreSQLTableBloat
+        expr: pg_table_bloat_bytes / pg_table_size_bytes > 0.3
+        for: 10m
+        labels:
+          severity: info
+          category: database
+        annotations:
+          summary: "Table bloat alto en PostgreSQL"
+          description: "Tabla {{ $labels.schemaname }}.{{ $labels.relname }} con {{ $value | humanizePercentage }} de bloat"
+
+      - alert: PostgreSQLDeadTuplesHigh
+        expr: pg_stat_user_tables_n_dead_tup > 10000
+        for: 15m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Dead tuples altos en {{ $labels.relname }}"
+          description: "Más de 10000 dead tuples. Ejecutar VACUUM."
+
+      - alert: PostgreSQLLongRunningQueries
+        expr: pg_stat_activity_max_tx_duration_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Query largo en PostgreSQL"
+          description: "Query ejecutándose por más de 5 minutos"
+
+      # ------------------------------------------------------------------
+      # Redis
+      # ------------------------------------------------------------------
+      - alert: RedisDown
+        expr: up{job="crux-redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "Redis no está disponible"
+          description: "Redis ha estado down por más de 1 minuto."
+          runbook_url: "https://wiki.crux.local/runbooks/redis-down"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Redis con memoria alta"
+          description: "Memoria > 85% del máximo. Valor: {{ $value | humanizePercentage }}"
+
+      - alert: RedisEvictions
+        expr: increase(redis_evicted_keys_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Redis evictando keys"
+          description: "Redis está evictando keys por falta de memoria"
+
+      - alert: RedisSlowLog
+        expr: redis_slowlog_length > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Redis slow log lleno"
+          description: "Más de 100 entradas en slow log"
+
+      - alert: RedisConnectedClientsHigh
+        expr: redis_connected_clients > 200
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Muchos clientes conectados a Redis"
+          description: "{{ $value }} clientes conectados"
+
+      # ------------------------------------------------------------------
+      # MinIO (Object Storage)
+      # ------------------------------------------------------------------
+      - alert: MinIODown
+        expr: up{job="crux-minio"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: storage
+        annotations:
+          summary: "MinIO no está disponible"
+          description: "MinIO ha estado down por más de 1 minuto."
+
+      - alert: MinIOHighUsage
+        expr: minio_cluster_drive_free_percent < 20
+        for: 10m
+        labels:
+          severity: warning
+          category: storage
+        annotations:
+          summary: "Espacio de almacenamiento bajo en MinIO"
+          description: "Menos del 20% de espacio disponible"
