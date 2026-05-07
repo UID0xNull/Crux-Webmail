@@ -3,13 +3,15 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { DashboardSidebar } from './DashboardSidebar';
 import { Search, Mail, Settings, AlertCircle, Wifi, WifiOff, RefreshCw, ChevronLeft } from 'lucide-react';
-import { useConnectionStatus, useRealTimeEvents } from '../../hooks/useWebSocket';
-import { useAuthStore } from '../../lib/store/auth';
-import { useMailStore } from '../../lib/store/mail';
+import { useConnectionStatus, useRealTimeEvents } from 'hooks/useWebSocket';
+import { useAuthStore } from 'lib/store/auth';
+import { useMailStore } from 'lib/store/mail';
 import { useEffect, useState } from 'react';
-import { hydrateAuth } from '../../lib/store/auth';
-import { useNotificationCount } from '../../hooks/useWebSocket';
+import { hydrateAuth } from 'lib/store/auth';
+import { useNotificationCount } from 'hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
+import { ErrorBoundary, ComponentErrorBoundary } from 'ui/ErrorBoundary';
+import { PerformanceProvider } from 'ui/PerformanceProvider';
 
 // ------------------------------------------------------------------
 // Dashboard Layout - wraps all /dashboard/* routes
@@ -86,9 +88,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         />
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto">
-          {children}
-        </div>
+        <PerformanceProvider>
+          <ErrorBoundary>
+            <div className="flex-1 overflow-auto">
+              {children}
+            </div>
+          </ErrorBoundary>
+        </PerformanceProvider>
       </main>
     </div>
   );
