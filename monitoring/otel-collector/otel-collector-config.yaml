@@ -1,0 +1,65 @@
+# ============================================================================
+# OpenTelemetry Collector — Crux-Webmail
+# ============================================================================
+# Receives traces/metrics via OTLP from Fastify backend, exports to Loki
+# (logs) and Prometheus-compatible endpoints.
+# ============================================================================
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      - cpu
+      - memory
+      - disk
+      - network
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 10000
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 128
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+exporters:
+  # Debug output (development)
+  debug:
+    verbosity: detailed
+
+  # Prometheus-compatible metrics
+  prometheusremotewrite:
+    endpoint: http://crux-prometheus:9090/api/v1/write
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+
+    metrics:
+      receivers: [otlp, hostmetrics]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+
+  extensions: [health_check]
+---CODE---

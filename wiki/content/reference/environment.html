@@ -1,0 +1,236 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <a href="#/reference/config">Referencia</a> <span class="sep">/</span>
+      <span>Variables de Entorno</span>
+    </div>
+    <h1>📋 Variables de Entorno Completas</h1>
+    <p class="subtitle">Referencia completa de todas las variables de configuración del sistema.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Uso</h2>
+    <div class="code-block">
+      <pre><code># 1. Copiar template
+cp .env.example .env
+
+# 2. Personalizar valores
+
+# 3. Iniciar servicios
+npm run docker:up</code></pre>
+    </div>
+    <div class="info-box">
+      <strong>Nota:</strong> Todos los valores de <code>.env.example</code> pasan por validación estricta de <strong>Zod</strong> al inicio del servidor. Si una variable es inválida, el servidor se detiene con error detallado.
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: Servidor</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Tipo</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>NODE_ENV</code></td><td><code>dev|staging|prod</code></td><td><code>development</code></td><td>Ambiente de ejecución</td></tr>
+        <tr><td><code>SERVER_PORT</code></td><td><code>number</code></td><td><code>3000</code></td><td>Puerto del servidor Fastify</td></tr>
+        <tr><td><code>SERVER_HOST</code></td><td><code>string</code></td><td><code>0.0.0.0</code></td><td>Bind address del servidor</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: Postfix</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Valor Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>POSTFIX_HOSTNAME</code></td><td><code>mail.crux.local</code></td><td>Hostname del MTA</td></tr>
+        <tr><td><code>POSTFIX_DOMAIN</code></td><td><code>crux.local</code></td><td>Dominio de email principal</td></tr>
+        <tr><td><code>POSTFIX_MAILBOX_SIZE_LIMIT</code></td><td><code>52428800</code></td><td>Límite por mailbox (50MB)</td></tr>
+        <tr><td><code>POSTFIX_MESSAGE_SIZE_LIMIT</code></td><td><code>26214400</code></td><td>Límite por mensaje (25MB)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: Dovecot</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Valor Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>DOVECOT_SSL_REQUIRED</code></td><td><code>true</code></td><td>TLS obligatorio en IMAP</td></tr>
+        <tr><td><code>DOVECOT_AUTH_MECHANISMS</code></td><td><code>plain,login</code></td><td>Mecanismos de autenticación</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: PostgreSQL</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Tipo</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>POSTGRES_DB</code></td><td><code>string</code></td><td><code>crux_mail</code></td><td>Nombre de la base de datos</td></tr>
+        <tr><td><code>POSTGRES_USER</code></td><td><code>string</code></td><td><code>crux_user</code></td><td>Usuario de la DB</td></tr>
+        <tr><td><code>POSTGRES_PASSWORD</code></td><td><code>string</code></td><td>N/A (secret)</td><td>Contraseña — mínimo 8 chars</td></tr>
+        <tr><td><code>POSTGRES_HOST</code></td><td><code>string</code></td><td><code>172.22.0.11</code></td><td>Host de la red data-network</td></tr>
+        <tr><td><code>POSTGRES_PORT</code></td><td><code>number</code></td><td><code>5432</code></td><td>Puerto de PostgreSQL</td></tr>
+        <tr><td><code>POSTGRES_SSL</code></td><td><code>boolean</code></td><td><code>false</code></td><td>SSL en producción</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: Redis</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Tipo</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>REDIS_HOST</code></td><td><code>string</code></td><td><code>172.21.0.15</code></td><td>Host Redis (app-network)</td></tr>
+        <tr><td><code>REDIS_PORT</code></td><td><code>number</code></td><td><code>6379</code></td><td>Puerto Redis</td></tr>
+        <tr><td><code>REDIS_PASSWORD</code></td><td><code>string|null</code></td><td><code>null</code></td><td>Contraseña Redis (dev: null)</td></tr>
+        <tr><td><code>REDIS_DB</code></td><td><code>number</code></td><td><code>0</code></td><td>DB num (0-15)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: MinIO / S3</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>MINIO_ROOT_USER</code></td><td>Usuario raíz de MinIO</td></tr>
+        <tr><td><code>MINIO_ROOT_PASSWORD</code></td><td>Contraseña raíz (secret)</td></tr>
+        <tr><td><code>MINIO_HOST</code></td><td>Host en data-network (172.22.0.12)</td></tr>
+        <tr><td><code>MINIO_PORT</code></td><td>Puerto S3 API (9000)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: Amavis & ClamAV</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>AMAVIS_SPAM_KILL_LEVEL</code></td><td><code>15.0</code></td><td>Nivel spam score para eliminar</td></tr>
+        <tr><td><code>AMAVIS_SA_TAG_LEVEL</code></td><td><code>2.0</code></td><td>Score para marcar como spam</td></tr>
+        <tr><td><code>CLAMAV_HOST</code></td><td><code>172.22.0.10</code></td><td>Host ClamAV</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: TLS / mTLS</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>TLS_MIN_VERSION</code></td><td><code>TLSv1.2</code></td><td>Versión mínima de TLS</td></tr>
+        <tr><td><code>TLS_CERT_PATH</code></td><td><code>/etc/crux-certs/server.crt</code></td><td>Path del certificado</td></tr>
+        <tr><td><code>TLS_KEY_PATH</code></td><td><code>/etc/crux-certs/server.key</code></td><td>Path de la clave privada</td></tr>
+        <tr><td><code>TLS_CA_PATH</code></td><td><code>/etc/crux-certs/ca-chain.crt</code></td><td>Cadena de confianza</td></tr>
+        <tr><td><code>MTLS_LEAF_VALIDITY_DAYS</code></td><td><code>7</code></td><td>Validez de certificados hoja</td></tr>
+        <tr><td><code>MTLS_ROTATION_CRON</code></td><td><code>0 3 * *</code></td><td>Schedule de rotación (03:00 UTC)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: JWT</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Requisito</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>JWT_SECRET</code></td><td>min 64 chars</td><td>N/A</td><td>Secret para firma JWT (requerido)</td></tr>
+        <tr><td><code>JWT_REFRESH_SECRET</code></td><td>min 64 chars</td><td>N/A</td><td>Secret para refresh tokens</td></tr>
+        <tr><td><code>JWT_ACCESS_TTL_MS</code></td><td>positive int</td><td><code>300000</code></td><td>TTL access token (5 min)</td></tr>
+        <tr><td><code>JWT_REFRESH_TTL_MS</code></td><td>positive int</td><td><code>86400000</code></td><td>TTL refresh token (24 h)</td></tr>
+        <tr><td><code>JWT_ISSUER</code></td><td>string</td><td><code>crux-webmail-api</code></td><td>Issuer claim</td></tr>
+        <tr><td><code>JWT_AUDIENCE</code></td><td>string</td><td><code>crux-webmail-client</code></td><td>Audience claim</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: Rate Limiting</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>RATE_LIMIT_API_RPM</code></td><td><code>1800</code></td><td>Requests/min API general</td></tr>
+        <tr><td><code>RATE_LIMIT_AUTH_RPM</code></td><td><code>300</code></td><td>Requests/min en endpoints auth</td></tr>
+        <tr><td><code>RATE_LIMIT_CONN_PER_IP</code></td><td><code>20</code></td><td>Conexiones concurrentes por IP</td></tr>
+        <tr><td><code>RATE_LIMIT_WINDOW_MS</code></td><td><code>60000</code></td><td>Ventana deslizante (60s)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: DNS / Mail Auth</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>DKIM_SELECTOR</code></td><td><code>default</code></td><td>Selector DKIM</td></tr>
+        <tr><td><code>DKIM_ALGORITHM</code></td><td><code>ed25519</code></td><td>Algoritmo de firma DKIM</td></tr>
+        <tr><td><code>SPF_POLICY</code></td><td><code>-all</code></td><td>Política SPF (hard fail)</td></tr>
+        <tr><td><code>DMARC_POLICY</code></td><td><code>reject</code></td><td>Política DMARC</td></tr>
+        <tr><td><code>DNSSEC_ENABLED</code></td><td><code>true</code></td><td>Activar DNSSEC</td></tr>
+        <tr><td><code>GREYLISTING_ENABLED</code></td><td><code>false</code></td><td>Greylisting SMTP</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sección: Logging</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Default</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>LOG_FORMAT</code></td><td><code>json</code></td><td>Formato: <code>json</code> o <code>pretty</code></td></tr>
+        <tr><td><code>LOG_LEVEL</code></td><td><code>info</code></td><td>Nivel: trace|debug|info|warn|error|fatal</td></tr>
+        <tr><td><code>LOG_RETENTION_DAYS</code></td><td><code>90</code></td><td>Retención hot (warm)</td></tr>
+        <tr><td><code>LOG_COLD_RETENTION_DAYS</code></td><td><code>365</code></td><td>Retención cold (archive)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Redes Docker (No modificar)</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Variable</th><th>Subred</th><th>Capa</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>NETWORK_PUBLIC</code></td><td><code>172.20.0.0/24</code></td><td>DMZ — Edge proxy</td></tr>
+        <tr><td><code>NETWORK_APP</code></td><td><code>172.21.0.0/24</code></td><td>App — MTA, LDA, content filter</td></tr>
+        <tr><td><code>NETWORK_DATA</code></td><td><code>172.22.0.0/24</code></td><td>Data — DB, cache, storage</td></tr>
+        <tr><td><code>NETWORK_MONITOR</code></td><td><code>172.23.0.0/24</code></td><td>Monitor — Prometheus, Grafana</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/reference/config">⚙️ Configuración Centralizada (Zod)</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+      <li><a href="#/development/setup">💻 Setup de Desarrollo</a></li>
+    </ul>
+  </nav>
+</div>

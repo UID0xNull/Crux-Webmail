@@ -1,0 +1,143 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <span>Glosario</span>
+    </div>
+    <h1>📖 Glosario</h1>
+    <p class="subtitle">Términos técnicos usados en la documentación de Crux-Webmail.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>A-C</h2>
+    <dl class="glossary">
+      <dt><strong>Amavis</strong></dt>
+      <dd>Content filter que conecta Postfix con ClamAV (antivirus) y SpamAssassin (anti-spam). Escanea cada email entrante.</dd>
+
+      <dt><strong>ACME</strong></dt>
+      <dd>Automated Certificate Management Environment. Protocolo usado por Let's Encrypt para provisioning automático de certificados TLS.</dd>
+
+      <dt><strong>BullMQ</strong></dt>
+      <dd>Job queue para Redis, usado en Fastify para tareas asíncronas (envío de email, processing de attachments).</dd>
+
+      <dt><strong>ClamAV</strong></dt>
+      <dd>Motor de antivirus open source usado por Amavis para escanear attachments.</dd>
+
+      <dt><strong>CORS</strong></dt>
+      <dd>Cross-Origin Resource Sharing. Mecanismo de seguridad para controlar qué dominios pueden hacer requests a la API.</dd>
+
+      <dt><strong>DKIM</strong></dt>
+      <dd>DomainKeys Identified Mail. Firma criptográfica en headers de email para verificar autenticidad.</dd>
+
+      <dt><strong>DMARC</strong></dt>
+      <dd>Domain-based Message Authentication, Reporting & Conformance. Política SPF+DKIM para reject/ quarantine de emails falsos.</dd>
+
+      <dt><strong>DNSSEC</strong></dt>
+      <dd>Domain Name System Security Extensions. Cifrado criptográfico de respuestas DNS contra spoofing.</dd>
+    </dl>
+  </section>
+
+  <section class="doc-section">
+    <h2>D-M</h2>
+    <dl class="glossary">
+      <dt><strong>Docker Compose</strong></dt>
+      <dd>Herramienta de orchestration multi-container definida en YAML.</dd>
+
+      <dt><strong>Dovecot</strong></dt>
+      <dd>IMAP/POP3 server que maneja delivery de email a buzones y acceso de clientes.</dd>
+
+      <dt><strong>Fastify</strong></dt>
+      <dd>Framework web Node.js ultrarrápido usado como backend API de Crux-Webmail.</dd>
+
+      <dt><strong>Grafana</strong></dt>
+      <dd>Plataforma de visualización de métricas conectada a Prometheus como data source.</dd>
+
+      <dt><strong>Hardening</strong></dt>
+      <dd>Proceso de reducir la superficie de ataque de un sistema (read-only FS, cap_drop, etc.).</dd>
+
+      <dt><strong>JMAP</strong></dt>
+      <dd>JSON Meta Application Protocol. Standard RFC-8620, sucesor de IMAP/CardDAV/CalDAV con API REST JSON.</dd>
+
+      <dt><strong>JWT</strong></dt>
+      <dd>JSON Web Token. Token para autenticación stateless en la API.</dd>
+
+      <dt><strong>LMTP</strong></dt>
+      <dd>Local Mail Transfer Protocol. Protocolo para delivery de email desde Postfix → Dovecot.</dd>
+
+      <dt><strong>mTLS</strong></dt>
+      <dd>Mutual TLS. Ambos lados (client y server) se autentican con certificados.</dd>
+
+      <dt><strong>Metric</strong></dt>
+      <dd>Medición numérica recolectada por exporters de Prometheus (CPU, memoria, request count...).</dd>
+    </dl>
+  </section>
+
+  <section class="doc-section">
+    <h2>N-S</h2>
+    <dl class="glossary">
+      <dt><strong>Next.js</strong></dt>
+      <dd>Framework React para frontend, con SSR, ISR, App Router.</dd>
+
+      <dt><strong>Nginx</strong></dt>
+      <dd>Reverse proxy y web server, front-door de Crux-Webmail. Maneja TLS termination y routing.</dd>
+
+      <dt><strong>Postfix</strong></dt>
+      <dd>MTA (Mail Transfer Agent) para envío y recepción de email vía SMTP.</dd>
+
+      <dt><strong>PITR</strong></dt>
+      <dd>Point-in-Time Recovery. Capacidad de restaurar PostgreSQL a un momento específico.</dd>
+
+      <dt><strong>Prometheus</strong></dt>
+      <dd>Sistema de monitoring time-series que scrapea métricas de exporters.</dd>
+
+      <dt><strong>PWA</strong></dt>
+      <dd>Progressive Web App. Instalable, offline-capable, con service worker y manifest.</dd>
+
+      <dt><strong>RPO</strong></dt>
+      <dd>Recovery Point Objective. Máximo tiempo de datos aceptable a perder.</dd>
+
+      <dt><strong>RTO</strong></dt>
+      <dd>Recovery Time Objective. Tiempo máximo de downtime aceptable.</dd>
+
+      <dt><strong>Sequelize</strong></dt>
+      <dd>ORM para PostgreSQL usado en el backend.</dd>
+
+      <dt><strong>SPF</strong></dt>
+      <dd>Sender Policy Framework. Registro DNS que autoriza IPs para enviar email de un dominio.</dd>
+    </dl>
+  </section>
+
+  <section class="doc-section">
+    <h2>T-Z</h2>
+    <dl class="glossary">
+      <dt><strong>Time-series DB</strong></dt>
+      <dd>Base de datos optimizada para métricas temporales (Prometheus tsdb).</dd>
+
+      <dt><strong>WebCrypto</strong></dt>
+      <dd>API nativa del browser para operaciones criptográficas (E2E encryption).</dd>
+
+      <dt><strong>WASM</strong></dt>
+      <dd>WebAssembly. Runtime de baja confianza para sanitización de content.</dd>
+
+      <dt><strong>WASM Sandbox</strong></dt>
+      <dd>Ejecución de código WASM en un entorno aislado para sanitizar HTML y attachments.</dd>
+
+      <dt><strong>WebSockets</strong></dt>
+      <dd>Protocolo full-duplex para notificaciones en tiempo real (nuevos emails).</dd>
+
+      <dt><strong>WAL</strong></dt>
+      <dd>Write-Ahead Log. Logs de PostgreSQL para crash recovery y PITR.</dd>
+
+      <dt><strong>Zero-Trust</strong></dt>
+      <dd>Modelo de seguridad donde nada es confiado por defecto. Todo se autentica y autoriza.</dd>
+    </dl>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/reference/environment">⚙️ Variables de Entorno</a></li>
+      <li><a href="#/reference/config">📋 Archivo de Configuración</a></li>
+      <li><a href="#/overview/about">📖 Acerca del Proyecto</a></li>
+    </ul>
+  </nav>
+</div>

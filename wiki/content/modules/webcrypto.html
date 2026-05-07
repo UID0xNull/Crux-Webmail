@@ -1,0 +1,98 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>WebCrypto E2E</span>
+    </div>
+    <h1>🔐 WebCrypto E2E — Cifrado del Lado del Cliente</h1>
+    <p class="subtitle">Cifrado AES-GCM + RSA-OAEP nativo del browser.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura de Cifrado</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+┌─────────────────────────────────────────────────────────┐
+│              Client Side (Browser)                        │
+│                                                         │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │           WebCrypto API (window.crypto.subtle)    │  │
+│  │                                                  │  │
+│  │  1. Generate RSA-OAEP key pair (4096 bits)      │  │
+│  │  2. Encrypt private key with password (PBKDF2)  │  │
+│  │  3. Derive AES-GCM key from password             │  │
+│  │  4. Encrypt email body: AES-GCM + random IV     │  │
+│  │  5. Store encrypted data en IndexedDB            │  │
+│  │  6. Send to server only encrypted payload        │  │
+│  └───────────────────────────────────────────────────┘  │
+│                                                         │
+│  Server NEVER sees plaintext                            │
+└─────────────────────────────────────────────────────────┘</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Algoritmos</h2>
+    <table class="data-table">
+      <thead><tr><th>Propósito</th><th>Algoritmo</th><th>Parámetros</th></tr></thead>
+      <tbody>
+        <tr><td>Key derivation</td><td>PBKDF2</td><td>SHA-256, 100k iterations</td></tr>
+        <tr><td>Data encryption</td><td>AES-GCM</td><td>256-bit keys, random 12-byte IV</td></tr>
+        <tr><td>Key exchange</td><td>RSA-OAEP</td><td>4096-bit, SHA-256 padding</td></tr>
+        <tr><td>Key agreement</td><td>ECDH</td><td>P-256 curve</td></tr>
+        <tr><td>Signatures</td><td>ECDSA</td><td>P-256 curve, SHA-256</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Almacenamiento de Claves</h2>
+    <div class="code-block"><pre><code>// Key management con Web Crypto API
+async function encryptData(password: string, data: string): Promise<string> {
+  // 1. Derivar key desde password
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password),
+    'PBKDF2', false, ['deriveKey']
+  );
+
+  // 2. PBKDF2 derive AES key
+  const aesKey = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: randomSalt, iterations: 100_000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+
+  // 3. Encrypt
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv }, aesKey, new TextEncoder().encode(data)
+  );
+
+  // 4. Store with salt + iv for decryption
+  return JSON.stringify({ salt, iv, ciphertext });
+}</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Consideraciones de Seguridad</h2>
+    <ul>
+      <li><strong>Keys nunca salen del browser:</strong> Private key RSA nunca se envía al server</li>
+      <li><strong>Password never stored:</strong> Solo derivado PBKDF2, password memorizado por user</li>
+      <li><strong>IV único por mensaje:</strong> Nunca reutilizar IV en AES-GCM</li>
+      <li><strong>Secure context:</strong> WebCrypto requiere HTTPS (o localhost)</li>
+      <li><strong>Key rotation:</strong> Manual rotation cada 90 días</li>
+      <li><strong>Recovery:</strong> Exportar backup key encryptado con passphrase separado</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/e2e">🔒 Cifrado E2E (detalles técnicos)</a></li>
+      <li><a href="#/security/mtls">🔐 mTLS / TLS 1.3</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

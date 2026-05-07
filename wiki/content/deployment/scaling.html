@@ -1,0 +1,185 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/deployment">Despliegue</a> <span class="sep">/</span> <span>Escalabilidad</span>
+    </div>
+    <h1>📈 Escalabilidad</h1>
+    <p class="subtitle">Estrategias de escalamiento horizontal y vertical del stack, con límites por servicio y auto-scaling en Kubernetes.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura de Escalamiento</h2>
+    <p>Crux-Webmail está diseñado para escalar servicios stateless horizontalmente, mientras que los servicios stateful se escalan verticalmente o con réplicas específicas:</p>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────┐
+│               ESTRATEGIA DE ESCALAMIENTO                         │
+│                                                                  │
+│  Stateless (escala horizontal):                                  │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                         │
+│  │ Fastify  │ │ Fastify  │ │ Fastify  │  ← API servers           │
+│  │  Server  │ │  Server  │ │  Server  │  @ 2 vCPU, 1 GB RAM      │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘                         │
+│       └────────────┼────────────┘                                │
+│                    ↓ nginx (round-robin)                          │
+│                                                                  │
+│  Stateful (escala vertical):                                     │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                         │
+│  │PostgreSQL│ │  Redis   │ │  MinIO   │  ← con réplicas/sentinel │
+│  │  17      │ │  7       │ │          │                           │
+│  └──────────┘ └──────────┘ └──────────┘                         │
+│                                                                  │
+│  Infra (auto-scale):                                             │
+│  ┌──────────┐ ┌──────────┐ ┌────────────┐                       │
+│  │Prometheus│ │  Grafana │ │ AlertMgr   │  ← monitoreo continuo │
+│  └──────────┘ └──────────┘ └────────────┘                       │
+└─────────────────────────────────────────────────────────────────┘
+</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Límites por Servicio (del docker-compose.yml)</h2>
+    <table class="data-table">
+      <thead><tr><th>Servicio</th><th>Memoria limit</th><th>CPU</th><th>Escalable?</th><th>Max replicas</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Fastify Server</strong></td><td>1 GB</td><td>2 vCPU</td><td>✅ Horizontal</td><td>Ilimitado (stateless)</td></tr>
+        <tr><td><strong>PostgreSQL 17</strong></td><td>1 GB</td><td>2 vCPU</td><td>📶 Vertical</td><td>1 primaria + N read-replicas</td></tr>
+        <tr><td><strong>Redis 7</strong></td><td>512 MB</td><td>1 vCPU</td><td>📶 Vertical / Sentinel</td><td>1 cluster (3-5 nodos)</td></tr>
+        <tr><td><strong>ClamAV</strong></td><td>2 GB</td><td>2 vCPU</td><td>📶 Vertical</td><td>1 (I/O bound)</td></tr>
+        <tr><td><strong>Prometheus</strong></td><td>2 GB</td><td>2 vCPU</td><td>📶 Vertical</td><td>1 (disk bound)</td></tr>
+        <tr><td><strong>Nginx</strong></td><td>Sin limit</td><td>Sin limit</td><td>✅ Horizontal</td><td>Detrás de LB externo</td></tr>
+        <tr><td><strong>MinIO</strong></td><td>Sin limit</td><td>Sin limit</td><td>📶 Erasure sets</td><td>4+ discos mínimo</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Escalamiento Horizontal de Fastify</h2>
+    <p>Como Fastify es stateless (sesiones en Redis, caché en Redis), se puede replicar libremente:</p>
+    <div class="code-block"><pre><code># Escalar Fastify a 4 instancias
+docker compose up -d --scale server=4
+
+# Verificar que todas están healthy
+docker compose ps server
+
+# Nginx round-robin configura:
+upstream fastify_backend {
+    server crux-server-1:3000;
+    server crux-server-2:3000;
+    server crux-server-3:3000;
+    server crux-server-4:3000;
+}
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Redis Sentinel para HA</h2>
+    <p>Para alta disponibilidad de sesiones y rate-limit:</p>
+    <div class="code-block"><pre><code># Configurar Redis Sentinel (3 nodos mínimo)
+sentinel monitor redis-master 172.21.0.15 6379 2
+sentinel down-after-milliseconds redis-master 5000
+sentinel failover-timeout redis-master 15000
+sentinel parallel-syncs redis-master 1
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>PostgreSQL Read Replicas</h2>
+    <p>Para queries pesadas (search, reporting, dashboards):</p>
+    <div class="code-block"><pre><code># Read replica con streaming replication
+# docker-compose.yml add:
+
+postgres-replica:
+  image: postgres:17-alpine
+  networks:
+    data-network:
+  environment:
+    POSTGRES_USER: crux_user
+    POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+  command: >
+    postgres -c hot_standby=on
+             -c wal_level=replica
+             -c max_wal_senders=3
+             -c hot_standby_feedback=on
+  depends_on:
+    postgres:
+      condition: service_healthy
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Auto-scaling con Kubernetes</h2>
+    <p>Para producción enterprise, migrar a K8s con HPA:</p>
+    <div class="code-block"><pre><code># HorizontalPodAutoscaler para Fastify
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fastify-server-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fastify-server
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: 1000
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Monitoreo de Capacidad</h2>
+    <p>Grafana + Prometheus alertas de escalado:</p>
+    <table class="data-table">
+      <thead><tr><th>Métrica</th><th>Warning</th><th>Critical</th><th>Acción</th></tr></thead>
+      <tbody>
+        <tr><td>CPU Fastify</td><td>> 70% 5m</td><td>> 90% 1m</td><td>Escalar horizontal</td></tr>
+        <tr><td>Memoria Fastify</td><td>> 800 MB</td><td>> 950 MB</td><td>OOM kill prevention</td></tr>
+        <tr><td>Redis connections</td><td>> 80% maxclients</td><td>> 95% maxclients</td><td>Aumentar maxclients</td></tr>
+        <tr><td>PostgreSQL conexiones</td><td>> 80% max_connections</td><td>> 95%</td><td>Connection pool / replica</td></tr>
+        <tr><td>Postfix queue depth</td><td>> 1000</td><td>> 5000</td><td>Diagnosticar bottleneck</td></tr>
+        <tr><td>Disk usage volumes</td><td>> 70%</td><td>> 85%</td><td>Expandir storage</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Consideraciones Zero-Trust al Escalar</h2>
+    <ul>
+      <li>Cada nueva réplica Fastify debe tener acceso a Redis (sesiones) y PostgreSQL</li>
+      <li>mTLS entre servicios debe configurarse en cada nuevo contenedor</li>
+      <li>Nginx upstream debe incluir health checks activos</li>
+      <li>Rate limiting de @fastify/rate-limit es compartido via Redis — no se duplica</li>
+      <li>BullMQ workers pueden escalar independientemente de Fastify servers</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/deployment/production">🚀 Despliegue en Producción</a></li>
+      <li><a href="#/deployment/backup">💾 Backup &amp; Restauración</a></li>
+      <li><a href="#/deployment/upgrade">⬆️ Actualizaciones</a></li>
+      <li><a href="#/infrastructure/monitoring">📊 Monitoring &amp; Logging</a></li>
+    </ul>
+  </nav>
+</div>

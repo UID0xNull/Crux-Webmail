@@ -175,8 +175,190 @@ export interface AuditEvent {
 }
 
 // ------------------------------------------------------------------
-// Filter Types (Amavis/ClamAV)
+// Draft Types (Paso 6: Compositor de Correo)
 // ------------------------------------------------------------------
+
+/** Estados posibles de un draft */
+export type DraftStatus = 'draft' | 'queued' | 'scanning' | 'ready' | 'error';
+
+/** Estado de escaneo de un adjunto */
+export type AttachmentScanStatus = 'pending' | 'scanning' | 'clean' | 'infected' | 'error';
+
+/** Recipient type for compose */
+export interface ComposeRecipient {
+  name: string;
+  email: string;
+}
+
+/** Payload del compositor */
+export interface ComposePayload {
+  to: ComposeRecipient[];
+  cc?: ComposeRecipient[];
+  bcc?: ComposeRecipient[];
+  subject: string;
+  body_html: string;
+  body_text: string;
+  encrypt: boolean;
+  sign: boolean;
+}
+
+/** Draft persistente en BD */
+export interface Draft {
+  id: string;
+  userId: string;
+  to: ComposeRecipient[];
+  cc?: ComposeRecipient[];
+  bcc?: ComposeRecipient[];
+  subject: string;
+  body_html: string;
+  body_text: string;
+  status: DraftStatus;
+  attachments: AttachmentMeta[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Metadatos de un adjunto */
+export interface AttachmentMeta {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  contentId?: string;
+  sha256: string;
+  scanStatus: AttachmentScanStatus;
+  uploadUrl?: string;
+  createdAt: string;
+}
+
+/** Respuesta de upload de adjunto */
+export interface AttachmentUploadResult {
+  id: string;
+  filename: string;
+  size: number;
+  contentType: string;
+  scanStatus: AttachmentScanStatus;
+  uploadUrl: string;
+}
+
+// ==========================================================================
+// WebSocket Real-Time Types
+// ==========================================================================
+
+// ------------------------------------------------------------------
+// Client → Server Events
+// ------------------------------------------------------------------
+export type WSClientEventType =
+  | 'AUTH'
+  | 'PING'
+  | 'SUBSCRIBE'
+  | 'UNSUBSCRIBE'
+  | 'FLAG_UPDATE'
+  | 'FOLDER_SYNC';
+
+export interface WSClientMessage {
+  type: WSClientEventType;
+  id?: string;
+  payload: Record<string, unknown>;
+}
+
+export interface WSAuthPayload {
+  token: string;
+  sessionId: string;
+}
+
+export interface WSSubscribePayload {
+  channels: WSChannel[];
+}
+
+export interface WSFlagUpdatePayload {
+  messageId: string;
+  flags: string[];
+  action: 'add' | 'remove';
+}
+
+// ------------------------------------------------------------------
+// Server → Client Events
+// ------------------------------------------------------------------
+export type WSServerEventType =
+  | 'READY'
+  | 'ERROR'
+  | 'PONG'
+  | 'NEW_MESSAGE'
+  | 'MESSAGE_FLAG_CHANGED'
+  | 'MESSAGE_DELETED'
+  | 'FOLDER_COUNTS_UPDATED'
+  | 'SYNC_STATUS'
+  | 'CONNECTION_WARNING'
+  | 'DISCONNECTED';
+
+export interface WSServerMessage {
+  type: WSServerEventType;
+  id?: string;
+  payload: Record<string, unknown>;
+  timestamp: number;
+}
+
+// ------------------------------------------------------------------
+// Channels for selective subscription
+// ------------------------------------------------------------------
+export type WSChannel =
+  | 'mail:new'
+  | 'mail:flags'
+  | 'mail:delete'
+  | 'mail:folder-counts'
+  | 'sync:status';
+
+// ------------------------------------------------------------------
+// Connection state
+// ------------------------------------------------------------------
+export type WSConnectionState =
+  | 'disconnected'
+  | 'connecting'
+  | 'authenticated'
+  | 'connected'
+  | 'reconnecting'
+  | 'error';
+
+export interface WSConnectionStatus {
+  state: WSConnectionState;
+  channels: WSChannel[];
+  reconnectAttempts: number;
+  lastPing: number | null;
+  latency: number | null;
+}
+
+// ------------------------------------------------------------------
+// Real-time event payloads
+// ------------------------------------------------------------------
+export interface NewMessageEvent {
+  mailboxId: string;
+  message: Partial<EmailMessage>;
+}
+
+export interface FlagChangedEvent {
+  messageId: string;
+  flags: string[];
+  mailboxId: string;
+}
+
+export interface DeletedEvent {
+  messageId: string;
+  mailboxId: string;
+}
+
+export interface FolderCountsEvent {
+  counts: Record<string, { total: number; unseen: number }>;
+}
+
+export interface SyncStatusEvent {
+  status: 'idle' | 'syncing' | 'error';
+  progress?: number;
+  mailbox?: string;
+}
+
+// ------------------------------------------------------------------
+
 export interface AmavisFilterResult {
   message_id: string;
   status: 'CLEAN' | 'INFECTED' | 'SPAM' | 'QUARANTINE' | 'ERROR';

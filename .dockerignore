@@ -1,0 +1,72 @@
+# ============================================================================
+# Docker Ignore — exclude unnecessary files from build context
+# ============================================================================
+
+# Node modules (reinstalled in container)
+node_modules/
+**/node_modules/
+
+# Build artifacts
+**/dist/
+**/.next/
+**/out/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docs
+wiki/
+docs/
+*.md
+
+# Tests
+tests/
+*.test.ts
+*.spec.ts
+jest.config.ts
+
+# Config
+.eslint*
+.gitattributes
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files (secrets)
+.env
+.env.*
+!.env.example
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Infra configs not needed in app images
+nginx/
+postfix/
+dovecot/
+amavis/
+monitoring/
+infra/
+
+# Secrets
+secrets/
+certs/
+
+# Temporary
+*.tmp
+tmp/
+temp/
+
+# Logs
+*.log
+logs/

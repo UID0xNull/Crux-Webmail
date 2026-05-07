@@ -1,5 +1,5 @@
 # ============================================================================
-# Grafana Provisioning — Datasource: Loki (auto-config on startup)
+# Grafana Provisioning — Datasources: Loki + Prometheus (auto-config)
 # ============================================================================
 apiVersion: 1
 
@@ -8,15 +8,21 @@ datasources:
     type: loki
     access: proxy
     url: http://crux-loki:3100
-    isDefault: true
+    isDefault: false
     editable: true
     jsonData:
       maxLines: 1000
       timePicker:
         refresh_intervals: true
         refresh_interval: 10s
+
   - name: Prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090
-    editable: false
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: '15s'
+      queryTimeout: '30s'

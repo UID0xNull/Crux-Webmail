@@ -19,6 +19,9 @@ infra/nginx/certs/*.pem
 infra/nginx/certs/*.key
 infra/nginx/certs/*.crt
 
+# Secrets directory (all secret files)
+secrets/
+
 # --- Docker ---
 .distribution/
 

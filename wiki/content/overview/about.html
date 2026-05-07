@@ -1,0 +1,93 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <span>Acerca del Proyecto</span>
+    </div>
+    <h1>📖 Acerca del Proyecto</h1>
+    <p class="subtitle">Crux-Webmail: correo seguro, Zero-Trust, moderno.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>¿Qué es Crux-Webmail?</h2>
+    <p>Crux-Webmail es un sistema completo de correo electrónico diseñado desde cero con la filosofía <strong>Zero-Trust</strong>: cada componente, conexión y transacción es verificada y cifrada. Combina:</p>
+    <ul>
+      <li><strong>Frontend moderno:</strong> Next.js 15 con App Router, SSR/ISR, PWA</li>
+      <li><strong>Backend robusto:</strong> Fastify 5 con JMAP, BullMQ, WebSockets</li>
+      <li><strong>Stack de correo legacy:</strong> Postfix + Dovecot + Amavis + ClamAV (hardened en Docker)</li>
+      <li><strong>Seguridad:</strong> mTLS, TLS 1.3, WebCrypto E2E, sanitización WASM, hardening eBPF</li>
+      <li><strong>Infraestructura:</strong> Docker Compose con 16 servicios, 4 redes segmentadas, monitoring completo</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Misión</h2>
+    <blockquote>Demostrar que es posible construir un sistema de correo seguro, moderno y auto-hospedado sin comprometer la privacidad, usando las mejores prácticas de 2025.</blockquote>
+  </section>
+
+  <section class="doc-section">
+    <h2>Stack Tecnológico</h2>
+    <div class="stack-grid">
+      <div class="stack-item">
+        <h3>Frontend</h3>
+        <ul>
+          <li>Next.js 15</li>
+          <li>React 19</li>
+          <li>TypeScript 5</li>
+          <li>SWR / Server Actions</li>
+        </ul>
+      </div>
+      <div class="stack-item">
+        <h3>Backend</h3>
+        <ul>
+          <li>Fastify 5</li>
+          <li>BullMQ (jobs)</li>
+          <li>@fastify/secure-session</li>
+          <li>@fastify/websocket</li>
+        </ul>
+      </div>
+      <div class="stack-item">
+        <h3>Infra</h3>
+        <ul>
+          <li>Docker 24+ Compose v2</li>
+          <li>PostgreSQL 17</li>
+          <li>Redis 7</li>
+          <li>Prometheus + Grafana + Loki</li>
+        </ul>
+      </div>
+      <div class="stack-item">
+        <h3>Seguridad</h3>
+        <ul>
+          <li>mTLS / TLS 1.3</li>
+          <li>WebCrypto E2E</li>
+          <li>Sanitización WASM</li>
+          <li>Hardening eBPF</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Filosofía de Diseño</h2>
+    <ul>
+      <li><strong>Zero-Trust:</strong> Cada conexión se autentica y cifra, sin confianza implícita</li>
+      <li><strong>Defensa en profundidad:</strong> Múltiples capas de seguridad (network → app → data)</li>
+      <li><strong>Minimalismo:</strong> Stack mínimo, sin dependencias innecesarias</li>
+      <li><strong>Observabilidad:</strong> Monitoring, logging y alerting desde el día 1</li>
+      <li><strong>Reproducibilidad:</strong> Docker Compose como infraestructura inmutable</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>License</h2>
+    <p>Crux-Webmail está bajo <strong>MIT License</strong>. Código abierto, libre para uso personal y empresarial.</p>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/home">🏠 Inicio</a></li>
+      <li><a href="#/overview/roadmap">🗺️ Roadmap</a></li>
+      <li><a href="#/overview/quickstart">⚡ Quick Start</a></li>
+    </ul>
+  </nav>
+</div>

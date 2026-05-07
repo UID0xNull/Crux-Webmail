@@ -1,0 +1,153 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <a href="#/reference/environment">Referencia</a> <span class="sep">/</span>
+      <span>Configuración Centralizada</span>
+    </div>
+    <h1>⚙️ Configuración Centralizada (Zod Schema)</h1>
+    <p class="subtitle">Todas las variables se validan con Zod antes de ser usadas — zero hardcoded values.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura de Configuración</h2>
+    <div class="info-box">
+      El archivo <code>src/server/config/app.config.ts</code> centraliza toda la configuración del backend. Cada variable de entorno pasa por un schema Zod estricto que valida tipos, rangos y valores mínimos. Si alguna variable falla, el servidor se detiene inmediatamente con un reporte detallado de los errores.
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Validación Zod</h2>
+    <div class="code-block">
+      <pre><code>// Schema de ejemplo — validación real en src/server/config/app.config.ts
+import { z } from 'zod';
+
+const envSchema = z.object({
+  // --- Server ---
+  NODE_ENV: z.enum(['development', 'staging', 'production']).default('development'),
+  SERVER_PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  SERVER_HOST: z.string().default('0.0.0.0'),
+
+  // --- JWT ---
+  JWT_SECRET: z.string().min(64),
+  JWT_REFRESH_SECRET: z.string().min(64),
+  JWT_ACCESS_TTL_MS: z.coerce.number().int().positive().default(300000),
+  JWT_REFRESH_TTL_MS: z.coerce.number().int().positive().default(86400000),
+
+  // --- Postgres ---
+  POSTGRES_DB: z.string().min(1),
+  POSTGRES_PASSWORD: z.string().min(8),
+  POSTGRES_SSL: z.boolean().default(false),
+
+  // --- Redis ---
+  REDIS_PASSWORD: z.string().nullable().default(null),
+  REDIS_DB: z.coerce.number().int().min(0).max(15).default(0),
+
+  // --- Dovecot / IMAP ---
+  DOVECOT_HOST: z.string().min(1).default('172.21.0.11'),
+  DOVECOT_PORT: z.coerce.number().int().default(993),
+
+  // --- Rate Limiting ---
+  RATE_LIMIT_API_RPM: z.coerce.number().int().positive().default(1800),
+  RATE_LIMIT_AUTH_RPM: z.coerce.number().int().positive().default(300),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
+
+  // --- TLS / mTLS ---
+  TLS_CERT_PATH: z.string().min(1).default('./certs/server.crt'),
+  TLS_KEY_PATH: z.string().min(1).default('./certs/server.key'),
+
+  // --- Logging ---
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  LOG_FORMAT: z.enum(['json', 'pretty']).default('json'),
+
+  // --- MinIO ---
+  MINIO_HOST: z.string().min(1).default('172.22.0.12'),
+  MINIO_ROOT_PASSWORD: z.string().min(1),
+});
+
+export type AppConfig = z.infer<typeof envSchema>;
+</code></pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Singleton de Configuración</h2>
+    <p>La configuración se parsea una sola vez al inicio del servidor (lazy load) y se cachea como singleton:</p>
+    <div class="code-block">
+      <pre><code>let _config: AppConfig | null = null;
+
+export function getConfig(): AppConfig {
+  if (!_config) {
+    _config = parseEnv();
+    if (_config.NODE_ENV !== 'production') {
+      console.log('[CONFIG] Environment loaded:', _config.NODE_ENV);
+    }
+  }
+  return _config;
+}
+
+export const config: AppConfig = parseEnv(); // Parse inmediato al import</code></pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Sub-configuraciones Helpers</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Helper</th><th>Retorna</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>getDbConfig()</code></td><td><code>SequelizeConfig</code></td><td>Pool, SSL, timestamps, charset, logging</td></tr>
+        <tr><td><code>getRedisConfig()</code></td><td><code>RedisConfig</code></td><td>Host, port, password, TLS, max retries</td></tr>
+        <tr><td><code>getImapBridgeConfig()</code></td><td><code>{host, port, tls}</code></td><td>Configuración Dovecot IMAP</td></tr>
+        <tr><td><code>getSmtpBridgeConfig()</code></td><td><code>{host, port}</code></td><td>Configuración Postfix SMTP</td></tr>
+        <tr><td><code>getAmavisBridgeConfig()</code></td><td><code>{host, port, controlPort}</code></td><td>Amavis filter + admin</td></tr>
+        <tr><td><code>getClamavBridgeConfig()</code></td><td><code>{host, port}</code></td><td>ClamAV antivirus</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Manejo de Errores de Configuración</h2>
+    <div class="code-block">
+      <pre><code>function parseEnv(): AppConfig {
+  try {
+    return envSchema.parse(process.env);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const fieldMessages = err.errors.map(
+        (e: z.ZodIssue) => `  ✗ ${e.path.join('.')}: ${e.message}`
+      );
+      console.error('\n[CONFIG ERROR] Variables de entorno inválidas:');
+      fieldMessages.forEach((m: string) => console.error(m));
+      process.exit(1); // Hard exit — no arranque con config inválida
+    }
+    throw err;
+  }
+}</code></pre>
+    </div>
+    <p>Si hay un error de validación, el servidor muestra exactamente qué variables están malformadas y termina con <code>exit(1)</code>. No hay fallback ni valores parciales.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Pool de Conexiones PostgreSQL</h2>
+    <div class="code-block">
+      <pre><code>pool: {
+  max: 20,        // Máximo de conexiones
+  min: 5,         // Mínimo persistente
+  acquire: 30000, // Timeout para adquirir conexión (30s)
+  idle: 10000     // Timeout antes de cerrar conexión idle (10s)
+}</code></pre>
+    </div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/reference/environment">📋 Variables de Entorno</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+      <li><a href="#/development/setup">💻 Setup de Desarrollo</a></li>
+    </ul>
+  </nav>
+</div>

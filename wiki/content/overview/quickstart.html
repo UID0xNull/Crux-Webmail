@@ -1,0 +1,88 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <span>Quick Start Guide</span>
+    </div>
+    <h1>⚡ Quick Start Guide</h1>
+    <p class="subtitle">De cero a un sistema de correo funcional en menos de 10 minutos.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Requisitos</h2>
+    <ul>
+      <li>Docker 24+ y Docker Compose v2+</li>
+      <li>Node.js 20+ (opcional, para desarrollo)</li>
+      <li>Git</li>
+      <li>4 GB RAM mínimo (8 GB recomendado)</li>
+      <li>Dominio con DNS configurable (para producción)</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Paso 1: Clonar y Configurar</h2>
+    <div class="code-block"><pre><code>git clone https://github.com/user/Crux-Webmail.git
+Cd Crux-Webmail
+cp .env.example .env
+# Editar .env con tu dominio y contraseñas</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Paso 2: Crear Secretos</h2>
+    <div class="code-block"><pre><code>mkdir -p ./secrets
+openssl rand -hex 32 > ./secrets/postgres_password.txt
+openssl rand -hex 32 > ./secrets/minio_password.txt
+openssl rand -hex 32 > ./secrets/jwt_secret.txt
+chmod 600 ./secrets/*.txt</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Paso 3: Levantar Stack</h2>
+    <div class="code-block"><pre><code># Solo en desarrollo (HTTP, sin mTLS)
+docker compose -f docker-compose.yml up -d
+
+# En producción (con mTLS, certs, etc.)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Paso 4: Verificar</h2>
+    <div class="code-block"><pre><code># Ver estado de servicios
+docker compose ps
+# Todos deberían estar (healthy)
+
+# Verificar logs
+docker compose logs --tail=50 server
+docker compose logs --tail=50 postgres
+
+# Health check
+curl -k http://localhost/api/health</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Primeros Pasos</h2>
+    <ol>
+      <li>Crear usuario admin: <code>curl -X POST http://localhost/api/users -d '{"email":"admin@local","role":"admin"}'</code></li>
+      <li>Acceder al dashboard: <code>http://localhost</code></li>
+      <li>Verificar monitoring: <code>http://localhost:3000</code> (Grafana)</li>
+      <li>Probar envío: <code>telnet localhost 25</code></li>
+    </ol>
+  </section>
+
+  <section class="doc-section">
+    <h2>Desarrollo Local</h2>
+    <div class="code-block"><pre><code># Stack + dev mode hot-reload
+docker compose up -d postgres redis postfix dovecot amavis clamav
+npm install
+npm run dev  # Fastify con watch</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/home">🏠 Inicio</a></li>
+      <li><a href="#/overview/about">📖 Acerca del proyecto</a></li>
+      <li><a href="#/deployment/production">🚀 Despliegue en Producción</a></li>
+      <li><a href="#/development/setup">🛠️ Setup de Desarrollo</a></li>
+    </ul>
+  </nav>
+</div>

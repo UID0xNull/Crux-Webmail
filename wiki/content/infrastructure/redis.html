@@ -1,0 +1,94 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/infrastructure">Infraestructura</a> <span class="sep">/</span> <span>Redis</span>
+    </div>
+    <h1>⚡ Redis 7 (Caché & Sesiones)</h1>
+    <p class="subtitle">Redis como cache layer, session store y backend de BullMQ.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Roles de Redis en el Stack</h2>
+    <table class="data-table">
+      <thead><tr><th>Uso</th><th>Módulo</th><th>Importancia</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Sessions</strong></td><td>@fastify/secure-session</td><td>🔴 Crítico</td></tr>
+        <tr><td><strong>Rate Limiting</strong></td><td>@fastify/rate-limit</td><td>🔴 Crítico</td></tr>
+        <tr><td><strong>BullMQ Jobs</strong></td><td>BullMQ queue</td><td>🔴 Crítico</td></tr>
+        <tr><td><strong>Cache</strong></td><td>Cache layer general</td><td>🟡 Alto</td></tr>
+        <tr><td><strong>Login Lockout</strong></td><td>Brute-force protection</td><td>🔴 Crítico</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Configuración (docker-compose.yml)</h2>
+    <div class="code-block"><pre><code>redis:
+  image: redis:7-alpine
+  container_name: crux-redis
+  networks:
+    data-network:
+  volumes:
+    - redis_data:/data
+  deploy:
+    resources:
+      limits:
+        cpus: "1"
+        memory: 512M
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 10s
+    timeout: 3s
+    retries: 3</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Conexiones</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+┌──────────┐   ┌──────────┐   ┌──────────┐
+│  Fastify │───│  Fastify │───│  Fastify │
+│  Server  │   │  Server  │   │  Server  │
+└────┬─────┘   └────┬─────┘   └────┬─────┘
+     └──────────────┼──────────────┘
+                    │
+             ┌──────▼──────┐
+             │    Redis    │
+             │   :6379     │
+             └─────────────┘</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Persistencia</h2>
+    <p>Redis usa RDB snapshots + AOF para durabilidad:</p>
+    <div class="code-block"><pre><code># redis.conf dentro del contenedor
+appendonly yes
+appendfsync everysec
+save 900 1
+save 300 10
+save 60 10000
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Memoria Management</h2>
+    <table class="data-table">
+      <thead><tr><th>Política</th><th>Valor</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><code>maxmemory</code></td><td>384mb</td><td>Limita al 75% del 512MB container</td></tr>
+        <tr><td><code>maxmemory-policy</code></td><td><code>allkeys-lru</code></td><td>Evict keys menos usadas</td></tr>
+        <tr><td><code>tcp-backlog</code></td><td>511</td><td>Backlog de conexiones</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/modules/database">💾 Base de Datos</a></li>
+      <li><a href="#/modules/auth">🔐 Autenticación</a></li>
+    </ul>
+  </nav>
+</div>

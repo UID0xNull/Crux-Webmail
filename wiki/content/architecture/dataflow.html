@@ -1,0 +1,119 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/architecture/overview">Arquitectura</a> <span class="sep">/</span> <span>Flujos de Datos</span>
+    </div>
+    <h1>🔄 Flujos de Datos</h1>
+    <p class="subtitle">Trayectoria de un email: desde recepción hasta visualización en el cliente web.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Flujo de Entrada (Recepción de Email)</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">  Remot
+       SMTP (port 25)
+         │
+    ▼
+┌─────────────┐
+│  POSTFIX     │  ← MTA acepta conexión
+│  SMTP       │     Greylist check
+└──────┬──────┘     Postmaster list validation
+       │
+    ▼
+┌─────────────┐
+│  AMAVIS      │  ← Content filter
+│             │     ClamAV scan + SpamAssassin
+└──────┬──────┘     DKIM verify
+       │
+    ▼
+┌─────────────┐
+│  DOVECOT    │  ← LDA entrega a mailbox
+│  LDA       │     Maildir format: inbox/.Sent/ etc
+└─────────────┘
+         │
+      /var/mail/{user}/Maildir/</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo de Salida (Envío de Email)</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">  [User en Web] → [Fastify /api/send] → [SMTP Bridge]
+                      │                       │
+                  Validate JWT              Connect Postfix:25
+                  Validate body               MAIL FROM
+                  Rate limit                  RCPT TO
+                  E2E decrypt (si apply)      DATA + MIME body
+                      │                       │
+                      │               ┌────────▼────────┐
+                      │               │  OpenDKIM milter │ ← Sign Ed25519
+                      │               │  Amavis scan    │ ← Antivirus
+                      │               │  SPF/DKIM verify│
+                      │               └────────┬────────┘
+                      │                        │
+                      │               ┌────────▼────────┐
+                      │               │  Postfix Queue   │ ← Deferred/hold
+                      │               └────────┬────────┘
+                      │                        │
+                      │               ┌────────▼────────┐
+                      └───────────────│  Internet SMTP  │ → Destinatario
+                                      └─────────────────┘</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo de Lectura (Cliente Web → IMAP)</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">  [Browser] → GET /api/emails?folder=INBOX&limit=50
+       │
+       ▼
+  [Nginx :443] → TLS strip → [Fastify :3000]
+                      │
+                 JWT Validate
+                 Rate Limit
+                      │
+       ┌──────────────▼──────────────┐
+       │         IMAP Bridge         │
+       │                             │
+       │  1. Connect Dovecot:993    │
+       │  2. AUTHENTICATE user      │
+       │  3. SELECT INBOX           │
+       │  4. UID FETCH 1:* (body)   │
+       │  5. Parse headers         │
+       │  6. WASM sanitize HTML    │
+       │  7. Return JSON          │
+       └─────────────────────────────┘
+                      │
+       ┌──────────────▼──────────────┐
+       │        Redis Cache          │ ← LRU TTL 60s
+       │  (paginated results)        │
+       └─────────────────────────────┘
+                      │
+       [Browser] ← JSON emails list
+       [Next.js]  → Render Email List</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo de Autenticación</h2>
+    <ol>
+      <li><strong>Login:</strong> POST /api/auth/login → body: {email, password}</li>
+      <li><strong>Verify:</strong> Fastify compara bcrypt hash → PostgreSQL</li>
+      <li><strong>Issue tokens:</strong> JWT access (5min) + refresh token (7d) → Redis + DB</li>
+      <li><strong>Access protected:</strong> GET /api/emails + Authorization: Bearer {jwt}</li>
+      <li><strong>Rotate:</strong> Al expirar access, POST /api/auth/refresh → nuevo access + nuevo refresh</li>
+      <li><strong>Logout:</strong> POST /api/auth/logout → revoke refresh tokens en Redis</li>
+    </ol>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/architecture/overview">🏗️ Visión General de Arquitectura</a></li>
+      <li><a href="#/modules/imap-bridge">🔗 IMAP Bridge</a></li>
+      <li><a href="#/modules/smtp-bridge">📤 SMTP Bridge</a></li>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

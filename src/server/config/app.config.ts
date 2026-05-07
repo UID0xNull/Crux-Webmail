@@ -2,10 +2,40 @@
 // Crux-Webmail Backend — Configuración Centralizada
 // ============================================================================
 // Todas las variables pasan por validación estricta con Zod antes de uso.
+// Soporta Docker secrets via *_FILE pattern (reads file content as value).
 // No hay valores hardcodeados — todo desde .env o secrets vault.
 // ============================================================================
 
 import { z } from 'zod';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+// ------------------------------------------------------------------
+// Docker Secrets Resolver — soporta *_FILE pattern
+// Si VAR_FILE=/run/secrets/foo.txt → lee el archivo y usa su contenido como VAR
+// ------------------------------------------------------------------
+function resolveEnvWithFile(): Record<string, string | undefined> {
+  const resolved = { ...process.env };
+
+  for (const key of Object.keys(resolved)) {
+    if (key.endsWith('_FILE') && resolved[key]) {
+      const baseKey = key.replace(/_FILE$/, '');
+      try {
+        const fileContent = fs.readFileSync(resolved[key] as string, 'utf8').trim();
+        if (!resolved[baseKey]) {
+          resolved[baseKey] = fileContent;
+        }
+      } catch {
+        // File no existe o no es legible — usar valor directo si existe
+        if (resolved[baseKey]) {
+          // Keep the direct value
+        }
+      }
+    }
+  }
+
+  return resolved;
+}
 
 // ------------------------------------------------------------------
 // Schema de Validación Estricto para Env Vars
@@ -23,6 +53,8 @@ const envSchema = z.object({
   JWT_REFRESH_TTL_MS: z.coerce.number().int().positive().default(86400000), // 24h
   JWT_ISSUER: z.string().default('crux-webmail-api'),
   JWT_AUDIENCE: z.string().default('crux-webmail-client'),
+  // AEAD encryption key for sessions (at least 32 hex chars = 16 bytes)
+  SESSION_ENCRYPTION_KEY: z.string().min(64),
 
   // --- Postgres ---
   POSTGRES_DB: z.string().min(1),
@@ -77,6 +109,22 @@ const envSchema = z.object({
   MINIO_PORT: z.coerce.number().int().default(9000),
   MINIO_ROOT_USER: z.string().min(1),
   MINIO_ROOT_PASSWORD: z.string().min(1),
+
+  // --- Frontend / CORS ---
+  FRONTEND_URL: z.string().default('http://localhost:3001'),
+  WEBSOCKET_URL: z.string().default('ws://localhost:3000'),
+
+  // --- OpenTelemetry ---
+  OTEL_ENABLED: z.boolean().default(false),
+
+  // --- Session Limits ---
+  MAX_CONCURRENT_SESSIONS: z.coerce.number().int().positive().default(5),
+
+  // --- Password Policy ---
+  MIN_PASSWORD_LENGTH: z.coerce.number().int().min(8).max(256).default(8),
+
+  // --- IP Hash Salt ---
+  IP_HASH_SALT: z.string().min(16),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
@@ -86,7 +134,8 @@ export type AppConfig = z.infer<typeof envSchema>;
 // ------------------------------------------------------------------
 function parseEnv(): AppConfig {
   try {
-    return envSchema.parse(process.env);
+    const resolved = resolveEnvWithFile();
+    return envSchema.parse(resolved);
   } catch (err) {
     if (err instanceof z.ZodError) {
       const fieldMessages = err.errors.map(
@@ -118,7 +167,7 @@ export function getConfig(): AppConfig {
 export const config: AppConfig = parseEnv();
 
 // ------------------------------------------------------------------
-// Helpers para sub-configuraciones
+// Helpers para sub-configuraciones — legacy aliases for compatibility
 // ------------------------------------------------------------------
 export function getDbConfig() {
   const c = getConfig();

@@ -1,0 +1,162 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <span>Seguridad Zero-Trust</span>
+    </div>
+    <h1>🛡️ Política de Seguridad Zero-Trust</h1>
+    <p class="subtitle">Arquitectura de confianza cero: nada se confía, todo se verifica.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Principios Fundamentales</h2>
+    <div class="info-box">
+      <strong>Zero-Trust</strong> significa que ningún actor interno ni externo es confiable por defecto. Cada solicitud, usuario, servicio y red es autenticado, autorizado y cifrado de forma explícita.
+    </div>
+    <ul class="principles-list">
+      <li><strong>Verificación explícita:</strong> Toda solicitud requiere autenticación JWT + binding de sesión + fingerprint del dispositivo.</li>
+      <li><strong>Acceso mínimo privilegiado:</strong> Solo las capabilities necesarias por contenedor (cap_drop ALL + cap_add explícitos).</li>
+      <li><strong>Microsegmentación de red:</strong> 4 redes Docker aisladas — public, app, data, monitor — sin tránsito cross-network.</li>
+      <li><strong>Cifrado en tránsito y en reposo:</strong> TLS 1.2+ obligatorio, mTLS entre servicios internos, secrets de Docker para credenciales.</li>
+      <li><strong>Supervisión continua:</strong> Prometheus + Loki + Grafana para telemetría, audit logs JSON estructurados, alertas automáticas.</li>
+      <li><strong>Hardening profundo:</strong> Filesystems read-only, seccomp profiles, no-new-privileges, tmpfs para datos volátiles.</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Capas de Seguridad</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Capa</th>
+          <th>Tecnología</th>
+          <th>Propósito</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Perímetro</td>
+          <td>Nginx</td>
+          <td>Edge proxy: TLS termination, rate-limiting, CSP headers, HTTP→HTTPS redirect</td>
+        </tr>
+        <tr>
+          <td>Aplicación</td>
+          <td>Fastify middleware</td>
+          <td>JWT auth, CSRF, CSP nonce-based, security headers, Prometheus metrics</td>
+        </tr>
+        <tr>
+          <td>Red</td>
+          <td>Docker networks</td>
+          <td>4 subredes aisladas, solo tráfico autorizado entre capas</td>
+        </tr>
+        <tr>
+          <td>Contenedor</td>
+          <td>Seccomp + Capabilities</td>
+          <td>Syscalls permitidas explícitamente, cap_drop ALL, read_only filesystem</td>
+        </tr>
+        <tr>
+          <td>Datos</td>
+          <td>Docker Secrets + Postgres</td>
+          <td>Credenciales nunca en texto plano, data checksums, pg_hba.conf estricto</td>
+        </tr>
+        <tr>
+          <td>Correo</td>
+          <td>DKIM + DMARC + SPF</td>
+          <td>Autenticación de remitente, firma criptográfica, policy reject</td>
+        </tr>
+        <tr>
+          <td>Contenido</td>
+          <td>Amavis + ClamAV</td>
+          <td>Filtrado anti-spam, escaneo antivirus de attachments</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Matriz de Riesgos</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Riesgo</th>
+          <th>Mitigación</th>
+          <th>Severidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Brute-force en login</td>
+          <td>Rate limit 5 req/s en auth, auto-ban tras 3× threshold</td>
+          <td class="severity-high">Alta</td>
+        </tr>
+        <tr>
+          <td>CSRF</td>
+          <td>Double-submit cookie, token por sesión, validación en POST/PUT/PATCH/DELETE</td>
+          <td class="severity-high">Alta</td>
+        </tr>
+        <tr>
+          <td>XSS</td>
+          <td>CSP nonce-based estricto, frame-ancestors none, sanitize inputs</td>
+          <td class="severity-high">Alta</td>
+        </tr>
+        <tr>
+          <td>Fuga de secretos</td>
+          <td>Docker secrets, nunca .env hardcodeado, rotation automática</td>
+          <td class="severity-critical">Crítica</td>
+        </tr>
+        <tr>
+          <td>Contenedor comprometido</td>
+          <td>Seccomp profile, read_only, no-new-privileges, cap_drop ALL</td>
+          <td class="severity-medium">Media</td>
+        </tr>
+        <tr>
+          <td>Phishing /Spoofing</td>
+          <td>DKIM ed25519, DMARC reject, SPF -all</td>
+          <td class="severity-medium">Media</td>
+        </tr>
+        <tr>
+          <td>DDoS</td>
+          <td>Rate-limiting en nginx y Redis, connection limit per IP</td>
+          <td class="severity-high">Alta</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo de Autenticación End-to-End</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  ┌─────────────┐         ┌──────────┐         ┌──────────┐         ┌──────────┐
+  │   Cliente    │         │   Nginx   │         │ Fastify   │         │  Redis    │
+  │  (Browser)   │────────▶│ (TLS+RL)  │────────▶│ Middleware│────────▶│ (Sessions)│
+  └─────────────┘         └──────────┘         └──────────┘         └──────────┘
+         │                                       │                      │
+         │  1. POST /api/auth/login               │                      │
+         │  2. ← JWT access + refresh tokens      │                      │
+         │  3. GET /api/* + Bearer token          │                      │
+         │  4. ← Validación JWT + session +       │                      │
+         │     fingerprint + IP binding            │                      │
+         │  5. (Opcional) mTLS client cert verify  │                      │
+         │  6. SecureContext inyectado             │                      │
+         │  7. Audit log generado                  │                      │
+      ┌──┴───┐                                 ┌──┴───┐
+      │ JWT  │                                 │ Audit│
+      │ Store│                                 │ Log  │
+      └─────┘                                 └─────┘
+      </pre>
+    </div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/mtls">🔒 mTLS / TLS 1.3</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+      <li><a href="#/reference/environment">📋 Variables de Entorno</a></li>
+      <li><a href="#/reference/config">⚙️ Configuración Centralizada</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/infrastructure/nginx">🌐 Nginx Edge Proxy</a></li>
+    </ul>
+  </nav>
+</div>

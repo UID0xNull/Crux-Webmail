@@ -1,0 +1,90 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/infrastructure">Infraestructura</a> <span class="sep">/</span> <span>Certificados TLS / ACME</span>
+    </div>
+    <h1>🔒 Certificados TLS / ACME</h1>
+    <p class="subtitle">Gestión de certificados TLS, renovación automática con ACME y CA interna.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Estrategia de Certificados</h2>
+    <p>Crux-Webmail soporta dos estrategias de certificados:</p>
+    <table class="data-table">
+      <thead><tr><th>Estrategia</th><th>Uso</th><th>Certificado</th></tr></thead>
+      <tbody>
+        <tr><td><strong>ACME (Let's Encrypt)</strong></td><td>Producción con dominio público</td><td>Público, 90d auto-renew</td></tr>
+        <tr><td><strong>Internal CA</strong></td><td>Desarrollo / interno</td><td>Self-signed CA, 1 año</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>ACME con Caddy</h2>
+    <div class="code-block"><pre><code>caddy:
+  image: caddy:latest
+  container_name: crux-caddy
+  volumes:
+    - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+    - caddy_data:/data
+    - caddy_config:/config
+    - cert_data:/certs
+  ports:
+    - "80:80"
+    - "443:443"
+</code></pre></div>
+
+    <div class="code-block"><pre><code># Caddyfile
+mail.example.com {
+  reverse_proxy nginx:80
+  tls admin@local.com
+}
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>CA Interna</h2>
+    <div class="code-block"><pre><code># Generar RA de confianza interna
+openssl genrsa -out ca.key 4096
+openssl req -new -x509 -days 365 -key ca.key -out ca.crt \
+  -subj "/C=US/ST=Local/O=Crux Webmail/CN=Crux CA"
+
+# Generar cert para cada servicio
+openssl genrsa -out service.key 2048
+openssl req -new -key service.key -out service.csr \
+  -subj "/C=US/ST=Local/O=Crux Webmail/CN=crux-server"
+openssl x509 -req -days 365 -in service.csr \
+  -CA ca.crt -CAkey ca.key -set_serial 01 \
+  -out service.crt
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Key Rotation</h2>
+    <div class="code-block"><pre><code># Cron para rotación automática
+0 0 1 * * /usr/local/bin/rotate-certificates.sh
+
+# rotate-certificates.sh
+#!/bin/bash
+ACME_RENEW=0
+CADDY_CERT=$(date -r /certs/live/mail.example.com/cert.pem +%s)
+if [ $(( $(date +%s) - $CADDY_CERT )) -gt 21600000 ]; then
+  ACME_RENEW=1
+fi
+
+if [ $ACME_RENEW = 1 ]; then
+  caddy renew --force
+  docker compose restart nginx
+fi
+</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/mtls">🔐 mTLS / TLS 1.3</a></li>
+      <li><a href="#/infrastructure/nginx">🌐 Nginx Reverse Proxy</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+    </ul>
+  </nav>
+</div>

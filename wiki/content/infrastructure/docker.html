@@ -1,0 +1,109 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/infrastructure/docker">Infraestructura</a> <span class="sep">/</span> <span>Docker & Compose</span>
+    </div>
+    <h1>🐳 Docker & Compose — Orquestación Zero-Trust</h1>
+    <p class="subtitle">Microsegmentación, read-only filesystems, seccomp profiles y hardening profundo.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura de Redes</h2>
+    <div class="info-box">
+      <strong>4 redes Docker aisladas</strong> para microsegmentación. Ningún servicio accede a más redes de las necesarias.
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Red</th><th>Subred</th><th>Internal</th><th>Servicios</th></tr></thead>
+      <tbody>
+        <tr><td>public-network</td><td>172.20.0.0/24</td><td>No</td><td>Nginx, Grafana</td></tr>
+        <tr><td>app-network</td><td>172.21.0.0/24</td><td>Sí</td><td>Postfix, Dovecot, Amavis, Redis, Loki</td></tr>
+        <tr><td>data-network</td><td>172.22.0.0/24</td><td>Sí</td><td>Postgres, ClamAV, MinIO</td></tr>
+        <tr><td>monitor-network</td><td>172.23.0.0/24</td><td>Sí</td><td>Prometheus, Alertmanager, exporters</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Servicios por Capa</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  ╔═══════════════════════════════════════════════════════╗
+  ║  DMZ (public)   : Nginx :443, Grafana :3000          ║
+  ╠═══════════════════════════════════════════════════════╣
+  ║  APP (internal) : Postfix:25, Dovecot:993            ║
+  ║                : Amavis:10024, Redis:6379            ║
+  ╠═══════════════════════════════════════════════════════╣
+  ║  DATA (internal): Postgres:5432, ClamAV:3310         ║
+  ║                : MinIO:9000                          ║
+  ╠═══════════════════════════════════════════════════════╣
+  ║  MONITOR(int):  Prometheus:9090, Loki:3100          ║
+  ║                : Exporters:9100/9121/9187           ║
+  ╚═══════════════════════════════════════════════════════╝</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Hardening por Contenedor</h2>
+    <table class="data-table">
+      <thead><tr><th>Medida</th><th>Config</th><th>Efecto</th></tr></thead>
+      <tbody>
+        <tr><td>Filesystem</td><td><code>read_only: true</code></td><td>Root FS inmutable</td></tr>
+        <tr><td>Privilegios</td><td><code>no-new-privileges</code></td><td>Bloquea SUID elevation</td></tr>
+        <tr><td>Capabilities</td><td><code>cap_drop: ALL</code></td><td>Solo lo necesario</td></tr>
+        <tr><td>User</td><td><code>1000:1000</code></td><td>No root</td></tr>
+        <tr><td>Tmpfs</td><td>32M-256M</td><td>Límites de RAM en tmpfs</td></tr>
+        <tr><td>Memory</td><td><code>deploy.resources.limits</code></td><td>Ceiling (PG 1G, ClamAV 2G, Redis 512M)</td></tr>
+        <tr><td>Logs</td><td><code>json-file, max 50M, 3 rotations</code></td><td>Logs estructurados</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Volumes Persistentes</h2>
+    <div class="code-block"><pre><code>volumes:
+  postfix_mail      # /var/mail
+  postfix_queue     # /var/spool/postfix
+  dovecot_mail      # /var/mail
+  dovecot_db        # /var/lib/dovecot
+  amavis_db         # /var/lib/amavis
+  clamav_db         # /var/lib/clamav
+  postgres_data     # /var/lib/postgresql/data
+  redis_data        # /data (RDB/AOF)
+  minio_data        # /data (S3 objects)
+  logs_shared       # /var/log/* (shared)
+  grafana_data      # /var/lib/grafana
+  prometheus_data   # /prometheus
+  alertmanager_data # /alertmanager</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Comandos Útiles</h2>
+    <div class="code-block"><pre><code>npm run docker:up              # Iniciar todos los servicios
+docker compose down             # Parar todos
+docker compose logs -f crux-nginx  # Logs de un servicio
+docker compose ps              # Estado de health checks
+docker compose up --build      # Reconstruir imágenes
+docker exec -it crux-postgres sh  # Shell en contenedor
+docker network inspect crux-webmail_app-network</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Seccomp Profile</h2>
+    <p>El archivo <code>infra/security/seccomp-profile.json</code> define una lista blanca de syscalls permitidas:</p>
+    <div class="code-block"><pre><code>security_opt:
+  - seccomp:./security/seccomp-profile.json</code></pre></div>
+    <p>Permite ~150 syscalls esenciales y deniega todo lo demás con <code>SCMP_ACT_ERRNO</code>.</p>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/infrastructure/nginx">🌐 Nginx Edge Proxy</a></li>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+      <li><a href="#/reference/environment">📋 Variables de Entorno</a></li>
+      <li><a href="#/deployment/production">🚀 Despliegue en Producción</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

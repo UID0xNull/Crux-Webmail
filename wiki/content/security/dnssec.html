@@ -1,0 +1,80 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <a href="#/security/overview">Seguridad Zero-Trust</a> <span class="sep">/</span>
+      <span>DNSSEC</span>
+    </div>
+    <h1>🔗 DNSSEC — Seguridad de DNS</h1>
+    <p class="subtitle">Firma criptográfica de registros DNS para prevenir envenenamiento de cache.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Configuración</h2>
+    <div class="code-block">
+      <pre><code>DNSSEC_ENABLED=true</code></pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Cadena de Confianza</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  Root Key (KSK) ──▶ TLD (.com/.org) ──▶ Zone Key (ZSK) ──▶ crux.local
+       │                    │                     │                 │
+       │ 2048-bit RSA       │ 2048-bit RSA        │ 256-bit ECDSA   │
+       │ Chain of Trust     │ DS Record           │ RRSIG           │
+       │                    │                     │                 │
+       └── Validation path ─┴─────────────────────┴─────────────────┘
+      </pre>
+    </div>
+    <ul>
+      <li><strong>KSK (Key Signing Key):</strong> Firma la ZSK. Rotación anual</li>
+      <li><strong>ZSK (Zone Signing Key):</strong> Firma los registros A/AAAA/MX/TXT. Rotación mensual</li>
+      <li><strong>RRSIG:</strong> Firma del registro individual, con TTL limitado</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Impacto en Autenticación de Correo</h2>
+    <p>DNSSEC asegura que las consultas de DKIM, SPF y DMARC no sean manipuladas:</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Registro</th>
+          <th>Firma DNSSEC</th>
+          <th>Efecto sin DNSSEC</th>
+          <th>Efecto con DNSSEC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>DKIM</td>
+          <td>Sí</td>
+          <td>Clave pública puede ser falsificada</td>
+          <td>Integridad de clave verificada</td>
+        </tr>
+        <tr>
+          <td>SPF</td>
+          <td>Sí</td>
+          <td>Lista blanca puede ser modificada</td>
+          <td>Lista blanca intacta</td>
+        </tr>
+        <tr>
+          <td>DMARC</td>
+          <td>Sí</td>
+          <td>Policy puede ser alterada</td>
+          <td>Policy verificada</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/dkim-dmarc">📨 DKIM / DMARC / SPF</a></li>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+    </ul>
+  </nav>
+</div>

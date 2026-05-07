@@ -1,175 +1,134 @@
-# Plan de Mejoras Arquitectónicas y Funcionales para Crux-Webmail
+# Plan de Continuidad Fase 2: Core de Webmail - Gestión de Emails, Composición y Sincronización
 
-Estrategia integral para elevar la calidad, seguridad, rendimiento y mantenibilidad del cliente webmail. Aborda refactoring estructural, hardening de seguridad contra inyección de contenido, optimización de renderizado con virtualización, motor de procesamiento MIME robusto, gestión de estado centralizada, pipeline de testing automatizado y mejoras de accesibilidad. Se ejecutará en fases dependientes para garantizar estabilidad progresiva y cumplimiento de estándares modernos de desarrollo frontend/backend.
+Este plan continúa la implementación del sistema Crux-Webmail asumiendo que la Fase 1 (autenticación y estructura base) ya está operativa. Se centra en construir el motor central de la aplicación: gestión reactiva del estado de mensajes, lista de bandeja con virtualización, editor de composición con guardado automático de borradores, visualizador de hilos con sanitización de HTML, y capa de pruebas y optimización. Cada paso está secuencialemente dependiente para garantizar integridad arquitectónica y rendimiento en tiempo real.
 
 ---
 
-## 1. Estandarización de TypeScript y estructura modular
+## 1. Configuración de estado global y capa de datos para emails
 
-Establecer una base estricta de tipado y organización modular para prevenir errores en tiempo de compilación y mejorar la navegabilidad del código. Se migrará la configuración actual a reglas strict y se reorganizarán los módulos en carpetas semánticas (`lib/`, `services/`, `types/`, `components/`). Esto sienta las bases para todas las siguientes mejoras al garantizar predictibilidad y evitar drift de tipos.
+Se establecerá una tienda reactiva con Zustand o Redux Toolkit para manejar la colección de emails, carpetas, estado de selección y contadores de no leídos. Se definirá la interfaz EmailEntity con campos normalizados (id, threadId, subject, from, to, receivedAt, isRead, bodyPreview). Se integrará React Query para cachear respuestas de la API, manejar invalidaciones automáticas tras acciones de envío/leído, y configurar interceptores de Axios para propagar tokens de sesión y errores de red con retry exponencial.
 
 **Archivos involucrados:**
-- `tsconfig.json`
-- `package.json`
-- `src/types/email.d.ts`
-- `src/types/auth.d.ts`
-- `src/types/ui.d.ts`
-- `src/lib/validators.ts`
+- `src/store/emailStore.ts`
+- `src/types/email.types.ts`
+- `src/services/emailApi.ts`
+- `src/lib/queryClient.ts`
 
 **Cambios:**
-- Activar flags `strict`, `noImplicitAny`, `exactOptionalPropertyTypes`, `forceConsistentCasingInFileNames` en tsconfig.json
-- Definir interfaces core: `EmailMessage`, `FolderState`, `UserSession`, `MimePart` con validaciones de estructura
-- Crear módulo `lib/validators.ts` con funciones `validateEmailStructure()` y `validateAuthToken()` usando zod/esquema manual
-- Configurar ESLint + Prettier con reglas de import sorting, banned dependencies y enforcement de `return` types
+- Implementar useEmailStore con slices: emails, folders, uiState (loading, error, selectedId)
+- Crear interfaces EmailEntity, FolderNode, PaginatedResponse y tipar completamente las mutaciones
+- Configurar queryClient con defaultOptions para staleTime, gcTime y retryDelay
+- Añadir interceptor de respuesta para mapear HTTP 401 a refresco de token y 429 a backoff exponencial
 
 *Tiempo estimado: ~15min*
 
 ---
 
-## 2. Hardening de seguridad y sanitización de contenido
+## 2. Implementación del layout principal y navegación responsiva
 
-Implementar barreras contra inyección HTML/JS en correos y fortalecer la gestión de credenciales y tokens. Se integrará un sanitizer restrictivo para el renderizado de body HTML, se aislarán los iframes de terceros y se implementará almacenamiento cifrado para secrets sensibles. Esta fase es crítica para prevenir XSS y data leakage en clientes de correo.
-
-**Archivos involucrados:**
-- `src/lib/security/sanitizer.ts`
-- `src/hooks/useSecureStorage.ts`
-- `src/components/EmailRenderer.tsx`
-- `src/config/cspHeaders.ts`
-- `next.config.js`
-
-**Cambios:**
-- Implementar función `sanitizeHtmlContent(rawHtml: string): string` usando DOMPurify con config `ALLOW_DATA_ATTR: false`, `ALLOW_URI_FRAGMENT: false`
-- Crear hook `useSecureStorage(key: string)` con cifrado AES-GCM local y rotación de claves derivadas via PBKDF2
-- Inyectar headers CSP y `X-Frame-Options` dinámicos según entorno (dev/prod)
-- Validar y escapar atributos `href`, `src`, `style` antes de pasarlos al DOM mediante `createElement` seguro
-
-*Tiempo estimado: ~20min*
-
----
-
-## 3. Motor de procesamiento MIME y threading de conversaciones
-
-Desarrollar un parser robusto para manejar headers, body parts, attachments y construir hilos de conversación (threading) basados en Message-ID e In-Reply-To. Se implementará un algoritmo de árbol optimizado para unir respuestas y se añadirá caché LRU para evitar reparsing costoso. Esta capa desacopla la lógica de negocio del transporte.
+Se construirá la cáscara de la aplicación usando un grid CSS flexible con área lateral (folders/nav), área principal (lista/visor) y barra superior (búsqueda/acciones). Se implementará un hook useSidebarState para controlar colapso/expandir en desktop y comportamiento de drawer deslizante en mobile (<768px). Se integrará el tema de UI con variables CSS y provider de configuración visual. Se añadirán atajos de teclado para navegación rápida entre carpetas y selección de mensajes.
 
 **Archivos involucrados:**
-- `src/services/emailParser.ts`
-- `src/services/threadingEngine.ts`
-- `src/types/mime.d.ts`
-- `src/lib/attachments/handler.ts`
-
-**Cambios:**
-- Implementar `parseMimeStream(rawData: ArrayBuffer): ParsedEmail` decodificando `base64`/`quoted-printable` y manejando `multipart/alternative`, `multipart/related`
-- Crear función `buildThread(emails: ParsedEmail[], rootId?: string): Thread[]` con BFS optimizado y detección de bucles en references
-- Añadir `AttachmentProcessor` con conversión a Blob URL temporales y limpieza automática via `revokeObjectURL()`
-- Implementar caché `Map<string, ParsedEmail>` con límite de 500 entradas y eviction FIFO para reducir overhead de CPU
-
-*Tiempo estimado: ~25min*
-
----
-
-## 4. Optimización de rendimiento y virtualización de listas
-
-Mejorar la experiencia en bandejas con miles de mensajes mediante renderizado diferido, lazy loading y gestión inteligente de memoria. Se introducirá virtualización de scroll, debounce en búsquedas y optimización de imágenes. Esto reduce el paint count y previene bloqueos del main thread en dispositivos de bajo rendimiento.
-
-**Archivos involucrados:**
-- `src/components/InboxList.tsx`
-- `src/hooks/useVirtualList.ts`
-- `src/utils/imageOptimizer.ts`
-- `src/components/EmailPreview.tsx`
-
-**Cambios:**
-- Integrar virtualización nativa o `@tanstack/react-virtual` vía hook `useVirtualList<T>(items: T[], itemHeight: number)`
-- Implementar lazy loading progresivo: primero metadata (desde/asunto), luego snippet, finalmente body completo al abrir
-- Añadir debouncing de 300ms en inputs de búsqueda y filtros mediante `useDebouncedValue()` con cancelación en unmount
-- Optimizar imágenes con `<picture>` fallback webp, `loading='lazy'`, y precarga crítica para avatares frecuentes
-
-*Tiempo estimado: ~20min*
-
----
-
-## 5. Gestión de estado centralizada y soporte offline
-
-Unificar la gestión de estado con persistencia local, actualizaciones optimistas y sincronización asíncrona para garantizar consistencia sin conexión. Se implementará una cola de operaciones con retry exponencial y un detector de conectividad. Esto elimina race conditions y mejora la percepción de velocidad.
-
-**Archivos involucrados:**
-- `src/store/useEmailStore.ts`
-- `src/store/useAuthStore.ts`
-- `src/sync/SyncManager.ts`
-- `lib/db/idbWrapper.ts`
-- `src/hooks/useNetworkStatus.ts`
-
-**Cambios:**
-- Migrar a Zustand/estado reactivo con middleware `persist` y slices aislados (`inbox`, `drafts`, `user`)
-- Implementar `SyncManager` con `OperationQueue<T>` que gestiona `enqueue()`, `flush()`, `retryOnFailure()` con backoff exponencial
-- Añadir detector `navigator.onLine` + fallback de `fetch('/health')` para transiciones de red confiables
-- Implementar optimistic updates en marcados como leído/borrado con rollback transaccional en error 4xx/5xx
-
-*Tiempo estimado: ~30min*
-
----
-
-## 6. Mejoras de UX, accesibilidad y responsividad
-
-Elevar la calidad visual y de interacción con navegación por teclado, soporte ARIA, modo oscuro nativo y diseño adaptable. Se añadirán atajos de productividad, focus management y contrastes WCAG AA. Esto garantiza usabilidad universal y cumple estándares de inclusión moderna.
-
-**Archivos involucrados:**
+- `src/components/layout/AppShell.tsx`
+- `src/components/layout/Sidebar.tsx`
+- `src/hooks/useSidebarState.ts`
+- `src/components/layout/SearchBar.tsx`
 - `src/styles/theme.css`
-- `src/components/ui/KeyboardNav.tsx`
-- `src/hooks/useA11y.ts`
-- `src/App.tsx`
-- `src/components/layouts/ResponsiveShell.tsx`
 
 **Cambios:**
-- Implementar sistema de diseño con CSS variables para dark/light mode y sincronización con `prefers-color-scheme`
-- Añadir atributos `aria-live='polite'`, `aria-label`, `role='grid'` en componentes de lista y formularios
-- Crear hook `useKeyboardShortcuts()` mapeando teclas (n=new, e=archive, d=delete, /=help) con event delegation
-- Implementar focus trapping en modales/dialogs y skip-links accesibles al inicio del DOM
+- Crear grid layout con template areas: header, sidebar, main, toast-portal
+- Implementar Sidebar con mapa de rutas de carpetas y badges de no-leídos vinculados al store
+- Agregar useSwipeDetection y useKeyboardShortcuts para UX nativa en móvil y escritorio
+- Definir variables CSS semánticas (--color-surface, --text-muted, --radius-lg) y registrar en :root
 
-*Tiempo estimado: ~15min*
+*Tiempo estimado: ~12min*
 
 ---
 
-## 7. Pipeline de testing automatizado y CI/CD
+## 3. Desarrollo de la vista de bandeja de entrada con virtualización
 
-Establecer cobertura de pruebas unitarias, integración y E2E con ejecución automática en pull requests y deploy progresivo. Se configurarán mocks de API, umbrales de cobertura y reportes. Esto previene regressions y automatiza la calidad antes de llegar a staging/producción.
+Se implementará EmailList utilizando tanstack/virtual o react-window para renderizado difuso de cientos de mensajes sin bloquear el hilo principal. Cada fila se encapsulará en EmailRow con manejo de selección múltiple, estado de lectura, acciones rápidas (archivar, eliminar, marcar) y soporte para gestos táctiles. Se integrará pagination cursor-based para evitar problemas de offset en datasets dinámicos. Se añadirá un sistema de skeleton loaders deterministas basado en la estructura real de las filas.
 
 **Archivos involucrados:**
-- `.github/workflows/ci.yml`
-- `vitest.config.ts`
-- `tests/unit/emailParser.test.ts`
-- `tests/e2e/inbox.spec.ts`
-- `tests/mocks/apiHandlers.ts`
+- `src/components/emails/EmailList.tsx`
+- `src/components/emails/EmailRow.tsx`
+- `src/hooks/useVirtualEmailList.ts`
+- `src/utils/emailFormatters.ts`
+- `src/components/ui/SkeletonRow.tsx`
 
 **Cambios:**
-- Configurar Vitest + Testing Library con setup de isolation y coverage thresholds (`lines: 80%, branches: 70%`)
-- Crear suite `tests/unit/` para sanitizer, threading engine y validators con fixtures de RFC 5322
-- Implementar Playwright/Cypress para flujos: login, leer correo, responder, adjuntar, cambio de tema
-- Añadir step de lint/test/build en GitHub Actions con cache de pnpm/npm y upload de coverage a dashboard
+- Crear useVirtualEmailList que expose scrollToIndex, visibleRange y virtualizer instance
+- Implementar EmailRow con onSelect, onToggleRead, onQuickAction y accesibilidad ARIA roles
+- Añadir emailFormatters con formatSenderDisplay, formatRelativeDate y truncateSubject
+- Conectar skeletons a estados de fetching/pagination para evitar layout shifts (CLS < 0.1)
 
-*Tiempo estimado: ~25min*
+*Tiempo estimado: ~18min*
 
 ---
 
-## 8. Documentación técnica, observabilidad y monitoring
+## 4. Editor de composición, gestor de borradores y subida de adjuntos
 
-Consolidar la documentación del código, flujos de API y métricas de rendimiento para facilitar el mantenimiento y la detección temprana de incidentes. Se integrará logging estructurado, error tracking y runbooks. Esto reduce el tiempo de onboarding y mejora la visibilidad operativa del sistema.
+Se integrará TipTap con extensiones esenciales (bold, italic, lists, links, image, table) para composición rica. Se creará useDraftManager que sincronice el contenido del editor hacia localStorage (con debounce de 800ms) y opcionalmente al backend vía POST /drafts. Se implementará un sistema de subida de archivos con progress tracking, validación de tamaño/tipo, y generación de blobs temporales. El flujo de envío validará destinatarios, asunto vacío y límites de adjuntos antes de llamar a emailApi.sendEmail().
 
 **Archivos involucrados:**
-- `docs/ARCHITECTURE.md`
-- `docs/API.md`
-- `src/utils/logger.ts`
-- `src/config/analytics.ts`
-- `package.json`
-- `README.md`
+- `src/components/composer/EmailComposer.tsx`
+- `src/components/composer/AttachmentUploader.tsx`
+- `src/hooks/useDraftManager.ts`
+- `src/services/draftService.ts`
+- `src/utils/fileValidation.ts`
 
 **Cambios:**
-- Generar documentación con TypeDoc para clases/servicios públicos y diagrama de arquitectura en `docs/`
-- Añadir middleware de logging estructurado (`pino`/`winston` adaptado) con niveles debug/info/warn/error y rotación en dev
-- Integrar Sentry/Raven para error tracking con contexto de usuario, versión de app y stack traces limpios
-- Crear dashboard de métricas Core Web Vitals y actualizar README con runbook de setup, branching strategy y convenios de commit
+- Inicializar TipTapEditor con custom commands para @mentions y /slash-menu si aplica
+- Implementar useDraftManager con useEffect debounced, cleanup y recuperación tras crash
+- Añadir fileValidation con allowlist de MIME types y maxFileSize constant
+- Crear draftService con upsertDraft(), syncDraftOnNetworkRecovery(), y purgeExpired()
 
-*Tiempo estimado: ~15min*
+*Tiempo estimado: ~20min*
 
 ---
 
-> Plan generado el 5/5/2026, 11:59:28 AM — Esperando aprobación
+## 5. Visualizador de mensajes, agrupación de hilos y sanitización de DOM
+
+Se implementará EmailViewer para renderizar el cuerpo completo del mensaje con estilos inline preservados pero scripts eliminados. Se creará useEmailThread que grupe mensajes por threadId y ordene cronológicamente, permitiendo navegación entre respuestas. Se integrará DOMPurify + postHTML para sanitización segura contra XSS, XSS en URLs y tracking pixels opcionales. Se añadirá modo oscuro automático para contenido HTML embebido y preview de PDFs/IMágenes con fallback graceful.
+
+**Archivos involucrados:**
+- `src/components/reader/EmailViewer.tsx`
+- `src/components/reader/ThreadNav.tsx`
+- `src/utils/domSanitizer.ts`
+- `src/hooks/useEmailThread.ts`
+- `src/components/ui/MediaPreview.tsx`
+
+**Cambios:**
+- Configurar DOMPurify con ALLOW_DATA_URI, SAFE_FOR_TEMPLATES y callback onTagAttr
+- Implementar useEmailThread con fetch concurrente y deduplicación por messageId header
+- Añadir ThreadNav con prev/next arrows, estado disabled en bordes y animaciones suaves
+- Crear MediaPreview con lazy loading, error boundary y soporte para mime types multimedia
+
+*Tiempo estimado: ~16min*
+
+---
+
+## 6. Optimización de rendimiento, error boundaries y pruebas unitarias
+
+Se establecerá una capa de resiliencia con React Error Boundaries por sección (lista, visor, composer) y sistema global de notificaciones toast con cola y auto-dismiss. Se escribirán pruebas unitarias con Jest y React Testing Library cubriendo store selectors, utilidades de formato, sanitización y lógica de borradores. Se integrarán marks de performance para medir TTFB, FCP y tiempo de renderizado de listas. Se añadirá configuración de CI básica para lint, type-check y test en pipeline.
+
+**Archivos involucrados:**
+- `src/components/ui/ErrorBoundary.tsx`
+- `src/providers/ToastProvider.tsx`
+- `src/__tests__/emailStore.test.ts`
+- `src/__tests__/utils.test.ts`
+- `src/__tests__/sanitizer.test.ts`
+- `jest.config.ts`
+- `vitest.setup.ts`
+
+**Cambios:**
+- Implementar ErrorBoundary con state hasError, fallback UI y reporte silencioso a analytics
+- Configurar ToastProvider con queue, deduplication por messageKey y soporte RTL
+- Escribir suites de tests para formatRelativeDate, fileValidation, y draft sync logic
+- Añadir performance observers para monitorizar LCP y CLS en desarrollo, y CI scripts en package.json
+
+*Tiempo estimado: ~22min*
+
+---
+
+> Plan generado el 5/7/2026, 3:17:50 AM — Esperando aprobación

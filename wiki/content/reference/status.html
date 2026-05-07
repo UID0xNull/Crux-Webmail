@@ -1,0 +1,71 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <span>Estado del Servicio</span>
+    </div>
+    <h1>📊 Estado del Servicio</h1>
+    <p class="subtitle">Estado de salud de cada servicio del stack.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Health Checks Activos</h2>
+    <table class="data-table">
+      <thead><tr><th>Servicio</th><th>Healthcheck</th><th>Endpoint</th><th>Interval</th></tr></thead>
+      <tbody>
+        <tr><td>Fastify Server</td><td><code>curl -f http://localhost:3000/api/health</code></td><td>/api/health</td><td>30s</td></tr>
+        <tr><td>PostgreSQL</td><td><code>pg_isready -U crux_user</code></td><td>Internal</td><td>10s</td></tr>
+        <tr><td>Redis</td><td><code>redis-cli ping</code></td><td>Internal</td><td>10s</td></tr>
+        <tr><td>Postfix</td><td><code>postqueue -p</code></td><td>Port 25</td><td>60s</td></tr>
+        <tr><td>Dovecot</td><td><code>doveadm ping</code></td><td>IMAP 143</td><td>30s</td></tr>
+        <tr><td>ClamAV</td><td><code>freshclam --verbose</code></td><td>Port 3310</td><td>120s</td></tr>
+        <tr><td>MinIO</td><td><code>mc ping myminio</code></td><td>Port 9000</td><td>30s</td></tr>
+        <tr><td>Prometheus</td><td><code>curl -f http://localhost:9090/-/healthy</code></td><td>/-/healthy</td><td>30s</td></tr>
+        <tr><td>Grafana</td><td><code>curl -f http://localhost:3000/api/health</code></td><td>/api/health</td><td>60s</td></tr>
+        <tr><td>Nginx</td><td><code>curl -f http://localhost/health</code></td><td>/health</td><td>15s</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Comandos de Verificación</h2>
+    <div class="code-block"><pre><code># Estado general
+docker compose ps
+
+# Logs de errores recientes
+docker compose logs --tail=50 --since=1h | grep -i error
+
+# Métricas en vivo
+curl http://localhost:9090/api/v1/query?query=up
+
+# Cola de email
+docker exec crux-postfix postqueue -p
+
+# Espacio en volumes
+docker compose exec server df -h /backups</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Alertas Activas (Prometheus → AlertManager)</h2>
+    <table class="data-table">
+      <thead><tr><th>Alerta</th><th>Condición</th><th>Severidad</th></tr></thead>
+      <tbody>
+        <tr><td>ServiceDown</td><td>up == 0 por 1m</td><td>🔴 Critical</td></tr>
+        <tr><td>HighCPU</td><td>cpu_usage > 90% por 5m</td><td>🟡 Warning</td></tr>
+        <tr><td>HighMemory</td><td>memory_usage > 85% por 5m</td><td>🟡 Warning</td></tr>
+        <tr><td>DiskFull</td><td>disk_usage > 80%</td><td>🔴 Critical</td></tr>
+        <tr><td>MailQueueHigh</td><td>postfix_queue > 1000</td><td>🟡 Warning</td></tr>
+        <tr><td>SSLCertExpiry</td><td>cifra expira < 30 días</td><td>🟡 Warning</td></tr>
+        <tr><td>ClamAVDBStale</td><td>freshclam > 24h sin update</td><td>🔴 Critical</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/infrastructure/monitoring">📊 Monitoring & Logging</a></li>
+      <li><a href="#/deployment/scaling">📈 Escalabilidad</a></li>
+      <li><a href="#/reference/changelog">📝 Changelog</a></li>
+    </ul>
+  </nav>
+</div>

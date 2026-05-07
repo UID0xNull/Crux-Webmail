@@ -1,0 +1,79 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/architecture/overview">Arquitectura</a> <span class="sep">/</span> <span>Decisiones (ADRs)</span>
+    </div>
+    <h1>📋 ADRs — Decisiones Arquitectónicas</h1>
+    <p class="subtitle">Registro de decisiones técnicas con justificación y trade-offs.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>ADR-001: Fastify sobre Express.js</h2>
+    <table class="data-table">
+      <tr><td><strong>Status</strong></td><td>✅ Aceptado</td></tr>
+      <tr><td><strong>Motivación</strong></td><td>Fastify ofrece ~3x throughput, JSON schema validation nativa, plugin system aislado, y menor overhead de memoria</td></tr>
+      <tr><td><strong>Alternativas</strong></td><td>Express (mature pero más lento), Koa (minimalista pero sin schema), Hapi (opinionado pero mayor bundle)</td></tr>
+      <tr><td><strong>Consecuencias</strong></td><td>Mayor performance en producción, validación automática, mejor DX con TypeScript</td></tr>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>ADR-002: Next.js 14 con App Router</h2>
+    <table class="data-table">
+      <tr><td><strong>Status</strong></td><td>✅ Aceptado</td></tr>
+      <tr><td><strong>Motivación</strong></td><td>SSR para SEO del login/landing, Server Components para reducir client JS, RSC para data fetching optimizado</td></tr>
+      <tr><td><strong>Alternativas</strong></td><td>SPA vanilla (pero sin SSR), Remix (similares pero más nueva, menos ecosystem), Vue Nuxt (stack differente)</td></tr>
+      <tr><td><strong>Consecuencias</strong></td><td>Mejor LCP, menor TTFB, Server Actions para mutations sin API endpoints adicionales</td></tr>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>ADR-003: PostgreSQL + Sequelize sobre MongoDB</h2>
+    <table class="data-table">
+      <tr><td><strong>Status</strong></td><td>✅ Aceptado</td></tr>
+      <tr><td><strong>Motivación</strong></td><td>Relaciones complejas (users↔mailboxes↔emails↔folders), ACID transactions para envío,成熟的 backup tooling, ACID para email routing</td></tr>
+      <tr><td><strong>Alternativas</strong></td><td>MongoDB (flexible schema pero sin transactions robustas en ese momento), MySQL (menos tipos de datos, peor JSON support)</td></tr>
+      <tr><td><strong>Consecuencias</strong></td><td>Esquema estricto documentado en Sequelize models, migraciones versionadas, backups pg_dump</td></tr>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>ADR-004: Docker Compose sobre Kubernetes</h2>
+    <table class="data-table">
+      <tr><td><strong>Status</strong></td><td>✅ Aceptado</td></tr>
+      <tr><td><strong>Motivación</strong></td><td>Single-node deployment típico, ~10 contenedores max, simplicidad operativa, menor curva de aprendizaje</td></tr>
+      <tr><td><strong>Alternativas</strong></td><td>K8s (overkill para single-node), systemd services (menos aislación), VMs (más overhead)</td></tr>
+      <tr><td><strong>Consecuencias</strong></td><td>Escalabilidad horizontal limitada a single-host. Migración a K8s posible via docker-compose→helm</td></tr>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>ADR-005: WebCrypto para E2E Encryption</h2>
+    <table class="data-table">
+      <tr><td><strong>Status</strong></td><td>✅ Aceptado</td></tr>
+      <tr><td><strong>Motivación</strong></td><td>Cifrado del lado del cliente antes de enviar datos al server. AES-GCM + RSA-OAEP. Browser native, sin dependencias externas</td></tr>
+      <tr><td><strong>Alternativas</strong></td><td>OpenPGP.js (más pesado, key management complejo), libsodium-wrappers (no native browser)</td></tr>
+      <tr><td><strong>Consecuencias</strong></td><td>Server nunca ve datos en plaintext. Key rotation manual. Fallback para browsers sin WebCrypto necesario</td></tr>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>ADR-006: JMAP Bridge sobre IMAP nativo en frontend</h2>
+    <table class="data-table">
+      <tr><td><strong>Status</strong></td><td>✅ Aceptado</td></tr>
+      <tr><td><strong>Motivación</strong></td><td>JSON protocol moderno (RFC 8620), batching, posChangeKey para sync eficiente, no necesita IMAP client library en browser</td></tr>
+      <tr><td><strong>Alternativas</strong></td><td>IMAP directo (websockets + imap-client), IMAP over SMTP (no estándar)</td></tr>
+      <tr><td><strong>Consecuencias</strong></td><td>Bridge adicional pero desacoplado. Frontend habla solo HTTP/JSON.</td></tr>
+    </table>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/architecture/overview">🏗️ Visión General de Arquitectura</a></li>
+      <li><a href="#/architecture/diagrams">📊 Diagramas de Componentes</a></li>
+      <li><a href="#/development/setup">💻 Setup de Desarrollo</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

@@ -1,0 +1,75 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>Autenticación</span>
+    </div>
+    <h1>🔐 Sistema de Autenticación</h1>
+    <p class="subtitle">JWT dual, refresh rotation y session invalidation.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Flujo de Autenticación</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  ┌──────────┐     POST /api/auth/login     ┌──────────┐
+  │  Client  │ ──────────────────────────────▶ │  Fastify │
+  │ (Web/PWA)│                                │  Auth    │
+  │          │ ◀────────────────────────────── │  Module  │
+  └──────────┘   JWT + Refresh Token          └──────────┘
+                                      │
+                                      ▼
+                                ┌──────────┐
+                                │PostgreSQL│ ← bcrypt verify
+                                │ (Users)  │    hash + salt
+                                └──────────┘
+                                      │
+                                ┌──────────┐
+                                │  Redis   │ ← Refresh token store
+                                │ (Sesiones)│
+                                └──────────┘</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Configuración JWT</h2>
+    <div class="code-block"><pre><code>// fastify.config.js
+module.exports = {
+  jwt: {
+    secret: process.env.JWT_SECRET,        // ≥ 256 bits
+    cookie: false,                          // Sin cookies
+    sign: {
+      expiresIn: '5min',                   // Access token TTL
+      algorithm: 'HS256',
+    },
+    verify: { maxAge: '5min' },
+  },
+  refreshTokens: {
+    expiresIn: '7d',
+    redisKeyPrefix: 'sess:',
+    rotation: true,                         // New refresh on use
+    invalidation: 'immediate',              // On logout
+  },
+};</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Protecciones</h2>
+    <ul>
+      <li><strong>Brute force:</strong> Rate limit 5/min en /login (Redis + Fastify rate-limit)</li>
+      <li><strong>Account lockout:</strong> 5 fails → 15min lockout (exponential backoff)</li>
+      <li><strong>Token binding:</strong> Refresh token bound a client_id (device fingerprint)</li>
+      <li><strong>Revoke cascade:</strong> Logout → delete refresh en Redis + hash en DB</li>
+      <li><strong>CORS restrict:</strong> Solo permitidos: origin del webmail</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/e2e">🔒 Cifrado E2E con WebCrypto</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+      <li><a href="#/architecture/dataflow">🔄 Flujos de Datos</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

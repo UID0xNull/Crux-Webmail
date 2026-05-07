@@ -1,0 +1,133 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/deployment">Despliegue</a> <span class="sep">/</span> <span>Actualizaciones</span>
+    </div>
+    <h1>⬆️ Actualizaciones y Rollback</h1>
+    <p class="subtitle">Procedimientos de actualización del stack, migración de DB y estrategias de rollback con infraestructura inmutable.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Tipos de Actualización</h2>
+    <table class="data-table">
+      <thead><tr><th>Tipo</th><th>Qué cambia</th><th>Riesgo</th><th>Downtime?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Hotfix</strong></td><td>Imagen de un servicio específico</td><td>Bajo</td><td>No (rolling restart)</td></tr>
+        <tr><td><strong>Minor release</strong></td><td>Múltiples servicios + config</td><td>Medio</td><td>Mínimo (blue-green)</td></tr>
+        <tr><td><strong>Major release</strong></td><td>DB migration + nuevos servicios</td><td>Alto</td><td>Sí (maintenance window)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo de Actualización Segura</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+┌────────────────────────────────────────────────────┐
+│          ACTUALIZACIÓN BLUE-GREEN                     │
+│                                                       │
+│  Pre: [Backup automático]                              │
+│      ↓                                               │
+│  Step 1: [git pull origin main]                       │
+│      ↓                                               │
+│  Step 2: [docker compose build]                       │
+│      ↓                                               │
+│  Step 3: [docker compose up -d] (recreate servicios) │
+│      ↓                                               │
+│  Step 4: [Verificar healthchecks]                     │
+│      ↓                                               │
+│  Step 5: [Smoke tests]                                │
+│      ↓                                               │
+│  OK → Deploy exitoso                                 │
+│  FAIL → Rollback automático                           │
+│      ↓                                               │
+│  Post: [docker compose down --remove-orphans]         │
+└────────────────────────────────────────────────────┘
+</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Procedimiento de Actualización Paso a Paso</h2>
+    <ol>
+      <li><strong>Backup pre-update:</strong> <code>docker exec crux-postgres pg_dump -U crux_user -d crux_mail > pre_update.sql</code></li>
+      <li><strong>Verificar cambios:</strong> <code>git log --oneline HEAD...origin/main</code></li>
+      <li><strong>Pull + Build:</strong> <code>git pull && npm run docker:build</code></li>
+      <li><strong>Deploy:</strong> <code>npm run docker:up</code> (equivalente a <code>docker compose up -d</code>)</li>
+      <li><strong>Monitorizar health:</strong> <code>docker compose ps</code> — esperar todos healthy</li>
+      <li><strong>Smoke test:</strong> <code>curl -k https://localhost/api/health</code></li>
+      <li><strong>Verificar logs:</strong> <code>docker compose logs --tail=100</code></li>
+    </ol>
+  </section>
+
+  <section class="doc-section">
+    <h2>Migraciones de Base de Datos</h2>
+    <p>Las migraciones usan Sequelize y se ejecutan EN ANTES del deploy:</p>
+    <div class="code-block"><pre><code># Verificar migraciones pendientes
+docker compose exec postgres psql -U crux_user -d crux_mail -c "SELECT * FROM SequelizeMeta ORDER ON migration_name DESC LIMIT 5;"
+
+# Ejecutar migraciones
+docker compose run --rm server npx sequelize db:migrate
+
+# Verificar resultado
+docker compose run --rm server npx sequelize db:migrate:status
+</code></pre></div>
+    <p><strong>⚠️ IMPORTANTE:</strong> Nunca hacer rollback de migraciones en producción. Solo aplicar forwards.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Estrategias de Rollback</h2>
+    <table class="data-table">
+      <thead><tr><th>Estrategia</th><th>Cuándo usarla</th><th>Comando</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Image rollback</strong></td><td>Imágenes cached</td><td><code>docker image ls --filter dangling=false</code> + restore tag anterior</td></tr>
+        <tr><td><strong>Compose rollback</strong></td><td>Config errónea</td><td><code>git checkout HEAD~1 docker-compose.yml</code> + <code>docker compose up -d</code></td></tr>
+        <tr><td><strong>DB restore</strong></td><td>Migración corrupta</td><td><code>docker exec -i crux-postgres pg_restore < pre_update.sql</code></td></tr>
+        <tr><td><strong>Full rollback</strong></td><td>Catastrófico</td><td>Restaurar desde backup de <code>/backup/</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Automatización con Git Hooks</h2>
+    <div class="code-block"><pre><code># Pre-deploy hook (ejemplo)
+cat > .hooks/pre-deploy.sh << 'EOF'
+#!/bin/bash
+set -euo pipefail
+
+# Backup automático pre-deploy
+docker exec crux-postgres pg_basebackup -U crux_user -D /backups/pre-deploy -Ft -z -P
+
+# Verificar que no haya secrets en diff
+git diff --cached --name-only | grep -q '.secret\|\.key\|password' && { echo "Secrets detected! Abort."; exit 1; }
+
+# Run lint + typecheck
+npm run lint
+npm run typecheck
+npm run test:unit
+
+echo "Pre-deploy checks PASSED"
+EOF
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Versionado de Imágenes</h2>
+    <ul>
+      <li>Todas las imágenes siguen <strong>semver</strong>: <code>crux-webmail:0.2.0</code></li>
+      <li>Tags inmutables: <code>0.2.0</code>, <code>0.2.1</code> — nunca sobrescribir</li>
+      <li>Tags mutables: <code>latest</code>, <code>stable</code> — solo para staging</li>
+      <li>Docker images cached en GitHub Actions para rollback rápido</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/deployment/production">🚀 Despliegue en Producción</a></li>
+      <li><a href="#/deployment/backup">💾 Backup &amp; Restauración</a></li>
+      <li><a href="#/deployment/scaling">📈 Escalabilidad</a></li>
+      <li><a href="#/development/cicd">🔄 CI/CD Pipeline</a></li>
+    </ul>
+  </nav>
+</div>

@@ -1,0 +1,92 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>Cliente de Email</span>
+    </div>
+    <h1>💻 Cliente de Email — Next.js Frontend</h1>
+    <p class="subtitle">Interfaz webmail SPA con SSR, PWA support y UI responsiva.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Estructura del Frontend</h2>
+    <div class="code-block"><pre><code>src/frontend/
+├── app/
+│   ├── (auth)/          # Login, register, forgot-password
+│   ├── (main)/          # Dashboard, inbox, composer
+│   │   ├── inbox/
+│   │   ├── compose/
+│   │   ├── calendar/
+│   │   └── contacts/
+│   ├── api/             # Route handlers (revalidación, etc.)
+│   ├── layout.tsx       # Root layout, providers
+│   └── page.tsx         # Landing / redirect
+├── components/
+│   ├── EmailList.tsx    # Virtualized list
+│   ├── EmailView.tsx    # Render HTML/text con sandbox
+│   ├── Composer.tsx     # Compose con attachments
+│   ├── Sidebar.tsx      # Folders + quick search
+│   └── shared/          # Buttons, modals, tooltips
+├── lib/
+│   ├── api.ts           # Fetch wrapper con JWT
+│   ├── crypto.ts        # WebCrypto helpers
+│   └── store.ts         # Zustand stores
+├── styles/
+│   └── globals.css      # Tailwind base
+└── public/
+    ├── manifest.json    # PWA manifest
+    └── icons/           # Web app icons</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Características</h2>
+    <ul>
+      <li><strong>SSR/SSG:</strong> Login y landing pre-renderizados</li>
+      <li><strong>PWA:</strong> Service worker con cache strategy (stale-while-revalidate)</li>
+      <li><strong>Responsive:</strong> Mobile-first breakpoints (320px → 1920px)</li>
+      <li><strong>Virtualización:</strong> React-window para listas de emails</li>
+      <li><strong>Dark mode:</strong> CSS variables + class toggle en :root</li>
+      <li><strong>Email render:</strong> Sandboxed iframe con CSP strict para HTML emails</li>
+      <li><strong>Composer:</strong> Rich text editor con attachments drag & drop</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>CSP Headers para el Frontend</h2>
+    <div class="code-block"><pre><code>Content-Security-Policy:
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';  /* Tailwind JIT */
+  img-src 'self' data: blob:;
+  font-src 'self';
+  connect-src 'self' https://api.crux.local;
+  frame-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'none';</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>State Management</h2>
+    <table class="data-table">
+      <thead><tr><th>Store</th><th>Tech</th><th>Uso</th></tr></thead>
+      <tbody>
+        <tr><td>authStore</td><td>Zustand</td><td>User session, token expiry, permissions</td></tr>
+        <tr><td>emailStore</td><td>Zustand</td><td>Emails list, selected, pagination, sort</td></tr>
+        <tr><td>folderStore</td><td>Zustand</td><td>Active folder, folder tree, unread counts</td></tr>
+        <tr><td>themeStore</td><td>Zustand + localStorage</td><td>Dark/light, accent color</td></tr>
+        <tr><td>settingsStore</td><td>Zustand + DB sync</td><td>User preferences, notifications</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/modules/email-backend">⚙️ Backend de Email (Fastify)</a></li>
+      <li><a href="#/modules/webcrypto">🔐 WebCrypto E2E</a></li>
+      <li><a href="#/architecture/overview">🏗️ Visión General</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

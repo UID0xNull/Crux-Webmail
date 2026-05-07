@@ -1,0 +1,119 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <a href="#/security/overview">Seguridad Zero-Trust</a> <span class="sep">/</span>
+      <span>mTLS / TLS 1.3</span>
+    </div>
+    <h1>🔒 mTLS y Configuración TLS 1.3</h1>
+    <p class="subtitle">Mutual TLS para autenticación bidireccional entre servicios internos.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>TLS en la Capa de Perímetro</h2>
+    <p>El proxy Nginx fuerza TLS 1.2+ con cipher suites de máxima seguridad:</p>
+    <div class="code-block">
+      <pre><code>ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers on;
+ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:
+             ECDHE-RSA-AES256-GCM-SHA384:
+             ECDHE-ECDSA-CHACHA20-POLY1305:
+             ECDHE-RSA-CHACHA20-POLY1305';
+ssl_session_tickets off;
+ssl_stapling on;
+ssl_stapling_verify on;</code></pre>
+    </div>
+    <ul>
+      <li><strong>HSTS:</strong> max-age=1 año, includeSubDomains, preload</li>
+      <li><strong>OCSP Stapling:</strong> activado y con verificación</li>
+      <li><strong>HTTP→HTTPS:</strong> redirect 301 forzoso en puerto 80</li>
+      <li><strong>Certificados:</strong> fullchain.pem + privkey.pem + chain.pem</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>mTLS entre Servicios Internos</h2>
+    <div class="info-box">
+      Los certificados mTLS se almacenan en <code>./secrets/</code> y se montan como <strong>Docker Secrets</strong> — nunca en texto plano en docker-compose ni en .env.
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Secreto</th>
+          <th>Archivo</th>
+          <th>Usado por</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Clave privada TLS</td>
+          <td><code>secrets/tls_key.pem</code></td>
+          <td>Postfix, Dovecot</td>
+        </tr>
+        <tr>
+          <td>Certificado TLS</td>
+          <td><code>secrets/tls_cert.pem</code></td>
+          <td>Postfix, Dovecot</td>
+        </tr>
+        <tr>
+          <td>Password Postgres</td>
+          <td><code>secrets/postgres_password.txt</code></td>
+          <td>PostgreSQL</td>
+        </tr>
+        <tr>
+          <td>Password MinIO</td>
+          <td><code>secrets/minio_password.txt</code></td>
+          <td>MinIO Storage</td>
+        </tr>
+        <tr>
+          <td>Password Grafana</td>
+          <td><code>secrets/grafana_password.txt</code></td>
+          <td>Grafana</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Configuración de Rotación de Certificados</h2>
+    <p>Las variables de entorno controlan la vida y rotación:</p>
+    <div class="code-block">
+      <pre><code>TLS_MIN_VERSION=TLSv1.2
+TLS_CERT_PATH=/etc/crux-certs/server.crt
+TLS_KEY_PATH=/etc/crux-certs/server.key
+TLS_CA_PATH=/etc/crux-certs/ca-chain.crt
+MTLS_LEAF_VALIDITY_DAYS=7
+MTLS_ROTATION_CRON="0 3 * * *"</code></pre>
+    </div>
+    <ul>
+      <li>Los certificados hoja tienen <strong>7 días de validez</strong> (rotación diaria a las 03:00 UTC)</li>
+      <li>La cadena de confianza se valida en el handshake de cada servicio</li>
+      <li>En el middleware de autenticación, el header <code>X-MTls-Serial</code> verifica el serial del certificado del cliente</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo mTLS</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  Cliente                    Nginx                    Servicio Interno
+    │                         │                          │
+    │─── TLS Client Hello ───▶│                          │
+    │◀── TLS Server Hello ───│                          │
+    │─── Cert (client) ──────▶│                          │
+    │◀── Verify + Session ───│                          │
+    │                         │─── X-MTls-Serial ──────▶│
+    │                         │◀── OK / Deny ───────────│
+      </pre>
+    </div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+      <li><a href="#/infrastructure/nginx">🌐 Nginx Edge Proxy</a></li>
+    </ul>
+  </nav>
+</div>

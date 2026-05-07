@@ -1,0 +1,84 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/infrastructure/docker">Infraestructura</a> <span class="sep">/</span> <span>Monitoring & Observability</span>
+    </div>
+    <h1>📊 Monitoring & Observability</h1>
+    <p class="subtitle">Stack Prometheus + Grafana + Loki para métricas, alertas y logs centralizados.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura de Observabilidad</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">  [App Services] ──→ [Prometheus] ──→ [Grafana Dashboards]
+       │                   │                    │
+       │  metrics/         │  scrape              │
+       ▼                   ▼                    ▼
+  [Node Exporter]      [Loki] ← log push    [Alertmanager]
+       │                       │                   │
+       └── /metrics:9100       └── /loki/api/v1   └── Slack/PagerDuty</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Prometheus</h2>
+    <ul>
+      <li><strong>Scrape targets:</strong> Todos los contenedores exponen <code>/metrics</code></li>
+      <li><strong>Intervalo:</strong> 15s para app, 30s para infraestructura</li>
+      <li><strong>Retención:</strong> 30 días en volumen persistente</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Grafana Dashboards</h2>
+    <table class="data-table">
+      <thead><tr><th>Dashboard</th><th>Datos</th><th>Paneles</th></tr></thead>
+      <tbody>
+        <tr><td>Server Overview</td><td>Node Exporter</td><td>CPU, RAM, Swap, Disk I/O, Net I/O</td></tr>
+        <tr><td>Mail Traffic</td><td>Custom metrics</td><td>Enviados, recibidos, rechazados, spam</td></tr>
+        <tr><td>Fastify API</td><td>Pino logger</td><td>RPS, latency p50/p95/p99, errors</td></tr>
+        <tr><td>PostgreSQL</td><td>pg_exporter</td><td>Connections, cache hit ratio, replication</td></tr>
+        <tr><td>Redis</td><td>redis_exporter</td><td>Memory, keyspace hits/misses, evictions</td></tr>
+        <tr><td>System Health</td><td>Multi-source</td><td>Uptime, Docker healthchecks, services</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Loki — Logs Centralizados</h2>
+    <ul>
+      <li><strong>Log collector:</strong> Promtail en cada contenedor</li>
+      <li><strong>Retención:</strong> 30 días hot, 90 días cold (MinIO)</li>
+      <li><strong>Query language:</strong> LogQL con stream selector y label filters</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Alertmanager</h2>
+    <div class="code-block"><pre><code>routes:
+  - match:
+      severity: critical
+    receiver: slack-critical
+  - match:
+      severity: warning
+    receiver: slack-warnings
+
+receivers:
+  - name: slack-critical
+    slack_configs:
+      - channel: '#alerts-critical'
+  - name: slack-warnings
+    slack_configs:
+      - channel: '#alerts-warning'</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/infrastructure/logging">📝 Logging & Telemetría</a></li>
+      <li><a href="#/deployment/production">🚀 Despliegue en Producción</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

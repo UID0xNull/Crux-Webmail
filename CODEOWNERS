@@ -1,0 +1,26 @@
+# ============================================================================
+# CODEOWNERS — Crux-Webmail
+# ============================================================================
+
+# Default reviewers for all files
+* @crux-maintainers
+
+# Backend server code
+/src/server/** @backend-team
+
+# Frontend web code
+/src/web/** @frontend-team
+
+# CI/CD pipelines
+.github/workflows/** @infra-team
+
+# Docker & infrastructure
+docker-compose*.yml @infra-team
+**/Dockerfile @infra-team
+
+# Security-sensitive
+/secrets/** @security-team
+nginx/** @security-team
+
+# Database & migrations
+/src/server/models/** @backend-team

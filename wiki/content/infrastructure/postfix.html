@@ -1,0 +1,48 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/infrastructure/docker">Infraestructura</a> <span class="sep">/</span> <span>Postfix MTA</span>
+    </div>
+    <h1>📮 Postfix — Motor de Transferencia (MTA)</h1>
+    <p class="subtitle">Procesamiento SMTP, filtros DKIM, listas postmasters y greylisting.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Configuración Principal</h2>
+    <div class="code-block"><pre><code>POSTFIX_HOSTNAME=mail.crux.local
+POSTFIX_DOMAIN=crux.local
+POSTFIX_MAILBOX_SIZE_LIMIT=52428800   # 50MB
+POSTFIX_MESSAGE_SIZE_LIMIT=26214400   # 25MB</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Filtros de Contenido</h2>
+    <ul>
+      <li><strong>OpenDKIM milter:</strong> Firma saliente con Ed25519</li>
+      <li><strong>Greylisting:</strong> Retraso temporal para nuevos remitentes (configurable)</li>
+      <li><strong>Postmaster list:</strong> Validación de recipientes en tiempo real</li>
+      <li><strong>Amavis relay:</strong> Todo tráfico pasa por content filtering (port 10024)</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Integración con Docker</h2>
+    <div class="code-block"><pre><code>networks:
+  - app-network     # Internal SMTP
+  - monitor-network # Exporter :7827
+healthcheck:
+  test: ["CMD", "postfix", "status"]
+  interval: 15s
+  retries: 3</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/dkim-dmarc">📨 DKIM / DMARC / SPF</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/reference/environment">📋 Variables de Entorno</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

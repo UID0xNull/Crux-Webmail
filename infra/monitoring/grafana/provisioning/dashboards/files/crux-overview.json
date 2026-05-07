@@ -1,0 +1,173 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Overview dashboard for Crux-Webmail Zero-Trust backend: HTTP metrics, queue health, database connectivity, memory/CPU pressure.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "DOWN" } }, "type": "value" },
+            { "options": { "1": { "color": "green", "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red" }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Backend Status",
+      "type": "stat",
+      "targets": [{ "expr": "up{job=\"crux-backend\"}", "legendFormat": "" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 0 }] },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "id": 2,
+      "title": "HTTP Requests/s",
+      "type": "stat",
+      "targets": [{ "expr": "sum(rate(http_requests_total[1m]))", "legendFormat": "" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": { "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "yellow", "value": 0.02 }, { "color": "red", "value": 0.05 }] }, "unit": "percentunit" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "id": 3,
+      "title": "Error Rate (5xx)",
+      "type": "stat",
+      "targets": [{ "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": { "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 2 }] }, "unit": "s" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "id": 4,
+      "title": "P95 Latency",
+      "type": "stat",
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": { "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 100 }] }, "unit": "short" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "id": 5,
+      "title": "Queue Pending",
+      "type": "stat",
+      "targets": [{ "expr": "sum(crux_mail_queue_pending_messages)" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [{ "options": { "0": { "color": "red", "text": "Disconnected" }, "1": { "color": "green", "text": "Connected" } }, "type": "value" }], "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 0 }] } }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "id": 6,
+      "title": "Redis Status",
+      "type": "stat",
+      "targets": [{ "expr": "crux_redis_connected" }]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "bytes" } },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 4 },
+      "id": 7,
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "process_resident_memory_bytes{job=\"crux-backend\"}", "legendFormat": "RSS" },
+        { "expr": "process_heap_used_bytes{job=\"crux-backend\"}", "legendFormat": "Heap Used" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "reqps" } },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 4 },
+      "id": 8,
+      "title": "HTTP Request Rate by Status",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{status=~\"2..\"}[1m]))", "legendFormat": "2xx" },
+        { "expr": "sum(rate(http_requests_total{status=~\"4..\"}[1m]))", "legendFormat": "4xx" },
+        { "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m]))", "legendFormat": "5xx" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "ops" } },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 4 },
+      "id": 9,
+      "title": "Queue Processing Rate",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "sum(rate(crux_mail_queue_processed_total[5m])) by (queue_name)", "legendFormat": "{{ queue_name }}" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" } },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+      "id": 10,
+      "title": "Auth Failures (rate)",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "sum(rate(crux_auth_failures_total[5m]))", "legendFormat": "Failures/s" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" } },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
+      "id": 11,
+      "title": "Rate Limited Requests",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "sum(rate(crux_rate_limited_total[5m]))", "legendFormat": "Rate Limited/s" }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "bytes" } },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+      "id": 12,
+      "title": "Node.js Event Loop Delay",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "nodejs_eventloop_lag_seconds", "legendFormat": "Event Loop" }
+      ]
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "tags": ["crux", "webmail", "observability"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Crux-Webmail Overview",
+  "uid": "crux-webmail-overview",
+  "version": 1
+}

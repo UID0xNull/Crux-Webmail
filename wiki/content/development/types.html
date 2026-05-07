@@ -1,0 +1,153 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/development">Desarrollo</a> <span class="sep">/</span> <span>TypeScript Estricto</span>
+    </div>
+    <h1>📐 TypeScript Estricto</h1>
+    <p class="subtitle">Configuración de tsconfig con "strict": true y prácticas de tipado en el stack.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Configuración</h2>
+    <div class="code-block"><pre><code>{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "verbatimModuleSyntax": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@types/*": ["./src/types/*"],
+      "@modules/*": ["./src/modules/*"]
+    },
+    "skipLibCheck": false,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "preserve"
+  }
+}
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Reglas Estrictas Activas</h2>
+    <table class="data-table">
+      <thead><tr><th>Flag</th><th>Qué previene</th></tr></thead>
+      <tbody>
+        <tr><td><code>strictNullChecks</code></td><td>Acceder a propiedades de <code>null</code>/<code>undefined</code></td></tr>
+        <tr><td><code>noUncheckedIndexedAccess</code></td><td>Indexado sin check: <code>arr[0]</code> puede ser undefined</td></tr>
+        <tr><td><code>exactOptionalPropertyTypes</code></td><td>Asignar <code>undefined</code> a propiedades opcionales</td></tr>
+        <tr><td><code>noImplicitOverride</code></td><td>Override accidental en métodos heredados</td></tr>
+        <tr><td><code>verbatimModuleSyntax</code></td><td><code>import type</code> obligatorio para tipos</td></tr>
+        <tr><td><code>noUncheckedIndexedAccess</code></td><td>Index signatures con posible undefined</td></tr>
+        <tr><td><code>isolatedModules</code></td><td>Código no transpilable por tsc solo</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Prácticas de Tipado</h2>
+    <div class="code-block"><pre><code>// ✅ Buenas prácticas
+import type { User, Session } from "@types/auth";
+import type { FastifyRequest } from "fastify";
+
+// Tipos explícitos en interfaces
+interface MailMessage {
+  id: string;
+  from: string;
+  to: string[];
+  subject: string;
+  body: string;
+  attachments: Array<{
+    filename: string;
+    data: Buffer;
+    contentType: string;
+  }>;
+  createdAt: Date;
+  flags: string[];
+}
+
+// Generics para respuestas API
+interface ApiResponse<T> {
+  data: T;
+  meta?: {
+    count: number;
+    page: number;
+  };
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+// Type guards
+function isEmailError(err: unknown): err is EmailError {
+  return err instanceof Error && "emailCode" in err;
+}
+
+// Utility types
+export type Unpacked<T> = T extends (infer U)[] ? U : T;
+export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Anti-Patterns Prohibidos</h2>
+    <div class="code-block"><pre><code>// ❌ Prohibido
+const foo: any = getData();
+const bar = (arg: Object) => {
+  console.log(arg.value);
+};
+type Bad = { prop: string | undefined; }; // preferir { prop?: string; }
+
+// ✅ Corregido
+const foo: ReturnType<typeof getData> = getData();
+const bar = (arg: { value: string }) => {
+  console.log(arg.value);
+};
+type Good = { prop?: string; };
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Type-Checking en CI</h2>
+    <div class="code-block"><pre><code># Package.json scripts
+{
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "typecheck:verbose": "tsc --noEmit --listFiles"
+  }
+}
+# En CI: npm run typecheck
+</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/development/eslint">🧹 Linting & Formateo</a></li>
+      <li><a href="#/development/style-guide">📝 Guía de Código</a></li>
+      <li><a href="#/development/setup">🛠️ Setup de Desarrollo</a></li>
+    </ul>
+  </nav>
+</div>

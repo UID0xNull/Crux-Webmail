@@ -1,0 +1,79 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/infrastructure/docker">Infraestructura</a> <span class="sep">/</span> <span>Logging & Telemetría</span>
+    </div>
+    <h1>📝 Logging & Telemetría</h1>
+    <p class="subtitle">Logging estructurado JSON, tracing distribuido y retención escalable.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Pino Logger</h2>
+    <div class="code-block"><pre><code>// Config de Pino en el backend Fastify
+const logger = pino({
+  level: 'info',          // trace|debug|info|warn|error|fatal
+  formatters: {
+    level: (label) => ({ level: label.toUpperCase() }),
+  },
+  serializers: {
+    req: serializers.req,
+    res: serializers.res,
+    err: serializers.err,
+  },
+  transport: {
+    target: 'pino-loki',   // Envío directo a Loki
+    options: { url: 'http://loki:3100/loki/api/v1/push' }
+  }
+})</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Estructura de Log JSON</h2>
+    <div class="code-block"><pre><code>{
+  "level": "INFO",
+  "timestamp": "2024-01-15T10:30:45.123Z",
+  "pid": 1234,
+  "hostname": "crux-fastify-1",
+  "service": "crux-webmail-api",
+  "module": "imap-bridge",
+  "msg": "Sync completed",
+  "request_id": "abc-123-xyz",
+  "user_id": "usr_42",
+  "mailbox": "inbox",
+  "duration_ms": 45
+}</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Retención de Logs</h2>
+    <table class="data-table">
+      <thead><tr><th>Storage</th><th>Retención</th><th>Medio</th></tr></thead>
+      <tbody>
+        <tr><td>Hot</td><td>30 días</td><td>LoxB en /logs_shared</td></tr>
+        <tr><td>Warm</td><td>90 días</td><td>MinIO bucket (parquet)</td></tr>
+        <tr><td>Cold</td><td>365 días</td><td>S3 Glacier / MinIO archive</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Categorías de Logs</h2>
+    <ul>
+      <li><strong>App logs:</strong> Fastify + Pino — request/response lifecycle</li>
+      <li><strong>Mail logs:</strong> Postfix/Dovecot — delivery, bounce, rejection</li>
+      <li><strong>Security logs:</strong> Auth events, failed logins, rate limit hits</li>
+      <li><strong>System logs:</strong> Container health, Docker events, network</li>
+      <li><strong>Audit logs:</strong> Todas las operaciones de escritura (crear, modificar, eliminar)</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/infrastructure/monitoring">📊 Monitoring & Observability</a></li>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+      <li><a href="#/reference/environment">📋 Variables de Entorno</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

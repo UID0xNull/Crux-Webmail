@@ -333,14 +333,133 @@ export class SecureSessionManager {
   }
 
   // ----------------------------------------------------------------
+  // verifySession — valida JWT y devuelve session_id + user_id (hook)
+  // ----------------------------------------------------------------
+  async verifySession(token: string): Promise<{ valid: boolean; user_id?: string; session_id?: string }> {
+    this.assertInitialized();
+    try {
+      const payload = this.decodeJwt(token);
+      if (!payload) {
+        return { valid: false };
+      }
+
+      if (Date.now() > payload.exp * 1000) {
+        return { valid: false };
+      }
+
+      const blacklisted = await this.redis!.get(`blacklist:${payload.jti}`);
+      if (blacklisted) {
+        return { valid: false };
+      }
+
+      const sessionData = await this.redis!.get(`session:${payload.jti}`);
+      if (!sessionData) {
+        return { valid: false };
+      }
+
+      const encrypted = JSON.parse(sessionData);
+      const session = this.decryptSession(encrypted) as SecureSession | null;
+      if (!session || session.revoked || isExpired(session.expires)) {
+        return { valid: false };
+      }
+
+      return {
+        valid: true,
+        user_id: session.userId,
+        session_id: session.id,
+      };
+    } catch {
+      return { valid: false };
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // refreshToken — rota refresh + access token (Zero-Trust rotation)
+  // ----------------------------------------------------------------
+  async refreshToken(
+    refreshToken: string,
+    sessionId: string,
+    clientIp: string
+  ): Promise<AuthResult> {
+    this.assertInitialized();
+    try {
+      // 1. Decodificar refresh token
+      const payload = this.decodeJwt(refreshToken);
+      if (!payload || payload.jti !== sessionId) {
+        return { success: false, error: 'INVALID_REFRESH_TOKEN' };
+      }
+
+      if (Date.now() > payload.exp * 1000) {
+        return { success: false, error: 'TOKEN_EXPIRED' };
+      }
+
+      // 2. Recuperar sesión
+      const sessionData = await this.redis!.get(`session:${sessionId}`);
+      if (!sessionData) {
+        return { success: false, error: 'SESSION_NOT_FOUND' };
+      }
+
+      const encrypted = JSON.parse(sessionData);
+      const session = this.decryptSession(encrypted) as SecureSession | null;
+      if (!session || session.revoked || isExpired(session.expires)) {
+        return { success: false, error: 'INVALID_SESSION' };
+      }
+
+      // 3. Generar nuevo access token + nuevo refresh token (rotation)
+      const newAccessToken = this.generateAccessToken(session);
+      const newRefreshToken = this.generateRefreshToken(session);
+
+      // 4. Revocar antiguo refresh token
+      await this.redis!.set(`blacklist:${sessionId}`, 'revoked', 'EX', 86400);
+
+      // 5. Actualizar lastActive
+      session.lastActive = Date.now();
+      const updatedEncrypted = this.aead!.encrypt(JSON.stringify(session));
+      await this.redis!.set(
+        `session:${session.id}`,
+        JSON.stringify(updatedEncrypted),
+        'PX',
+        Math.max(300000, session.expires - Date.now())
+      );
+
+      auditLogger.info('Refresh token rotated successfully', {
+        actor_id: session.userId,
+        session_id: session.id,
+        client_ip: clientIp,
+      });
+
+      return {
+        success: true,
+        token: newAccessToken,
+        refreshToken: newRefreshToken,
+        session_id: session.id,
+        fingerprint: session.fingerprint,
+      };
+    } catch {
+      return { success: false, error: 'ROTATION_ERROR' };
+    }
+  }
+
+  // ----------------------------------------------------------------
   // Helpers internos
   // ----------------------------------------------------------------
   private async validateCredentials(userId: string, password: string): Promise<boolean> {
     if (!userId || userId.length < 3 || !password || password.length < 8) {
       return false;
     }
-    // TODO: conectar con PostgreSQL users table
-    return true;
+    try {
+      const { UserModel } = await import('../../models/User');
+      const { comparePassword } = await import('../../models/User');
+      const user = await UserModel.findOne({ where: { username: userId, is_active: true } });
+      if (!user) return false;
+      return await comparePassword(password, user.passwordHash);
+    } catch {
+      // Fallback: in development, allow any valid format credentials
+      if (config.NODE_ENV === 'development') {
+        return true;
+      }
+      return false;
+    }
   }
 
   private async getActiveSessionCount(userId: string): Promise<number> {

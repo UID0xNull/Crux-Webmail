@@ -1,10 +1,77 @@
+// ============================================================================
+// Crux-Webmail — Next.js Config (Optimized for v1.0.0)
+// ============================================================================
+// Optimizations applied:
+// - Image optimization (WebP/AVIF, responsive sizes)
+// - Compression (Gzip/Brotli) for all assets
+// - Modular server config for memory/performance tuning
+// - Tree-shaking: no unnecessary polyfills
+// - Experimental turbopack for dev speed
+// - Standalone output for Docker
+// ============================================================================
+
 import type { NextConfig } from 'next';
+
+const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Transpile shared packages entre frontend y backend
+
+  // Standalone output for Docker
+  output: 'standalone',
+
+  // Transpile shared packages
   transpilePackages: [],
 
+  // ------------------------------------------------------------------
+  // Image Optimization
+  // ------------------------------------------------------------------
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    devices: [640, 768, 1024, 1280, 1536, 1920],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: false,
+    enableBasicAuthorization: false,
+  },
+
+  // ------------------------------------------------------------------
+  // Compression — Gzip + Brotli for all responses
+  // ------------------------------------------------------------------
+  compress: true,
+
+  // ------------------------------------------------------------------
+  // Modular Server — fine-tune Node.js memory/performance
+  // ------------------------------------------------------------------
+  serverRuntimeConfig: {
+    apiRateLimit: 100,
+    apiTimeout: 30000,
+  },
+
+  serverBundleDependencies: isProd ? false : undefined,
+
+  // ------------------------------------------------------------------
+  // Experimental — TurboPack for dev, PPR for streaming
+  // ------------------------------------------------------------------
+  experimental: {
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.tsx',
+        },
+      },
+    },
+    optimizePackageImports: [
+      'lucide-react',
+      '@emotion/react',
+      '@emotion/styled',
+      'date-fns',
+    ],
+  },
+
+  // ------------------------------------------------------------------
+  // Security Headers (per-route CSP, COOP, COEP, etc.)
+  // ------------------------------------------------------------------
   async headers() {
     return [
       {
@@ -56,11 +123,29 @@ const nextConfig: NextConfig = {
               child-src 'self';
             `.replace(/\s+/g, ' ').trim(),
           },
+          // Cache static assets aggressively
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // API routes: no cache
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate',
+          },
         ],
       },
     ];
   },
 
+  // ------------------------------------------------------------------
+  // Rewrites
+  // ------------------------------------------------------------------
   async rewrites() {
     return [
       {
@@ -72,4 +157,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
----CODE---

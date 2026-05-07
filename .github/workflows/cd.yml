@@ -1,0 +1,181 @@
+name: CD — Crux-Webmail Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # ----------------------------------------------------------------
+  # 1. Build & Push Docker Images to GHCR
+  # ----------------------------------------------------------------
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta — server
+        id: meta-server
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/crux-server
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+      - name: Docker meta — web
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/crux-web
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build & Push Server
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/server/Dockerfile
+          push: true
+          tags: ${{ steps.meta-server.outputs.tags }}
+          labels: ${{ steps.meta-server.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & Push Web
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/web/Dockerfile
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ----------------------------------------------------------------
+  # 2. Generate Changelog from Git History
+  # ----------------------------------------------------------------
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    outputs:
+      changelog_body: ${{ steps.gen.outputs.body }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog from git log
+        id: gen
+        run: |
+          TAG="${{ github.ref_name }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          
+          {
+            echo "body<<EOF"
+            echo "# Release $TAG"
+            echo ""
+            echo "**Crux-Webmail v1.0.0 — Zero-Trust Enterprise Webmail**"
+            echo ""
+            if [ -n "$PREV_TAG" ]; then
+              echo "## Changes since $PREV_TAG"
+              echo ""
+              git log "$PREV_TAG..HEAD" --pretty=format:"-\ %s (\%h)" --no-merges
+            else
+              echo "## Full History"
+              echo ""
+              git log --pretty=format:"-\ %s (\%h)" --no-merges | tail -50
+            fi
+            echo ""
+            echo "## Docker Images"
+            echo "- Server: \`ghcr.io/${{ github.repository_owner }}/crux-server:$TAG\`"
+            echo "- Web: \`ghcr.io/${{ github.repository_owner }}/crux-web:$TAG\`"
+            echo ""
+            echo "## Documentation"
+            echo "- Docker Compose: \`docker compose -f docker-compose.yml up -d\`"
+            echo "- Environment: ver \`.env.example\` y configurar variables"
+            echo "---"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Write CHANGELOG.md to repo
+        run: |
+          TAG="${{ github.ref_name }}"
+          echo "# CHANGELOG — Crux-Webmail" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## [$TAG] — $(date -u +%Y-%m-%d)" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          git log --pretty=format:"-\ %s" --no-merges >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+      - name: Commit CHANGELOG.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore: add CHANGELOG for ${{ github.ref_name }}" || true
+          git push origin HEAD || true
+
+  # ----------------------------------------------------------------
+  # 3. Create GitHub Release
+  # ----------------------------------------------------------------
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-and-push, changelog]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: |
+            ${{ needs.changelog.outputs.changelog_body }}
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ----------------------------------------------------------------
+  # 4. Post-release — notify
+  # ----------------------------------------------------------------
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [release]
+    if: success()
+    steps:
+      - name: Release successful
+        run: |
+          echo "✅ Release ${{ github.ref_name }} completed successfully."
+          echo "Docker images available at:"
+          echo "  - ghcr.io/${{ github.repository_owner }}/crux-server:${{ github.ref_name }}"
+          echo "  - ghcr.io/${{ github.repository_owner }}/crux-web:${{ github.ref_name }}"

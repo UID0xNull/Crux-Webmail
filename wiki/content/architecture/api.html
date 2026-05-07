@@ -1,0 +1,97 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/architecture/overview">Arquitectura</a> <span class="sep">/</span> <span>APIs & Contratos</span>
+    </div>
+    <h1>📡 APIs & Contratos</h1>
+    <p class="subtitle">Especificación de endpoints, schemas y patrones de comunicación.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>API REST — Fastify</h2>
+    <table class="data-table">
+      <thead><tr><th>Grupo</th><th>Base</th><th>Endpoints</th><th>Auth</th></tr></thead>
+      <tbody>
+        <tr><td>Auth</td><td><code>/api/auth</code></td><td>/login, /logout, /refresh, /register</td><td>No (login/register)</td></tr>
+        <tr><td>Users</td><td><code>/api/users</code></td><td>/, /:id, /:id/profile</td><td>JWT requerido</td></tr>
+        <tr><td>Mail</td><td><code>/api/emails</code></td><td>/, /:id, /:id/attachments, /search</td><td>JWT + owner</td></tr>
+        <tr><td>Folders</td><td><code>/api/folders</code></td><td>/, /:id, /:id/emails</td><td>JWT + owner</td></tr>
+        <tr><td>Contacts</td><td><code>/api/contacts</code></td><td>/, /:id, /:id/email</td><td>JWT + owner</td></tr>
+        <tr><td>Calendar</td><td><code>/api/calendar</code></td><td>/, /:id, /events</td><td>JWT + owner</td></tr>
+        <tr><td>Health</td><td><code>/api/health</code></td><td>/, /ready, /live</td><td>No</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Validación con Zod</h2>
+    <div class="code-block"><pre><code>import { z } from 'zod';
+
+const EmailSendSchema = z.object({
+  to: z.array(z.string().email()).min(1).max(100),
+  cc: z.array(z.string().email()).max(50).optional(),
+  bcc: z.array(z.string().email()).max(50).optional(),
+  subject: z.string().min(1).max(256),
+  text: z.string().min(1).max(50_000),
+  html: z.string().max(500_000).optional(),
+  attachments: z.array(z.object({
+    filename: z.string().max(256),
+    content: z.instanceof(Buffer),
+    mimeType: z.string().max(128),
+  })).max(10).optional(),
+});
+
+app.post('/api/send', {
+  schema: { body: EmailSendSchema },
+  handler: emailController.send,
+});</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>JMAP Endpoints</h2>
+    <div class="code-block"><pre><code>POST /jmap
+{
+  "using": ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail"],
+  "methodCalls": [
+    ["Email/get", { "id": "1", "accountId": "usr_42" }, null],
+    ["Mailbox/get", { "id": "2", "accountId": "usr_42" }, null]
+  ]
+}
+
+→ Response: 200 OK
+{
+  "methodResponses": [
+    ["Email/get", { "list": [...] }, null],
+    ["Mailbox/get", { "list": [...] }, null]
+  ]
+}</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Códigos de Error</h2>
+    <table class="data-table">
+      <thead><tr><th>Código</th><th>Significado</th><th>Ejemplo</th></tr></thead>
+      <tbody>
+        <tr><td>400</td><td>Bad Request</td><td>Schema validation fail</td></tr>
+        <tr><td>401</td><td>Unauthorized</td><td>JWT inválido/expired</td></tr>
+        <tr><td>403</td><td>Forbidden</td><td>No owner del recurso</td></tr>
+        <tr><td>404</td><td>Not Found</td><td>Email/carpetas no existe</td></tr>
+        <tr><td>409</td><td>Conflict</td><td>Email ID conflict</td></tr>
+        <tr><td>422</td><td>Unprocessable</td><td>HTML sanitization fail</td></tr>
+        <tr><td>429</td><td>Too Many Requests</td><td>Rate limit exceed</td></tr>
+        <tr><td>500</td><td>Internal Server</td><td>Error no esperado</td></tr>
+        <tr><td>503</td><td>Service Unavailable</td><td>Dependencia down (DB/IMAP)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/modules/email-backend">⚙️ Backend de Email (Fastify)</a></li>
+      <li><a href="#/modules/jmap">🌐 Servicio JMAP</a></li>
+      <li><a href="#/development/types">📝 TypeScript estricto</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

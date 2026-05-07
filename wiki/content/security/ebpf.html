@@ -1,0 +1,113 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <a href="#/security/overview">Seguridad Zero-Trust</a> <span class="sep">/</span>
+      <span>Hardening con eBPF / Seccomp</span>
+    </div>
+    <h1>🛡️ Hardening con Seccomp y eBPF</h1>
+    <p class="subtitle">Restricción de syscalls y monitorización kernel-level con eBPF.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Seccomp Profile</h2>
+    <p>Cada contenedor ejecuta con un perfil seccomp estricto que limita las syscalls permitidas al mínimo necesario para la operación del servicio:</p>
+    <div class="code-block">
+      <pre><code>
+// infra/security/seccomp-profile.json
+{
+  "defaultAction": "SCMP_ACT_ERRNO",
+  "defaultErrnoRet": 1,
+  "archMap": [
+    {
+      "architecture": "SCMP_ARCH_X86_64",
+      "architectureCompat": true,
+      "enabled": true
+    }
+  ],
+  "syscalls": [
+    {
+      "names": ["accept", "bind", "connect", "epoll_wait", ...],
+      "action": "SCMP_ACT_ALLOW"
+    }
+  ]
+}
+      </pre>
+    </div>
+    <div class="info-box">
+      <strong>Efecto:</strong> Si un proceso intenta ejecutar una syscall no listada (ej: <code>mount</code>, <code>ptrace</code>, <code>reboot</code>), el kernel devuelve <code>EACCES</code> inmediatamente — sin crashear el contenedor.
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Capacidades de Linux (Capabilities)</h2>
+    <p>Principio de mínimo privilegio aplicado a Linux capabilities. Todos los contenederos ejecutan con <code>cap_drop: ALL</code> y solo añaden lo estrictamente necesario:</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Contenedor</th>
+          <th>Capabilities añadidas</th>
+          <th>Justificación</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Nginx</td>
+          <td><code>NET_BIND_SERVICE</code></td>
+          <td>Puerto 443 (< 1024)</td>
+        </tr>
+        <tr>
+          <td>Postfix</td>
+          <td><code>NET_BIND, SETGID, SETUID, CHOWN, DAC_OVERRIDE, FOWNER, SYS_CHROOT</code></td>
+          <td>MTA con chroot y manejo de archivos</td>
+        </tr>
+        <tr>
+          <td>Postgres</td>
+          <td><code>DAC_OVERRIDE, FOWNER, SETGID, SETUID, CHOWN, NET_BIND</code></td>
+          <td>DB engine con file ownership</td>
+        </tr>
+        <tr>
+          <td>Redis</td>
+          <td><code>DAC_OVERRIDE</code></td>
+          <td>Acceso a datos RDB/AOF</td>
+        </tr>
+        <tr>
+          <td>Node Exporter</td>
+          <td><code>NET_RAW</code></td>
+          <td>SNMP / ICMP metrics</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Otras Hardening Measures</h2>
+    <ul>
+      <li><strong><code>read_only: true</code>:</strong> Filesystem de root en read-only. Solo tmpfs para datos volátiles</li>
+      <li><strong><code>no-new-privileges: true</code>:</strong> Imposibilita elevación de privilegios (SUID/SGID bypass)</li>
+      <li><strong><code>user: 1000:1000</code>:</strong> Ejecución como usuario no-root en todos los contenedores de app</li>
+      <li><strong>tmpfs limits:</strong> Limites estrictos de memoria para /tmp, /var/run, /var/cache</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>eBPF (Avanzado)</h2>
+    <div class="info-box">
+      eBPF (extended Berkeley Packet Filter) permite monitorizar y filtrar tráfico de red a nivel kernel sin overhead. En Crux-Webmail se utiliza para:
+    </div>
+    <ul>
+      <li><strong>Traffic filtering:</strong> Reglas dinámicas en el datapath de cada contenedor</li>
+      <li><strong>Anomaly detection:</strong> Detección de patrones anómalos en syscalls</li>
+      <li><strong>Observability:</strong> Telemetría de bajo nivel para Prometheus/Grafana</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/security/mtls">🔒 mTLS / TLS 1.3</a></li>
+    </ul>
+  </nav>
+</div>

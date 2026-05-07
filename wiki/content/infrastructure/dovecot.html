@@ -1,0 +1,41 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/infrastructure/docker">Infraestructura</a> <span class="sep">/</span> <span>Dovecot LDA/IMAP</span>
+    </div>
+    <h1>📬 Dovecot — LDA y Servidor IMAP</h1>
+    <p class="subtitle">Entrega local, almacenamiento en maildir y autenticación segura.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Configuración</h2>
+    <div class="code-block"><pre><code>DOVECOT_SSL_REQUIRED=true
+DOVECOT_AUTH_MECHANISMS=plain,login</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Características</h2>
+    <ul>
+      <li><strong>LDA (Local Delivery Agent):</strong> Entrega mensajes a mailboxes locales</li>
+      <li><strong>IMAP sobre TLS:</strong> Solo conexiones cifradas (SSL required=true)</li>
+      <li><strong>Maildir format:</strong> Almacenamiento por archivo (uno por email)</li>
+      <li><strong>SQL auth:</strong> Verifica usuarios contra PostgreSQL</li>
+      <li><strong>Sieve filtering:</strong> Reglas de usuario para filtros personalizados</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Integración con Backend</h2>
+    <p>El backend Fastify se conecta a Dovecot vía IMAP (puerto 993, TLS obligatorio) para lectura de emails. El SMTP bridge (puerto 25) gestiona envíos a través de Postfix.</p>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/modules/imap-bridge">🔗 IMAP Bridge</a></li>
+      <li><a href="#/infrastructure/postfix">📮 Postfix MTA</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

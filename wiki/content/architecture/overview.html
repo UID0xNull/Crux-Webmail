@@ -1,0 +1,77 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/architecture/overview">Arquitectura</a> <span class="sep">/</span> <span>Visión General</span>
+    </div>
+    <h1>🏗️ Arquitectura del Sistema — Visión General</h1>
+    <p class="subtitle">Diseño Zero-Trust con microsegmentación, aislamiento de procesos y defensa en capas.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Principios Arquitectónicos</h2>
+    <ul>
+      <li><strong>Zero Trust:</strong> No se confía en ningún servicio, red o usuario — todo se autentica y autoriza</li>
+      <li><strong>Defense in Depth:</strong> 5+ capas de seguridad (mTLS, eBPF, WASM sanitización, CSP, rate limiting)</li>
+      <li><strong>Separation of Concerns:</strong> Módulos aislados con contratos explícitos (no side-effects compartidos)</li>
+      <li><strong>Immutable Infrastructure:</strong> Contenedores read-only, deploy blue-green, rollback automático</li>
+      <li><strong>Observability First:</strong> Métricas, logs y traces en cada componente</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Stack Tecnológico</h2>
+    <table class="data-table">
+      <thead><tr><th>Capa</th><th>Tecnología</th><th>Propósito</th></tr></thead>
+      <tbody>
+        <tr><td>Frontend</td><td>Next.js 14 (App Router)</td><td>Webmail SPA con SSR + PWA</td></tr>
+        <tr><td>Backend API</td><td>Fastify 4</td><td>REST + JMAP RFC 8620</td></tr>
+        <tr><td>Auth</td><td>JWT + Refresh Tokens + WebCrypto</td><td>Autenticación E2E</td></tr>
+        <tr><td>Base de datos</td><td>PostgreSQL 16 + Redis 7</td><td>Persistencia + caché/sesiones</td></tr>
+        <tr><td>ORM</td><td>Sequelize</td><td>Mapeo objetos-relacional</td></tr>
+        <tr><td>Proxy Edge</td><td>Nginx</td><td>TLS termination, rate limiting, CSP</td></tr>
+        <tr><td>Mail Transfer</td><td>Postfix + Dovecot + Amavis</td><td>MTA + LDA + antivirus</td></tr>
+        <tr><td>Storage</td><td>MinIO (S3 compatible)</td><td>Attachments, backups, logs cold</td></tr>
+        <tr><td>Monitoring</td><td>Prometheus + Grafana + Loki</td><td>Métricas + logs + alertas</td></tr>
+        <tr><td>Seguridad</td><td>eBPF + WASM + WebCrypto</td><td>Hardening, sanitización, E2E</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Comunicación entre Servicios</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">  [Browser] ──HTTPS──→ [Nginx :443] ──HTTP──→ [Fastify :3000]
+         ▲                                │           │
+         │                                │  ├── [PostgreSQL :5432]
+         │                                │  ├── [Redis :6379]
+         │                                │  ├── [Dovecot :993]
+         │                                │  ├── [Postfix :25]
+         │                                │  ├── [Amavis :10024]
+         │                                │  └── [MinIO :9000]
+         │                                │
+         └──── PWA service worker ←───────┘</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo de Autenticación</h2>
+    <ol>
+      <li>Usuario envía credenciales → Fastify valida contra PostgreSQL (bcrypt)</li>
+      <li>Backend genera Access Token (JWT, 5min TTL) + Refresh Token (7 días)</li>
+      <li>Refresh token almacenado en Redis con expiry + hash en DB</li>
+      <li>Client rota tokens: al expirar access, usa refresh para nuevo access</li>
+      <li>Todos los endpoints requieren validación JWT (middleware fastify-jwt)</li>
+    </ol>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/architecture/decisions">📋 ADRs (Decisiones Arquitectónicas)</a></li>
+      <li><a href="#/architecture/diagrams">📊 Diagramas de Componentes</a></li>
+      <li><a href="#/architecture/dataflow">🔄 Flujos de Datos</a></li>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

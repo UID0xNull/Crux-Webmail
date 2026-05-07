@@ -1,0 +1,114 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/development">Desarrollo</a> <span class="sep">/</span> <span>Setup de Desarrollo</span>
+    </div>
+    <h1>💻 Setup de Desarrollo Local</h1>
+    <p class="subtitle">Requisitos, instalación y primeros pasos para contribuir.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Requisitos</h2>
+    <ul>
+      <li><strong>Node.js</strong> ≥ 20 LTS</li>
+      <li><strong>Docker</strong> ≥ 24 + Docker Compose</li>
+      <li><strong>Git</strong> ≥ 2.40</li>
+      <li><strong>RAM:</strong> Mínimo 8GB recomendado (16GB ideal)</li>
+      <li><strong>Disk:</strong> ~5GB para imágenes Docker + volumes</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Instalación Rápida</h2>
+    <div class="code-block"><pre><code># 1. Clonar repo
+git clone https://github.com/user/Crux-Webmail.git
+cd Crux-Webmail
+
+# 2. Instalar dependencias
+npm install
+
+# 3. Configurar variables
+cp .env.example .env
+# Editar .env con valores de desarrollo
+
+# 4. Subir infraestructura
+docker compose up -d postgres redis minio clamav dovecot postfix amavis
+
+# 5. Ejecutar migraciones DB
+npm run db:migrate
+
+# 6. Seed datos de prueba
+npm run db:seed
+
+# 7. Iniciar dev server con hot reload
+npm run dev</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Estructura del Proyecto</h2>
+    <div class="code-block"><pre><code>Crux-Webmail/
+├── src/
+│   ├── server/           # Fastify backend
+│   │   ├── config/       # Zod schemas, config helpers
+│   │   ├── modules/      # IMAP, SMTP, JMAP bridges
+│   │   ├── services/     # Bussiness logic
+│   │   ├── middleware/   # Auth, CORS, rate limiting
+│   │   ├── routes/       # API endpoints
+│   │   └── models/       # Sequelize ORM
+│   ├── frontend/         # Next.js web client
+│   │   ├── app/          # App Router
+│   │   ├── components/   # React componentes
+│   │   └── lib/          # Utils compartidas
+│   └── shared/           # Tipos TypeScript compartidos
+├── infra/
+│   ├── docker/           # Dockerfiles
+│   ├── compose/          # docker-compose.yml
+│   ├── security/         # Seccomp, AppArmor
+│   └── nginx/            # Config Nginx
+├── wiki/                 # Esta documentación
+├── tests/                # Unit + E2E
+├── scripts/              # Utilidades de deploy/build
+└── docs/                 # Diagramas y specs
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>NPM Scripts Principales</h2>
+    <table class="data-table">
+      <thead><tr><th>Script</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><code>npm run dev</code></td><td>Dev server con hot reload (nodemon)</td></tr>
+        <tr><td><code>npm run build</code></td><td>Build producción (TSC + Next.js)</td></tr>
+        <tr><td><code>npm start</code></td><td>Production start</td></tr>
+        <tr><td><code>npm test</code></td><td>Vitest unit tests</td></tr>
+        <tr><td><code>npm run test:e2e</code></td><td>Playwright E2E tests</td></tr>
+        <tr><td><code>npm run lint</code></td><td>ESLint + Biome</td></tr>
+        <tr><td><code>npm run lint:fix</code></td><td>Fix automático de linting</td></tr>
+        <tr><td><code>npm run typecheck</code></td><td>TS strict check</td></tr>
+        <tr><td><code>npm run db:migrate</code></td><td>Ejecutar migraciones Sequelize</td></tr>
+        <tr><td><code>npm run db:seed</code></td><td>Seed de datos de prueba</td></tr>
+        <tr><td><code>npm run docker:up</code></td><td>Subir toda infra Docker</td></tr>
+        <tr><td><code>npm run docker:down</code></td><td>Bajar toda infra Docker</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Configuración de Certificados Locales</h2>
+    <div class="code-block"><pre><code># Generar self-signed certs para desarrollo
+mkdir -p ./certs
+cd infra/scripts
+bash generate-certs.sh
+# Crea: ca.pem, server.crt, server.key en ./certs/</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/development/cicd">🔄 CI/CD Pipeline</a></li>
+      <li><a href="#/reference/environment">📋 Variables de Entorno</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

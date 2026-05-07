@@ -1,0 +1,130 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/deployment">Despliegue</a> <span class="sep">/</span> <span>Backup &amp; Restauración</span>
+    </div>
+    <h1>💾 Backup &amp; Restauración</h1>
+    <p class="subtitle">Estrategia de backup para los volumes persistentes del stack, con restauración validada y RTO/RPO definidos.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Volumes Persistentes (del docker-compose.yml)</h2>
+    <p>El stack define 11 volumes que requieren backup:</p>
+    <table class="data-table">
+      <thead><tr><th>Volume</th><th>Datos</th><th>Criticidad</th><th>Backup</th><th>Retención</th></tr></thead>
+      <tbody>
+        <tr><td><code>postgres_data</code></td><td>BD completa (PostgreSQL 17)</td><td>🔴 Crítico</td><td>Diario PITR</td><td>90 días</td></tr>
+        <tr><td><code>dovecot_mail</code></td><td>Mail stores de usuarios</td><td>🔴 Crítico</td><td>Incremental diario</td><td>30 días</td></tr>
+        <tr><td><code>minio_data</code></td><td>Adjuntos / object storage</td><td>🟡 Alto</td><td>Incremental diario</td><td>30 días</td></tr>
+        <tr><td><code>postfix_mail</code></td><td>Buzones entrada</td><td>🟡 Alto</td><td>Incremental diario</td><td>30 días</td></tr>
+        <tr><td><code>postfix_queue</code></td><td>Cola volátil</td><td>🟢 Bajo</td><td>No crítico</td><td>—</td></tr>
+        <tr><td><code>dovecot_db</code></td><td>Índices/cache</td><td>🟢 Bajo</td><td>Semanal</td><td>14 días</td></tr>
+        <tr><td><code>redis_data</code></td><td>Sesiones/rate-limit</td><td>🟢 Bajo</td><td>No crítico (regenerable)</td><td>—</td></tr>
+        <tr><td><code>amavis_db</code></td><td>DB de Amavis</td><td>🟡 Medio</td><td>Semanal</td><td>14 días</td></tr>
+        <tr><td><code>clamav_db</code></td><td>Definiciones antivirus</td><td>🟢 Bajo</td><td>Auto-update</td><td>—</td></tr>
+        <tr><td><code>grafana_data</code></td><td>Dashboards + alertas</td><td>🟡 Medio</td><td>Semanal</td><td>14 días</td></tr>
+        <tr><td><code>prometheus_data</code></td><td>Métricas tsdb</td><td>🟢 Medio</td><td>Config + rules</td><td>14 días</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Estrategia 3-2-1</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+┌───────────────────────────────────────────────────────────┐
+│             ESTRATEGIA 3-2-1 DE BACKUP                     │
+│                                                            │
+│  3 copias de los datos                                     │
+│  2 tipos de medio (local + offsite)                        │
+│  1 copia offsite (MinIO / cloud S3)                        │
+│                                                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐   │
+│  │ Local /backup │  │ Docker vols  │  │ MinIO Backup   │   │
+│  │ snapshots     │  │ snapshots    │  │ (rclone sync)  │   │
+│  └──────────────┘  └──────────────┘  └────────────────┘   │
+│         ↑                  ↑                  ↑             │
+│     Cron diario       docker backup       rclone nightly   │
+└───────────────────────────────────────────────────────────┘
+</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Backup PostgreSQL (PITR)</h2>
+    <div class="code-block"><pre><code># Backup base diario (cron: 02:00)
+docker exec crux-postgres pg_basebackup \\
+  -U crux_user \\
+  -D /backups/base \\
+  -Ft -z -P \\
+  --checkpoint=fast
+
+# Schema dump
+docker exec crux-postgres pg_dump \\
+  -U crux_user \\
+  -d crux_mail \\
+  --schema-only \\
+  > /backups/schema_$(date +%F).sql</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Backup Dovecot + Postfix</h2>
+    <div class="code-block"><pre><code># Mail stores incremental
+docker run --rm \\
+  -v crux-webmail_dovecot_mail:/source:ro \\
+  -v /backup/dovecot:/dest \\
+  alpine tar czf /dest/dovecot_$(date +%F).tar.gz \\
+  -C /source . --newer-mtime='1 day'
+
+# Postfix mail
+docker run --rm \\
+  -v crux-webmail_postfix_mail:/source:ro \\
+  -v /backup/postfix:/dest \\
+  alpine tar czf /dest/postfix_$(date +%F).tar.gz \\
+  -C /source .</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Procedimiento de Restauración</h2>
+    <ol>
+      <li><strong>Parar servicios:</strong> <code>docker compose stop postfix dovecot</code></li>
+      <li><strong>Restaurar PostgreSQL:</strong> <code>docker exec -i crux-postgres pg_restore -U crux_user -d crux_mail</code></li>
+      <li><strong>Restaurar Dovecot mail:</strong> <code>docker run --rm -v crux-webmail_dovecot_mail:/data -v /backup/dovecot:/b alpine tar xzf /b/dovecot_LATEST.tar.gz -C /data</code></li>
+      <li><strong>Restaurar Minio attachments:</strong> <code>mc cp /backup/minio_LATEST.tar.gz myminio/attachments/</code></li>
+      <li><strong>Reiniciar:</strong> <code>docker compose up -d</code></li>
+      <li><strong>Verificar:</strong> <code>docker compose ps</code> — todos healthy</li>
+    </ol>
+  </section>
+
+  <section class="doc-section">
+    <h2>SLA de Backup</h2>
+    <table class="data-table">
+      <thead><tr><th>Métrica</th><th>Valor</th><th>Detalle</th></tr></thead>
+      <tbody>
+        <tr><td><strong>RPO</strong></td><td>1 hora</td><td>PITR con WAL archiving</td></tr>
+        <tr><td><strong>RTO</strong></td><td>30 min</td><td>Restauración completa del stack</td></tr>
+        <tr><td><strong>Retención</strong></td><td>90d (DB), 30d (mail)</td><td>Balance costo vs legal</td></tr>
+        <tr><td><strong>Validación</strong></td><td>Mensual</td><td>Restore test en staging</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Cron Jobs</h2>
+    <div class="code-block"><pre><code># /etc/cron.d/crux-webmail-backup
+0 2 * * * root docker exec crux-postgres pg_basebackup -U crux_user -D /backups/base -Ft -z -P
+30 2 * * 0 root /usr/local/bin/backup-dovecot.sh
+0 3 * * * root rclone sync /backup minio:crux-backups
+0 4 * * * root find /backup -mtime +30 -delete</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/deployment/production">🚀 Despliegue en Producción</a></li>
+      <li><a href="#/deployment/upgrade">⬆️ Actualizaciones</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker &amp; Compose</a></li>
+      <li><a href="#/modules/database">💾 Base de datos &amp; Redis</a></li>
+    </ul>
+  </nav>
+</div>

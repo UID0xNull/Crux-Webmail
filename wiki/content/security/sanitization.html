@@ -1,0 +1,110 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <a href="#/security/overview">Seguridad Zero-Trust</a> <span class="sep">/</span>
+      <span>Sanitización WASM</span>
+    </div>
+    <h1>🧼 Sanitización de Contenido con WASM</h1>
+    <p class="subtitle">Procesamiento seguro de contenido HTML en emails aislado mediante WebAssembly.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Problema</h2>
+    <p>Los emails HTML contienen scripts, iframes, event handlers y estilos potencialmente peligrosos que pueden ejecutarse en el navegador del cliente. La sanitización es fundamental para prevenir:</p>
+    <ul>
+      <li><strong>XSS (Cross-Site Scripting):</strong> Scripts embebidos en emails</li>
+      <li><strong>Phishing:</strong> Redirecciones maliciosas, formularios falsos</li>
+      <li><strong>Resource Abuse:</strong> Imágenes trackeadas, requests externos</li>
+      <li><strong>CSS Injection:</strong> Estilos que manipulan layout del cliente</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Solución: WASM Sandbox</h2>
+    <div class="info-box">
+      El WASM (WebAssembly) permite ejecutar código de sanitización en un sandbox aislado, con acceso cero al DOM ni a APIs del navegador. El contenido se procesa en un entorno controlado antes de renderizar.
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Capacidad</th>
+          <th>Implementación</th>
+          <th>Beneficio</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Aislamiento</td>
+          <td>WASM sandbox nativo</td>
+          <td>Sin acceso al DOM, localStorage, cookies, ni fetch</td>
+        </tr>
+        <tr>
+          <td>AST Parser</td>
+          <td>htmlparser2 en WASM</td>
+          <td>Parsing estructural del HTML sin interpretación</td>
+        </tr>
+        <tr>
+          <td>Allowlist de tags</td>
+          <td>Filtro tag+attribute</td>
+          <td>Solo tags seguros: p, span, img (self), a (http)</td>
+        </tr>
+        <tr>
+          <td>Image handling</td>
+          <td>Blob/URI transform</td>
+          <td>Imágenes externas reemplazadas por placeholder</td>
+        </tr>
+        <tr>
+          <td>CSS sanitization</td>
+          <td>Style parser estricto</td>
+          <td>Solo propiedades CSS seguras, sin expression() ni @import</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Pipeline de Sanitización</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  Email Body (HTML)
+       │
+       ▼
+  ┌─────────────┐
+  │  WASM Loader  │ ← Sandbox aislado
+  │  (wasm-bind) │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │  AST Parse   │ ← htmlparser2 en WASM
+  │  (HTML Tree) │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │  Tag Filter  │ ← Allowlist + attribute filter
+  │  (White list)│
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ CSS Clean   │ ← Strip dangerous properties
+  │  + URL Check│
+  └──────┬──────┘
+         │
+         ▼
+  HTML Sanitized (Safe) ──▶ Render en cliente
+      </pre>
+    </div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+      <li><a href="#/security/e2e">🔐 Cifrado E2E con WebCrypto</a></li>
+      <li><a href="#/modules/email-client">📧 Cliente de Email</a></li>
+    </ul>
+  </nav>
+</div>

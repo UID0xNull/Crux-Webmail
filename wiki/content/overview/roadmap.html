@@ -1,0 +1,220 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <span>Roadmap</span>
+    </div>
+    <h1>🗺️ Roadmap</h1>
+    <p class="subtitle">Hoja de ruta de desarrollo: qué está hecho, qué viene y hacia dónde va Crux-Webmail.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Estado Actual</h2>
+    <div class="progress-bar-container">
+      <div class="progress-label">Progreso General</div>
+      <div class="progress-bar"><div class="progress-fill" style="width: 82%" role="progressbar" aria-valuenow="82" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso general del proyecto: 82 por ciento">82%</div></div>
+    </div>
+    <p class="status-summary">Versión actual: <strong>1.0.0</strong> — Backend y frontend operativos, infraestructura Zero-Trust completa. Fases v0.1–v0.3 cerradas; v0.4 y v0.5 en progreso activo.</p>
+  </section>
+
+  <section class="doc-section" data-phase="v0.1.0" data-status="completed" aria-label="Fase v0.1.0: Fundación Zero-Trust — Completado">
+    <h2>v0.1.0 — Fundación Zero-Trust (✅ Completado)</h2>
+    <ul class="checklist-list">
+      <li>✅ Infraestructura completa: Postfix + Dovecot + Amavis + ClamAV + MinIO en Docker</li>
+      <li>✅ docker-compose.yml con 18 servicios, 4 redes aisladas (DMZ, App-tier, Data-tier, Monitor-tier), 12 volumes</li>
+      <li>✅ docker-compose.prod.yml — configuración de producción con healthchecks estrictos y restart policies</li>
+      <li>✅ Hardening Docker: read-only filesystems, no-new-privileges, cap_drop ALL, seccomp profiles</li>
+      <li>✅ Microsegmentación de red interna (internal: true en redes de app y data)</li>
+      <li>✅ mTLS con CA interna — script <code>infra/scripts/mtls-setup.sh</code></li>
+      <li>✅ TLS 1.3 obligatorio en todos los servicios (Nginx, Dovecot, Redis)</li>
+      <li>✅ Secrets via Docker secrets (filesystem-mounted, no env vars en prod)</li>
+      <li>✅ Monitoring stack completo: Prometheus + Grafana + Loki + Alertmanager + OTel Collector</li>
+      <li>✅ Nginx reverse proxy con CSP estricto, HSTS, rate-limiting</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" data-phase="v0.2.0" data-status="completed" aria-label="Fase v0.2.0: Wiki SPA y Documentación — Completado">
+    <h2>v0.2.0 — Wiki SPA y Documentación (✅ Completado)</h2>
+    <ul class="checklist-list">
+      <li>✅ Scaffold de <code>/wiki/</code> con SPA hash-based routing</li>
+      <li>✅ CSS mobile-first responsive</li>
+      <li>✅ <code>js/wiki.js</code> con 16 módulos (routing, search, theme, A11y, ...)</li>
+      <li>✅ PWA con service worker</li>
+      <li>✅ <code>nav.json</code> con 8 secciones, 46 páginas</li>
+      <li>✅ Documentación de arquitectura (docs/ARCHITECTURE_STEP1.md)</li>
+      <li>✅ Documentación de módulos core, seguridad, infraestructura</li>
+      <li>📋 Cobertura AST 100% de toda la documentación</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" data-phase="v0.3.0" data-status="completed" aria-label="Fase v0.3.0: Backend y Frontend Core — Completado">
+    <h2>v0.3.0 — Backend y Frontend Core (✅ Completado)</h2>
+    <h3>Backend — Fastify 5</h3>
+    <ul class="checklist-list">
+      <li>✅ Módulo <strong>Auth</strong>: JWT (fastify-jwt v9), refresh tokens, sesiones con Redis, 2FA TOTP (speakeasy), bcryptjs</li>
+      <li>✅ Módulo <strong>IMAP Bridge</strong>: connection-manager con pools, adapter pattern, JMAP client service</li>
+      <li>✅ Módulo <strong>SMTP</strong>: Nodemailer, envío con cifrado OpenPGP (openpgp v6.1.0)</li>
+      <li>✅ Módulo <strong>Email</strong>: email queue (BullMQ), controlador REST, búsqueda con indexer</li>
+      <li>✅ Módulo <strong>Mail</strong>: MIME pipeline completo — parser, attachment validator, ClamAV scanner, HTML sanitizer</li>
+      <li>✅ Módulo <strong>WebSockets</strong>: ws-gateway, ws-bridge, ws-handler para notificaciones push en tiempo real</li>
+      <li>✅ Servicios: attachment-service, draft-service</li>
+      <li>✅ Middleware: auth, correlation-id, CORS estricto, CSRF, rate-limiter, security-headers (Helmet), Prometheus metrics</li>
+      <li>✅ Observabilidad: OpenTelemetry SDK (trace + metrics exporters OTLP HTTP), Prometheus collector</li>
+      <li>✅ ORM: Sequelize + PostgreSQL, caché con ioredis (Redis)</li>
+    </ul>
+    <h3>Frontend — Next.js 15 + React 19</h3>
+    <ul class="checklist-list">
+      <li>✅ Next.js 15 App Router con TypeScript estricto</li>
+      <li>✅ Página <strong>Login</strong>: autenticación con 2FA TOTP</li>
+      <li>✅ Dashboard: inbox con paginación, vista de detalle de mensajes, compose con adjuntos</li>
+      <li>✅ Integración JMAP para CRUD de email</li>
+      <li>✅ WebSockets para notificaciones en tiempo real</li>
+      <li>✅ Cifrado E2E con WebCrypto + OpenPGP</li>
+      <li>✅ SSR + ISR para SEO y carga rápida</li>
+      <li>✅ Dynamic imports y tree-shaking para optimización de bundle</li>
+      <li>📝 PWA offline-first con IndexedDB (en pruebas)</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" data-phase="v0.4.0" data-status="in-progress" aria-label="Fase v0.4.0: Backend Avanzado — En desarrollo">
+    <h2>v0.4.0 — Backend Avanzado (🔄 En desarrollo)</h2>
+    <ul class="checklist-list">
+      <li>✅ Búsqueda de emails — search-indexer + search-queue-handler (BullMQ)</li>
+      <li>✅ Pipeline MIME completo — parser → validator → ClamAV → HTML sanitizer</li>
+      <li>✅ Protección CSRF en middleware</li>
+      <li>✅ Rate-limiting adaptativo vía Redis (middleware + fastify/rate-limit)</li>
+      <li>🔄 Implementación JMAP completa (Email ✅, ACL 📋, Sieve 📋)</li>
+      <li>🔄 Autenticación multi-factor (TOTP ✅, WebAuthn/Passkeys 📋)</li>
+      <li>📋 Sieve filter engine</li>
+      <li>📋 Calendar (CalDAV) & Contacts (CardDAV)</li>
+      <li>📋 Libreta de Direcciones — Contactos CRUD + vCard (planeado en CHANGELOG)</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" data-phase="v0.5.0" data-status="in-progress" aria-label="Fase v0.5.0: Hardening Total — En desarrollo">
+    <h2>v0.5.0 — Hardening Total (🔄 En desarrollo)</h2>
+    <ul class="checklist-list">
+      <li>✅ Hardening Docker base (read-only, no-new-privileges, cap_drop ALL, seccomp, 4 redes aisladas)</li>
+      <li>✅ Observabilidad completa (OTel trace + metrics, Prometheus, Grafana, Loki, Alertmanager)</li>
+      <li>✅ Sanitización de adjuntos — MIME validator + HTML sanitizer (DOMPurify-like)</li>
+      <li>✅ Scaneo ClamAV integrado en pipeline MIME</li>
+      <li>🔄 mTLS mutuo entre todos los servicios internacionales (script base ✅, rotación automática 📋)</li>
+      <li>🔄 Compliance: hardening Docker ≥ CIS base (verificado ✅), auditoría formal 📋</li>
+      <li>📋 eBPF hardening de syscalls en todos los contenedores</li>
+      <li>📋 Key rotation automatizado (ACME + internal CA)</li>
+      <li>📋 DNSSEC en toda la cadena</li>
+      <li>📋 Sanitización WASM para procesamiento aislado de HTML/MIME</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" data-phase="v0.6.0" data-status="planned" aria-label="Fase v0.6.0: Testing y Calidad — Planeado">
+    <h2>v0.6.0 — Testing y Calidad (📋 Planeado)</h2>
+    <ul class="checklist-list">
+      <li>✅ Suite de pruebas unitarias (Jest + ts-jest, cobertura mínima 80%)</li>
+      <li>✅ Pruebas de integración (PostgreSQL + Redis mocked)</li>
+      <li>📋 Tests E2E completos para flujos de email (sync, compose, WS)</li>
+      <li>📋 Performance testing con k6 / autocannon</li>
+      <li>📋 Chaos testing y validación de resiliencia</li>
+      <li>📋 Mutation testing para validar calidad de assertions</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" data-phase="v1.0.0" data-status="in-progress" aria-label="Fase v1.0.0: Release Candidate — En desarrollo">
+    <h2>v1.0.0 — Release Candidate (🔄 En desarrollo)</h2>
+    <ul class="checklist-list">
+      <li>✅ package.json versionado <code>1.0.0</code></li>
+      <li>✅ CI/CD pipelines configurados (<code>ci.yml</code>, <code>cd.yml</code>, <code>codeql.yml</code>)</li>
+      <li>✅ Docker Compose production-ready (<code>docker-compose.prod.yml</code>)</li>
+      <li>✅ Dockerfiles multi-stage (server + web, optimizados)</li>
+      <li>✅ Validación de tipos, linting y release prep (<code>npm run release:prepare</code>)</li>
+      <li>📋 Auditoría de seguridad externa</li>
+      <li>📋 Penetration testing</li>
+      <li>📋 Performance testing (k6 / autocannon)</li>
+      <li>📋 Disaster recovery test (restauración completa)</li>
+      <li>📋 Documentación 100% AST-covered</li>
+      <li>📋 Docker image multi-arch (amd64 + arm64)</li>
+      <li>📋 Helm chart para Kubernetes</li>
+      <li>🔄 Guía de despliegue production-ready (<code>docker-compose.prod.yml</code> ✅, documentación completa 📋)</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Línea de Tiempo Estimada</h2>
+    <div class="timeline" role="list" aria-label="Línea de tiempo del proyecto">
+      <div class="timeline-item" role="listitem">
+        <span class="timeline-date">Ene 2025</span>
+        <span class="timeline-content">v0.1.0 — Infraestructura Zero-Trust ✅</span>
+      </div>
+      <div class="timeline-item" role="listitem">
+        <span class="timeline-date">Feb 2025</span>
+        <span class="timeline-content">v0.2.0 — Wiki SPA + documentación ✅</span>
+      </div>
+      <div class="timeline-item" role="listitem">
+        <span class="timeline-date">Mar 2025</span>
+        <span class="timeline-content">v0.3.0 — Backend Fastify 5 + Frontend Next.js 15 ✅</span>
+      </div>
+      <div class="timeline-item" role="listitem">
+        <span class="timeline-date">May 2025</span>
+        <span class="timeline-content">v0.4.0 — Backend avanzado (JMAP, WebAuthn, CalDAV) 🔄</span>
+      </div>
+      <div class="timeline-item" role="listitem">
+        <span class="timeline-date">Jul 2025</span>
+        <span class="timeline-content">v0.5.0 — Hardening total (eBPF, mTLS full, DNSSEC) 🔄</span>
+      </div>
+      <div class="timeline-item" role="listitem">
+        <span class="timeline-date">Sep 2025</span>
+        <span class="timeline-content">v0.6.0 — Testing integral + performance 📋</span>
+      </div>
+      <div class="timeline-item" role="listitem">
+        <span class="timeline-date">Nov 2025</span>
+        <span class="timeline-content">v1.0.0 — RC + auditoría + multi-arch 🔄</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Resumen Técnico del Stack</h2>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <h4>Backend</h4>
+        <p>Fastify 5 · TypeScript · Zod · Sequelize</p>
+      </div>
+      <div class="tech-card">
+        <h4>Frontend</h4>
+        <p>Next.js 15 · React 19 · App Router · SSR/ISR</p>
+      </div>
+      <div class="tech-card">
+        <h4>Base de Datos</h4>
+        <p>PostgreSQL · Redis (ioredis)</p>
+      </div>
+      <div class="tech-card">
+        <h4>Colas / Jobs</h4>
+        <p>BullMQ v5 · Redis backend</p>
+      </div>
+      <div class="tech-card">
+        <h4>Seguridad</h4>
+        <p>OpenPGP · JWT + TOTP · Helmet · CSRF · Rate-limit</p>
+      </div>
+      <div class="tech-card">
+        <h4>Email Stack</h4>
+        <p>Postfix · Dovecot · Amavis · ClamAV · Nodemailer</p>
+      </div>
+      <div class="tech-card">
+        <h4>Observabilidad</h4>
+        <p>OpenTelemetry · Prometheus · Grafana · Loki</p>
+      </div>
+      <div class="tech-card">
+        <h4>Infraestructura</h4>
+        <p>Docker Compose · mTLS · Zero-Trust · seccomp</p>
+      </div>
+    </div>
+  </section>
+
+  <nav class="related-pages" aria-label="Navegación a páginas relacionadas">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/home">🏠 Inicio</a></li>
+      <li><a href="#/overview/about">📖 Acerca del proyecto</a></li>
+      <li><a href="#/overview/quickstart">⚡ Quick Start</a></li>
+    </ul>
+  </nav>
+</div>

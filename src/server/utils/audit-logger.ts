@@ -7,6 +7,8 @@ import { generateSecureUuid } from './crypto';
 // ------------------------------------------------------------------
 // AuditLogger — append-only, checksum por bloque, Loki-compatible
 // ------------------------------------------------------------------
+export type AuditLevel = 'info' | 'warn' | 'error' | 'critical' | 'fatal';
+
 export class AuditLogger {
   private events: AuditEvent[] = [];
   private readonly maxBuffer: number;
@@ -18,7 +20,7 @@ export class AuditLogger {
   }
 
   // ----------------------------------------------------------------
-  // Métodos de log por nivel
+  // MÃ©todos de log por nivel
   // ----------------------------------------------------------------
   info(message: string, metadata: Partial<AuditEvent> = {}): AuditEvent {
     return this.write('info', message, metadata);
@@ -36,8 +38,12 @@ export class AuditLogger {
     return this.write('critical', message, metadata);
   }
 
+  fatal(message: string, metadata: Partial<AuditEvent> = {}): AuditEvent {
+    return this.write('critical', message, { ...metadata, fatal: true } as any);
+  }
+
   // ----------------------------------------------------------------
-  // Write principal — crea el evento e inmutable
+  // Write principal — crea el evento inmutable
   // ----------------------------------------------------------------
   private write(
     level: 'info' | 'warn' | 'error' | 'critical',
@@ -59,15 +65,17 @@ export class AuditLogger {
 
     this.events.push(event);
 
-    // Evitar OOM: flush cuando el buffer excede el límite
+    // Evitar OOM: flush cuando el buffer excede el lÃ­mite
     if (this.events.length > this.maxBuffer) {
-      this.flush();
+      this.flush().catch(() => {
+        console.error('[AUDIT FLUSH FAILED]');
+      });
     }
 
-    // Output JSON structured (stdout → Loki via fluent-bit / promtail)
+    // Output JSON structured (stdout â†’ Loki via fluent-bit / promtail)
     console.log(JSON.stringify(event));
 
-    // Eventos críticos: alert inmediata
+    // Eventos crÃ­ticos: alert inmediata
     if (level === 'critical') {
       console.error(`[CRITICAL AUDIT] ${message}`);
     }
@@ -83,9 +91,9 @@ export class AuditLogger {
     const batch = [...this.events];
     this.events = [];
 
-    // En producción: escribir a PostgreSQL audit_log table
+    // En producciÃ³n: escribir a PostgreSQL audit_log table
     try {
-      // Placeholder para integración con DB en Step 2+
+      // Placeholder para integraciÃ³n con DB en Step 2+
       console.log(`[AUDIT FLUSH] ${batch.length} events batched`);
     } catch (err) {
       console.error('[AUDIT FLUSH ERROR]', err);

@@ -1,0 +1,79 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>IMAP Bridge</span>
+    </div>
+    <h1>🔗 IMAP Bridge — Módulo de Lectura</h1>
+    <p class="subtitle">Adaptador IMAP seguro para lectura de emails a través de Dovecot.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura</h2>
+    <p>El IMAP Bridge es un módulo Fastify que expone endpoints RESTful para operaciones de lectura de email. Se conecta a Dovecot vía IMAP sobre TLS.</p>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  [Client] → Fastify API → [IMAP Bridge] → Dovecot IMAP:993
+       │                       │                │
+       │   /api/emails         │   List/Fetch   │
+       │   /api/folders        │   Search       │
+       │   /api/email/:id      │   Flags        │
+       │                       │                │
+       └─── JWT Auth ──────────┴────────────────┘
+      </pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Endpoints</h2>
+    <table class="data-table">
+      <thead><tr><th>Método</th><th>Endpoint</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET</code></td><td><code>/api/folders</code></td><td>Lista de carpetas del mailbox</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/emails?folder=INBOX&limit=50</code></td><td>Paginación de emails</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/email/:id</code></td><td>Email individual con cuerpo completo</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/email/:id/raw</code></td><td>Copia cruda (RFC 822)</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/emails/search?q=...</code></td><td>Búsqueda IMAP UID SEARCH</td></tr>
+        <tr><td><code>PATCH</code></td><td><code>/api/email/:id/flags</code></td><td>Modificar flags (seen, flagged, deleted)</td></tr>
+        <tr><td><code>PATCH</code></td><td><code>/api/email/:id/move</code></td><td>Mover a otra carpeta</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Configuración</h2>
+    <div class="code-block"><pre><code>// Configuración desde .env
+DOVECOT_HOST=172.21.0.11
+DOVECOT_PORT=993
+DOVECOT_SSL_REQUIRED=true
+DOVECOT_TIMEOUT=10000
+DOVECOT_AUTH_MECHANISMS=plain,login</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Seguridad</h2>
+    <ul>
+      <li><strong>TLS obligatorio:</strong> Todas las conexiones IMAP cifradas</li>
+      <li><strong>Auth por usuario:</strong> Cada request autenticada con JWT valida per-user mailbox access</li>
+      <li><strong>Sandbox:</strong> Solo operaciones de lectura permitidas (READONLY mode)</li>
+      <li><strong>Timeouts:</strong> Timeout de 10s en cada operación IMAP</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Integración con JMAP</h2>
+    <p>El IMAP Bridge actúa como backend de datos para la capa JMAP. Las peticiones JMAP se traducen a operaciones IMAP equivalentes:</p>
+    <div class="code-block"><pre><code>JMAP getMessages() → IMAP UID FETCH
+JMAP setMessages() → IMAP STORE FLAGS
+JMAP createMessage() → IMAP APPEND</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/modules/smtp-bridge">📤 SMTP Bridge</a></li>
+      <li><a href="#/modules/jmap-bridge">🌐 JMAP Bridge</a></li>
+      <li><a href="#/infrastructure/dovecot">📬 Dovecot LDA/IMAP</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

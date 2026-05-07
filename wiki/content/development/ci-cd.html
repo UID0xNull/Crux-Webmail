@@ -1,0 +1,201 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/development">Desarrollo</a> <span class="sep">/</span> <span>CI/CD Pipeline</span>
+    </div>
+    <h1>🔄 CI/CD Pipeline — GitHub Actions</h1>
+    <p class="subtitle">Pipeline automatizado alineado con los scripts de <code>package.json</code>: lint → typecheck → test → build → docker.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Scripts de package.json que alimentan el Pipeline</h2>
+    <p>Cada etapa del CI ejecuta uno o más scripts definidos en la raíz del monorepo:</p>
+    <table class="data-table">
+      <thead><tr><th>Etapa CI</th><th>Script</th><th>Comando Real</th><th>Bloquea?</th></tr></thead>
+      <tbody>
+        <tr><td>Linting</td><td><code>npm run lint</code></td><td><code>eslint . --ext .ts,.tsx</code></td><td>✅ Sí</td></tr>
+        <tr><td>Type Check</td><td><code>npm run typecheck</code></td><td><code>tsc --noEmit</code></td><td>✅ Sí</td></tr>
+        <tr><td>Unit Tests</td><td><code>npm run test:unit</code></td><td><code>jest --coverage --testPathIgnorePatterns=tests/integration</code></td><td>✅ Sí (cobertura ≥80%)</td></tr>
+        <tr><td>Integration Tests</td><td><code>npm run test:integration</code></td><td><code>jest --config jest.integration.config.ts</code></td><td>✅ Sí</td></tr>
+        <tr><td>Build Server</td><td><code>npm run build:server</code></td><td><code>cd src/server && tsc</code></td><td>✅ Sí</td></tr>
+        <tr><td>Build Web</td><td><code>npm run build:web</code></td><td><code>cd src/web && next build</code></td><td>✅ Sí</td></tr>
+        <tr><td>Docker Build</td><td><code>npm run docker:build</code></td><td><code>docker compose -f docker-compose.yml build</code></td><td>✅ Sí</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo del Pipeline</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    GITHUB ACTIONS PIPELINE                    │
+  └──────────────────────────────────────────────────────────────┘
+
+  Push / PR  ──▶  ┌─────────┐  ┌──────────┐  ┌────────────┐
+                   │  Lint   │──│ TypeCheck│──│ Unit Tests │
+                   │eslint 9 │  │  tsc     │  │ jest ≥80%  │
+                   └─────────┘  └──────────┘  └────────────┘
+                                            │
+                                    ┌───────┴───────┐
+                                    │   Fallback?   │
+                                    └───────────────┘
+
+  Merge→develop ──▶  ┌─────────────────┐  ┌─────────────┐
+                      │ Integration Tests│──│ Docker Build │
+                      │  + DB + Redis   │  │ docker:build │
+                      └─────────────────┘  └─────────────┘
+                                          │
+                                    ┌─────┴─────┐
+                                    │ Container  │
+                                    │  Scan     │
+                                    │ (Trivy)   │
+                                    └───────────┘
+
+  Merge→main ──▶  Deploy Staging → Smoke Tests → Deploy Prod</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Workflow por Branch (Recomendado)</h2>
+    <table class="data-table">
+      <thead><tr><th>Branch</th><th>Trigger</th><th>Etapas ejecutadas</th></tr></thead>
+      <tbody>
+        <tr><td><code>feature/*</code></td><td>Push / PR</td><td>Lint → TypeCheck → Unit Tests</td></tr>
+        <tr><td><code>develop</code></td><td>Merge a develop</td><td>Todo lo anterior + Integration Tests + Docker Build + Container Scan</td></tr>
+        <tr><td><code>release/*</code></td><td>Push tag semver</td><td>Todas las etapas + deploy a staging + smoke tests</td></tr>
+        <tr><td><code>main</code></td><td>Merge a main</td><td>Todo + deploy producción + DB migrations</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Ejemplo de GitHub Actions Workflow</h2>
+    <div class="code-block"><pre><code># .github/workflows/ci.yml
+name: CI Pipeline
+on:
+  push:
+    branches: [main, develop, 'feature/*']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+
+  test-unit:
+    needs: lint-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test:unit
+
+  test-integration:
+    needs: lint-typecheck
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: crux_mail
+          POSTGRES_USER: crux_user
+          POSTGRES_PASSWORD: test_password
+        ports: ['5432:5432']
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test:integration
+        env:
+          TEST_DB_URL: postgresql://crux_user:test_password@localhost:5432/crux_mail
+          REDIS_URL: redis://localhost:6379
+
+  docker-build:
+    needs: [test-unit, test-integration]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker-compose.yml build
+
+  security-scan:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'crux-webmail:latest'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Seguridad en el Pipeline</h2>
+    <ul>
+      <li><strong>Secret Scanning:</strong> Gitleaks ejecuta en cada commit para detectar credenciales hardcodeadas.</li>
+      <li><strong>Dependency Audit:</strong> <code>npm audit</code> + Dependabot automatizado para alertas de vulnerabilidades.</li>
+      <li><strong>Container Scanning:</strong> Trivy escanea imágenes Docker; CRITICAL y HIGH bloquean merge.</li>
+      <li><strong>Base Images:</strong> Alpine / distroless minimizadas, con versiones específicas (p.ej. <code>postgres:17-alpine</code>, <code>redis:7-alpine</code>).</li>
+      <li><strong>Infraestructura inmutable:</strong> Los secrets del docker-compose se leen desde archivos, no desde variables de entorno.</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Artefactos Generados</h2>
+    <table class="data-table">
+      <thead><tr><th>Artefacto</th><th>Trigger</th><th>Retención</th></tr></thead>
+      <tbody>
+        <tr><td>Docker images</td><td>Docker build step</td><td>Push a registry on tag</td></tr>
+        <tr><td>Coverage report (HTML)</td><td><code>npm test</code></td><td>30 días</td></tr>
+        <tr><td>Jest coverage JSON</td><td><code>npm test</code></td><td>30 días</td></tr>
+        <tr><td>Trivy scan report</td><td>Security scan step</td><td>90 días</td></tr>
+        <tr><td>Build cache (.next, node_modules)</td><td>Build step</td><td>GitHub Actions cache (7d)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Variables de Entorno en CI</h2>
+    <p>Los secretos se inyectan vía <strong>GitHub Encrypted Secrets</strong>. Nunca aparecen en logs:</p>
+    <div class="code-block"><pre><code># Ejemplo de inyección en GitHub Actions:
+env:
+  NODE_ENV: test
+  TEST_DB_URL: ${{ secrets.STAGING_DB_URL }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  REDIS_URL: redis://localhost:6379
+  # Docker registry auth
+  REGISTRY_URL: ghcr.io/${{ github.repository_owner }}
+  REGISTRY_TOKEN: ${{ secrets.GHCR_TOKEN }}</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/development/testing">🧪 Testing</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+      <li><a href="#/deployment/production">🚀 Despliegue en Producción</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

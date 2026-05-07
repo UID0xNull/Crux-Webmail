@@ -1,0 +1,75 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/development">Desarrollo</a> <span class="sep">/</span> <span>Guía de Código</span>
+    </div>
+    <h1>📝 Guía de Código & Estilo</h1>
+    <p class="subtitle">Convenciones, patterns y buenas prácticas.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Estilo General</h2>
+    <ul>
+      <li><strong>Indentación:</strong> 2 espacios (TabWidth=2)</li>
+      <li><strong>Max line length:</strong> 100 chars</li>
+      <li><strong>Semi-colons:</strong> Yes (strict)</li>
+      <li><strong>Quotes:</strong> Single quotes <code>'hello'</code> (except JSX/JSX-like)</li>
+      <li><strong>Trailing commas:</strong> Yes (ES5)</li>
+      <li><strong>Arrow functions:</strong> Prefer over function expressions</li>
+      <li><strong>const/let:</strong> No var, prefer const</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>TypeScript</h2>
+    <div class="code-block"><pre><code>// ✅ CORRECTO - Tipos explícitos
+type UserInfo = {
+  id: string;
+  email: string;
+  roles: string[];
+  createdAt: Date;
+};
+
+// ❌ MAL - any
+function process(data: any) { ... }
+
+// ✅ CORRECTO - Generic helper
+async function dbQuery<T>(
+  model: Model, where: object
+): Promise<T[] | null> {
+  return model.findAll<T>(where) as T[];
+}
+
+// ✅ CORRECTO - Zod runtime validation
+import { z } from 'zod';
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  roles: z.array(z.string()).min(1),
+});
+type User = z.infer<typeof UserSchema>;</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Git Commits</h2>
+    <div class="code-block"><pre><code> conventional commits v1.0.0
+
+ feat(modules): add email composer with attachments
+ docs(wiki): document JMAP bridge architecture
+ fix(security): patch XSS in HTML email renderer
+ refactor(auth): extract token rotation logic
+ chore(deps): upgrade Fastify to v4.25.0
+ ci: add Trivy container scan step
+</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/development/testing">🧪 Testing (Vitest, Playwright)</a></li>
+      <li><a href="#/development/types">📝 TypeScript estricto</a></li>
+      <li><a href="#/development/setup">💻 Setup de Desarrollo</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

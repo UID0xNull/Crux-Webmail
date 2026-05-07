@@ -5,7 +5,7 @@
 // y traduce errores internos a respuestas JMAP-compatibles.
 // ============================================================================
 
-import { FastifyError } from 'fastify';
+import { FastifyInstance, FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { generateSecureUuid } from '../utils/crypto';
 import { ApiError } from '../types/global';
 
@@ -69,7 +69,6 @@ export function createAuthError(message: string, code = 'AUTH_FAILED'): CruxErro
 }
 
 export function createBridgeError(service: string, message: string): CruxError {
-  const code = `${service.toUpperCase()}_CONNECTION_FAILED`.replace(/_/g, '_');
   return new CruxError('BRIDGE_CONNECTION_FAILED', `[${service}] ${message}`);
 }
 
@@ -86,14 +85,15 @@ export function createRateLimitError(message: string = 'Rate limit exceeded'): C
 // ------------------------------------------------------------------
 export function errorHandler(
   error: FastifyError | CruxError | Error,
-  response: { code: (s: number) => typeof response; send: (data: ApiError) => void }
+  request: FastifyRequest,
+  reply: FastifyReply
 ): void {
   const correlationId = generateSecureUuid();
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Sanitizar: en producción nunca expone stack traces
   const errorMessage = isProduction
-    ? error.message || 'Internal Server Error'
+    ? (error.message && !error.message.includes('undefined') ? error.message : 'Internal Server Error')
     : error.message || 'Unknown Error';
 
   // Mapear código de error
@@ -110,11 +110,11 @@ export function errorHandler(
     status: statusCode,
     code: error instanceof CruxError ? error.code : 'INTERNAL_ERROR',
     message: errorMessage,
-    details: error instanceof CruxError ? error.details : undefined,
+    details: (isProduction || !(error instanceof CruxError)) ? undefined : error.details,
     correlation_id: correlationId,
   };
 
-  // Log detallado en producción (interno), sin filtrar datos sensibles
+  // Log detallado (interno), sanitizado en producción
   if (isProduction) {
     console.error(
       JSON.stringify({
@@ -123,12 +123,19 @@ export function errorHandler(
         code: apiError.code,
         status: statusCode,
         timestamp: new Date().toISOString(),
-        stack: error.stack, // Interno solamente — nunca se envía al cliente
+        message: errorMessage,
       })
     );
   }
 
-  response.code(statusCode).send(apiError);
+  reply.code(statusCode).send(apiError);
+}
+
+// ------------------------------------------------------------------
+// Fastify Plugin — error handler decorator
+// ------------------------------------------------------------------
+export async function errorPlugin(fastify: FastifyInstance): Promise<void> {
+  fastify.setErrorHandler(errorHandler);
 }
 
 export const globalErrorHandler = errorHandler;

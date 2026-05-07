@@ -1,0 +1,73 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>JMAP Bridge</span>
+    </div>
+    <h1>🌐 JMAP Bridge — Capa de Protocolo Moderno</h1>
+    <p class="subtitle">Traducción de peticiones JMAP RFC 8620 a operaciones IMAP/SMTP bajo el capó.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>¿Qué es JMAP?</h2>
+    <p><strong>JMAP (JSON Meta Application Protocol)</strong> — RFC 8620 — es un protocolo moderno que reemplaza IMAP, SMTP y CalDAV. Usa HTTP POST con JSON, elimina las limitaciones del protocolo textual heredado.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Traducción de Peticiones</h2>
+    <table class="data-table">
+      <thead><tr><th>JMAP</th><th>Traduce a</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><code>Email/get</code></td><td>IMAP UID FETCH</td><td>Obtener emails con filtros</td></tr>
+        <tr><td><code>Email/set</code></td><td>IMAP STORE + APPEND</td><td>Cambiar flags, crear mensajes</td></tr>
+        <tr><td><code>Mailbox/get</code></td><td>IMAP LIST/LSUB</td><td>Obtener carpetas</td></tr>
+        <tr><td><code>Contact/get</code></td><td>Sequelize → PostgreSQL</td><td>Leer contactos</td></tr>
+        <tr><td><code>CalendarEvent/get</code></td><td>Sequelize → PostgreSQL</td><td>Eventos de calendario</td></tr>
+        <tr><td><code>Account/get</code></td><td>Sequelize → PostgreSQL</td><td>Cuentas de usuario</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Endpoint JMAP</h2>
+    <div class="code-block"><pre><code>POST /jmap
+Content-Type: application/json
+Authorization: Bearer {jwt_token}
+
+{
+  "using": ["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail"],
+  "methodCalls": [
+    [
+      "Email/get",
+      {
+        "id": "1",
+        "accountId": "usr_42",
+        "fields": ["from","subject","dateSent"],
+        "limit": 50
+      },
+      null
+    ]
+  ]
+}</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Ventajas sobre IMAP nativo</h2>
+    <ul>
+      <li><strong>Paginación nativa:</strong> Sin necesidad de UIDs manuales</li>
+      <li><strong>Batch operations:</strong> Múltiples métodos en una sola llamada</li>
+      <li><strong>Change detection:</strong> PosChangeKey para sincronización eficiente</li>
+      <li><strong>Filters nativos:</strong> Filtros en el servidor, no post-filtering local</li>
+      <li><strong>HTTP semantics:</strong> Headers, caching, content negotiation</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/modules/imap-bridge">🔗 IMAP Bridge</a></li>
+      <li><a href="#/modules/smtp-bridge">📤 SMTP Bridge</a></li>
+      <li><a href="#/api/jmap-spec">📄 Especificación JMAP del API</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

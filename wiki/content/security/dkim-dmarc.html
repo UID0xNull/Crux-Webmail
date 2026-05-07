@@ -1,0 +1,102 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <a href="#/security/overview">Seguridad Zero-Trust</a> <span class="sep">/</span>
+      <span>DKIM / DMARC / SPF</span>
+    </div>
+    <h1>📨 Autenticación de Correo: DKIM, DMARC y SPF</h1>
+    <p class="subtitle">Firmas criptográficas y políticas DNS para prevenir spoofing y phishing.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>DKIM — DomainKeys Identified Mail</h2>
+    <p>Firma criptográfica del contenido del email usando llaves asimétricas. El receptor verifica la firma con la clave pública publicada en DNS.</p>
+    <div class="code-block">
+      <pre><code>DKIM_SELECTOR=default
+DKIM_ALGORITHM=ed25519
+
+# DNS Record:
+# default._domainkey.crux.local. TXT v=DKIM1; k=ed25519; p=...</code></pre>
+    </div>
+    <ul>
+      <li>Algoritmo <strong>Ed25519</strong> (moderno, resistente a ataques) en lugar de RSA heredado</li>
+      <li>Selector <code>default</code> en <code>._domainkey.crux.local</code></li>
+      <li>Firma se aplica en Postfix vía milter de OpenDKIM</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>SPF — Sender Policy Framework</h2>
+    <p>Lista blanca de servidores autorizados para enviar correo en nombre del dominio.</p>
+    <div class="code-block">
+      <pre><code># DNS Record:
+crux.local. TXT v=spf1 mx a -all
+
+SPF_POLICY=-all  # "Hard fail": rechazar si no coincide</code></pre>
+    </div>
+    <ul>
+      <li><code>mx</code>: Autorizar el servidor MX del dominio</li>
+      <li><code>a</code>: Autorizar la dirección A del dominio</li>
+      <li><code>-all</code>: Rechazar cualquier otro origen (soft fail <code>~all</code> solo para staging)</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>DMARC — Domain-based Message Authentication</h2>
+    <p>Política de comportamiento cuando SPF y/o DKIM fallan. Instrucciones claras para el receptor.</p>
+    <div class="code-block">
+      <pre><code># DNS Record:
+_dmarc.crux.local. TXT v=DMARC1; p=reject; rua=mailto:dmarc@crux.local; rf=afrf
+
+DMARC_POLICY=reject</code></pre>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Valor</th>
+          <th>Efecto</th>
+          <th>Uso</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>none</code></td>
+          <td>Sin acción, solo reporte</td>
+          <td>Desarrollo / Debug</td>
+        </tr>
+        <tr>
+          <td><code>quarantine</code></td>
+          <td>Enviar a spam/quarantine</td>
+          <td>Transición</td>
+        </tr>
+        <tr>
+          <td><code>reject</code></td>
+          <td>Rechazar el mensaje</td>
+          <td>Producción (hardened)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>DNSSEC — Seguridad de DNS</h2>
+    <div class="code-block">
+      <pre><code>DNSSEC_ENABLED=true</code></pre>
+    </div>
+    <ul>
+      <li>Firma criptográfica de los registros DNS del dominio</li>
+      <li>Previene envenenamiento de cache DNS y DNS hijacking</li>
+      <li>Verificación chain of trust desde root TLD hasta el registro DKIM/SPF/DMARC</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+      <li><a href="#/security/dnssec">🔗 DNSSEC</a></li>
+      <li><a href="#/infrastructure/postfix">📮 Postfix (MTA)</a></li>
+    </ul>
+  </nav>
+</div>

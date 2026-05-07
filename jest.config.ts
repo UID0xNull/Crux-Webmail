@@ -48,10 +48,12 @@ const config: Config = {
       statements: 80,
     },
   },
+  setupFilesAfterEach: ['<rootDir>/tests/setup.ts'],
   testTimeout: 15000,
   verbose: true,
   forceExit: false,
   detectOpenHandles: true,
+  modulePathIgnorePatterns: ['<rootDir>/dist/', '<rootDir>/node_modules/'],
 };
 
 export default config;

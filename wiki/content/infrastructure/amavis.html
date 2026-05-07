@@ -1,0 +1,113 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/infrastructure">Infraestructura</a> <span class="sep">/</span> <span>Amavis</span>
+    </div>
+    <h1>🛡️ Amavis (Filtrado Antivirus & Anti-Spam)</h1>
+    <p class="subtitle">Amavis como content filter entre Postfix y Dovecot, integrando ClamAV y SpamAssassin.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura de Filtrado</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+┌────────────┐    SMTP:10024    ┌──────────┐    SMTP:10025    ┌──────────┐
+│  Postfix  │ ────────────────► │  Amavis  │ ────────────────► │  Postfix  │
+│  (sender) │                   │  (filter)│                   │  (local)  │
+└───────────┘                   └────┬─────┘                   └───────────┘
+                                     │                        ┌──────────┐
+                          ┌──────────▼───────┐               │  Dovecot  │
+                          │                  │               │  (LMTP)   │
+                          │   ClamAV         │               └───────────┘
+                          │   (antivirus)    │
+                          │                  │
+                          │   SpamAssassin   │
+                          │   (anti-spam)    │
+                          └──────────────────┘</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Configuración en Docker</h2>
+    <div class="code-block"><pre><code>amavis:
+  image: malthe/adagios-mta
+  container_name: crux-amavis
+  networks:
+    services-network:
+  ports:
+    - "10024:10024"
+    - "10025:10025"
+  volumes:
+    - amavis_data:/var/lib/amavis
+    - clamav_db:/var/lib/clamav
+  environment:
+    - AMAVIS_DEBUG=0
+    - CONTENT_FILTER_MODE=clamav,spamassassin</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Reglas de Spam</h2>
+    <table class="data-table">
+      <thead><tr><th>Acción</th><th>Score</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Accept</strong></td><td>&lt; 3.0</td><td>Email limpio, pasa directo</td></tr>
+        <tr><td><strong>Tag</strong></td><td>3.0 – 5.0</td><td>Sospechoso: agrega headers X-Spam</td></tr>
+        <tr><td><strong>Quarantine</strong></td><td>5.0 – 12.0</td><td>Movido a carpeta Quarantine</td></tr>
+        <tr><td><strong>Reject</strong></td><td>&gt; 12.0</td><td>Email rechazado (bounce al remitente)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Integración ClamAV</h2>
+    <div class="code-block"><pre><code># ClamAV se conecta vía socket Unix
+cd /var/lib/clamav/
+
+# Actualizar DB de virus
+freshclam
+
+# Verificar versión de DB
+clamscan --version
+
+# Quarantine path
+/var/lib/amavis/quarantine/
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>White/Black Listing</h2>
+    <div class="code-block"><pre><code># Amavis @whitelist
+# amavisd.conf snippet
+@whitelist_sender_maps = (new_RE( {
+    '.trusted-domain.com' => 1,
+    'safe-user@example.org' => 1,
+}));
+
+# @blacklist
+@blacklist_sender_maps = (new_RE( {
+    '\.malicious-domain\.com$' => 1,
+}));
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Monitoreo</h2>
+    <div class="code-block"><pre><code># Ver estadísticas de filtrado
+amavisd stats
+
+# Ver emails en quarantine
+docker exec crux-amavis ls /var/lib/amavis/quarantine/
+
+# Prometheus exporter
+curl http://localhost:9090/api/v1/query?query=amavis_emails_scanned</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/infrastructure/postfix">📧 Postfix (MTA)</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+    </ul>
+  </nav>
+</div>

@@ -1,0 +1,151 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/deployment">Despliegue</a> <span class="sep">/</span> <span>Producción</span>
+    </div>
+    <h1>🚀 Despliegue en Producción</h1>
+    <p class="subtitle">Guía de despliegue basada en <code>docker-compose.yml</code> con 16 servicios, 4 redes segmentadas y secretos gestionados por Docker.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Requisitos del Servidor</h2>
+    <ul>
+      <li><strong>OS:</strong> Linux (Debian 12 / Ubuntu 22.04+) — kernel 5.15+ para eBPF</li>
+      <li><strong>RAM:</strong> 8 GB mínimo (ClamAV solo consume ~2 GB), 16 GB recomendado</li>
+      <li><strong>Docker:</strong> 24+ con Compose v2+</li>
+      <li><strong>Dominio:</strong> DNS configurable (records A/AAAA, MX, TXT)</li>
+      <li><strong>Puertos:</strong> 25 (SMTP), 443 (HTTPS), 587 (submission), 3000 (Grafana dashboard)</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Topología de Red (del docker-compose.yml)</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────┐
+│                        HOST / FIREWALL                           │
+│   Puertos expuestos: 80, 443, 3000                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Network: public-network (172.20.0.0/24)                         │
+│  ┌─────────────┐   ┌─────────────┐                               │
+│  │    nginx     │   │   grafana   │                                │
+│  │ .10:80,443  │   │ .30:3000    │                                │
+│  └──────┬──────┘   └─────────────┘                                │
+├─────────┼───────────────────────────────────────────────────────┤
+│  Network: app-network (172.21.0.0/24) INTERNAL                    │
+│  ┌─────────────┐ ┌─────────────┐ ┌───────────┐ ┌────────────┐   │
+│  │    postfix   │ │   dovecot   │ │   amavis  │ │   redis    │   │
+│  │  .10:25,587 │ │  .11:993    │ │  .12:10024│ │  .15:6379  │   │
+│  └─────────────┘ └─────────────┘ └───────────┘ └────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│  Network: data-network (172.22.0.0/24) INTERNAL                   │
+│  ┌─────────────┐ ┌─────────────┐ ┌───────────┐                   │
+│  │  postgres   │ │  clamav     │ │   minio   │                   │
+│  │  .11:5432  │ │  .10:3310   │ │ .12:9000  │                   │
+│  └─────────────┘ └─────────────┘ └───────────┘                   │
+├─────────────────────────────────────────────────────────────────┤
+│  Network: monitor-network (172.23.0.0/24) INTERNAL                │
+│  Grafana, Prometheus, Alertmanager, Loki, Exporters              │
+└─────────────────────────────────────────────────────────────────┘
+   ⛔ Tráfico inter-red: DENY por defecto (networks.internal: true)
+</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Proceso de Despliegue Paso a Paso</h2>
+    <ol>
+      <li><strong>Clonar el repositorio</strong><br><code>git clone https://github.com/username/Crux-Webmail.git && cd Crux-Webmail</code></li>
+      <li><strong>Crear secretos en <code>./secrets/</code></strong><br>
+        <code>echo 'password_segura' > ./secrets/postgres_password.txt</code><br>
+        <code>echo 'minio_password' > ./secrets/minio_password.txt</code><br>
+        <code>echo 'grafana_admin_pass' > ./secrets/grafana_password.txt</code><br>
+        <code>chmod 600 ./secrets/*.txt</code>
+      </li>
+      <li><strong>Generar certificados TLS</strong><br>
+        <code>mkdir -p ./certs && mkdir -p ./nginx/certs</code><br>
+        Usar Let's Encrypt (certbot) o certificados propios, copiar a <code>./nginx/certs/</code>
+      </li>
+      <li><strong>Configurar <code>.env</code></strong><br>Copiar <code>.env.example</code> a <code>.env</code> y completar variables.</li>
+      <li><strong>Levantar stack completo</strong><br><code>docker compose -f docker-compose.yml up -d</code></li>
+      <li><strong>Verificar healthchecks</strong><br><code>docker compose ps</code> — todos en (healthy)</li>
+      <li><strong>Crear usuario admin y seedear DB</strong><br>Ejecutar seeds/migraciones según configuración de Sequelize.</li>
+      <li><strong>Verificar conectividad</strong><br><code>curl -k https://localhost/api/health</code></li>
+    </ol>
+  </section>
+
+  <section class="doc-section">
+    <h2>Servicios Desplegados (16 contenedores)</h2>
+    <table class="data-table">
+      <thead><tr><th>Servicio</th><th>Imagen</th><th>Redes</th><th>Puerto(s)</th><th>Healthcheck</th></tr></thead>
+      <tbody>
+        <tr><td><strong>nginx</strong></td><td>nginx:1.27-alpine</td><td>public, app</td><td>80, 443</td><td>nginx -t + /health</td></tr>
+        <tr><td><strong>postfix</strong></td><td>mwader/postfix</td><td>app, data</td><td>25, 587</td><td>postfix status + ss :25</td></tr>
+        <tr><td><strong>dovecot</strong></td><td>mwader/dovecot</td><td>app, data</td><td>993</td><td>dovecot status + ss :993</td></tr>
+        <tr><td><strong>amavis</strong></td><td>mwader/amavis</td><td>app, data</td><td>10024</td><td>amavisd-is-running</td></tr>
+        <tr><td><strong>clamav</strong></td><td>clamav/clamav</td><td>data</td><td>3310</td><td>clamd --version</td></tr>
+        <tr><td><strong>postgres</strong></td><td>postgres:17-alpine</td><td>data, monitor</td><td>5432</td><td>pg_isready</td></tr>
+        <tr><td><strong>redis</strong></td><td>redis:7-alpine</td><td>app, data, monitor</td><td>6379</td><td>redis-cli ping</td></tr>
+        <tr><td><strong>minio</strong></td><td>minio/minio</td><td>data, monitor</td><td>9000, 9001</td><td>mc ready local</td></tr>
+        <tr><td><strong>grafana</strong></td><td>grafana/grafana:11.2.0</td><td>monitor, public</td><td>3000</td><td>/api/health</td></tr>
+        <tr><td><strong>prometheus</strong></td><td>prom/prometheus:v2.53.0</td><td>monitor</td><td>9090</td><td>/-/healthy</td></tr>
+        <tr><td><strong>alertmanager</strong></td><td>prom/alertmanager:v0.27.0</td><td>monitor</td><td>9093</td><td>/-/healthy</td></tr>
+        <tr><td><strong>redis-exporter</strong></td><td>redis_exporter:v1.58.0</td><td>monitor, data</td><td>9121</td><td>—</td></tr>
+        <tr><td><strong>postgres-exporter</strong></td><td>postgres_exporter:v0.15.0</td><td>monitor, data</td><td>9187</td><td>—</td></tr>
+        <tr><td><strong>node-exporter</strong></td><td>node-exporter:v1.8.2</td><td>monitor</td><td>9100</td><td>—</td></tr>
+        <tr><td><strong>loki</strong></td><td>grafana/loki:3.0.0</td><td>monitor, app</td><td>3100</td><td>/ready</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Seguridad del Despliegue</h2>
+    <p>Cada contenedor aplica hardening explícito:</p>
+    <ul>
+      <li><code>read_only: true</code> — filesystem inmutable (tmpfs para escritura temporal)</li>
+      <li><code>no-new-privileges: true</code> — prevención de escalación</li>
+      <li><code>cap_drop: [ALL]</code> — capabilities mínimo (solo las necesarias por servicio)</li>
+      <li>Secrets gestionados vía <code>Docker secrets</code> (archivos en <code>./secrets/</code>)</li>
+      <li>Limits de memoria explícitos: ClamAV (2 GB), PostgreSQL (1 GB), Redis (512 MB), Prometheus (2 GB)</li>
+      <li>Log rotation automática: max 50 MB × 3 archivos por contenedor</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Variables Críticas de Entorno</h2>
+    <div class="code-block"><pre><code># .env de producción (ejemplo)
+DOMAIN=mail.example.com
+JWT_SECRET=<generar_con:_openssl_rand_-hex_32>
+SESSION_SECRET=<generar_con:_openssl_rand_-hex_32>
+DATABASE_URL=postgresql://crux_user:${POSTGRES_PASSWORD}@172.22.0.11:5432/crux_mail
+REDIS_URL=redis://172.21.0.15:6379
+SMTP_DOMAIN=${DOMAIN}
+NODE_ENV=production</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Post-Deploy Checklist</h2>
+    <div class="checklist">
+      <p>✅ <code>docker compose ps</code> — 16 servicios (healthy)<br>
+      ✅ <code>docker compose logs --tail=50</code> — sin errores críticos<br>
+      ✅ DNS configurado: A/AAAA, MX, SPF, DKIM, DMARC<br>
+      ✅ Prueba SMTP: <code>telnet localhost 25</code> — EHLO responde<br>
+      ✅ Prueba HTTPS: <code>curl -k https://localhost/health</code><br>
+      ✅ Grafana accesible: <code>http://localhost:3000</code><br>
+      ✅ Prometheus targets: <code>http://localhost:9090/targets</code> — todos UP<br>
+      ✅ Backup configurado y schedule programado</p>
+    </div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/deployment/backup">💾 Backup & Restauración</a></li>
+      <li><a href="#/deployment/upgrade">⬆️ Actualizaciones</a></li>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/development/cicd">🔄 CI/CD Pipeline</a></li>
+      <li><a href="#/security/secrets">🔑 Gestión de Secretos</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

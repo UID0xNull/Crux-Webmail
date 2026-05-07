@@ -69,6 +69,12 @@ volumes:
     driver: local
   logs_shared:
     driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  alertmanager_data:
+    driver: local
 
 # ------------------------------------------------------------------
 # SERVICES
@@ -477,7 +483,7 @@ services:
         tag: "{{.Name}}"
 
   # =================================================================
-  # MONITORING — Grafana
+  # MONITORING — Grafana (dashboards + provisioning)
   # =================================================================
   grafana:
     image: grafana/grafana:11.2.0-alpine
@@ -485,21 +491,120 @@ services:
     networks:
       monitor-network:
         ipv4_address: 172.23.0.10
-    expose:
-      - "3000"
+      public-network:
+        ipv4_address: 172.20.0.30
+    ports:
+      - "3000:3000"  # Only Grafana exposed for dashboard access
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/provisioning/dashboards/files:/etc/grafana/provisioning/dashboards/files:ro
+      - grafana_data:/var/lib/grafana:rw
     tmpfs:
       - /tmp:size=32M
-      - /var/lib/grafana:size=128M
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q \\"commit\\""]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q \"commit\""]
       interval: 15s
       timeout: 3s
       retries: 3
       start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - TZ=UTC
+    secrets:
+      - grafana_password
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # MONITORING — Prometheus (metrics scraping + alerting)
+  # =================================================================
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: crux-prometheus
+    networks:
+      monitor-network:
+        ipv4_address: 172.23.0.20
+    expose:
+      - "9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus:rw
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api=false'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+    tmpfs:
+      - /tmp:size=32M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy | grep -q \\"Prometheus Server is Healthy\\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # MONITORING — Alertmanager (alert routing)
+  # =================================================================
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: crux-alertmanager
+    networks:
+      monitor-network:
+        ipv4_address: 172.23.0.21
+    expose:
+      - "9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager:rw
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.enable-lifecycle'
+    tmpfs:
+      - /tmp:size=32M
+    read_only: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy | grep -q \\"OK\\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -509,6 +614,98 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
+        tag: "{{.Name}}"
+
+  # =================================================================
+  # MONITORING — Redis Exporter (Redis metrics for Prometheus)
+  # =================================================================
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: crux-redis-exporter
+    networks:
+      monitor-network:
+        ipv4_address: 172.23.0.30
+      data-network:
+    expose:
+      - "9121"
+    environment:
+      - REDIS_ADDR=redis://crux-redis:6379
+      - REDIS_EXPORTER_LOG_LEVEL=warning
+      - REDIS_EXPORTER_CHECK_DUPLICATE_QUERIES=true
+      - REDIS_EXPORTER_SCRIPT_PATH=
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+        tag: "{{.Name}}"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # =================================================================
+  # MONITORING — PostgreSQL Exporter (PostgreSQL metrics)
+  # =================================================================
+  postgres-exporter:
+    image: promcommunity/postgres_exporter:v0.15.0
+    container_name: crux-postgres-exporter
+    networks:
+      monitor-network:
+        ipv4_address: 172.23.0.31
+      data-network:
+    expose:
+      - "9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://crux_user:@crux-postgres:5432/crux_mail?sslmode=disable
+      - PG_EXPORTER_EXTEND_QUERY_PATH=
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+        tag: "{{.Name}}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # =================================================================
+  # MONITORING — Node Exporter (system-level: CPU, memory, disk, net)
+  # =================================================================
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: crux-node-exporter
+    networks:
+      monitor-network:
+        ipv4_address: 172.23.0.32
+    expose:
+      - "9100"
+    command:
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($/)'
+      - '--collector.netclass.device-exclude=lo'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+    pid: host
+    user: "65534:65534"  # nobody:nobody
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
         tag: "{{.Name}}"
 
   # =================================================================
@@ -548,6 +745,186 @@ services:
         max-file: "3"
         tag: "{{.Name}}"
 
+  # =================================================================
+  # APP-TIER — Fastify Backend API
+  # =================================================================
+  fastify-backend:
+    build:
+      context: .
+      dockerfile: src/server/Dockerfile
+      target: runner
+    container_name: crux-fastify
+    networks:
+      app-network:
+        ipv4_address: 172.21.0.20
+      data-network:
+      monitor-network:
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=3000
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+      # PostgreSQL
+      - POSTGRES_DB=${POSTGRES_DB:-crux_mail}
+      - POSTGRES_USER=${POSTGRES_USER:-crux_user}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_HOST=crux-postgres
+      - POSTGRES_PORT=5432
+
+      # Redis
+      - REDIS_HOST=crux-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+
+      # Dovecot / IMAP
+      - DOVECOT_HOST=crux-dovecot
+      - DOVECOT_PORT=993
+
+      # Postfix / SMTP
+      - POSTFIX_HOST=crux-postfix
+      - POSTFIX_PORT=587
+
+      # Amavis
+      - AMAVIS_HOST=crux-amavis
+      - AMAVIS_PORT=10024
+
+      # ClamAV
+      - CLAMAV_HOST=crux-clamav
+      - CLAMAV_PORT=3310
+
+      # MinIO
+      - MINIO_HOST=crux-minio
+      - MINIO_PORT=9000
+
+      # OTel
+      - OTLP_ENDPOINT=http://otel-collector:4318
+
+      # JWT
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - JWT_REFRESH_SECRET_FILE=/run/secrets/jwt_refresh_secret
+
+    tmpfs:
+      - /tmp:size=64M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health | grep -q \"ok\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      dovecot:
+        condition: service_healthy
+
+  # =================================================================
+  # APP-TIER — Next.js Frontend
+  # =================================================================
+  nextjs-frontend:
+    build:
+      context: .
+      dockerfile: src/web/Dockerfile
+      target: runner
+    container_name: crux-nextjs
+    networks:
+      app-network:
+        ipv4_address: 172.21.0.21
+      public-network:
+    expose:
+      - "3001"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - NEXT_PUBLIC_API_URL=http://crux-fastify:3000
+      - TZ=UTC
+
+    tmpfs:
+      - /tmp:size=32M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+        tag: "{{.Name}}"
+    depends_on:
+      fastify-backend:
+        condition: service_healthy
+
+  # =================================================================
+  # MONITORING — OpenTelemetry Collector (OTLP traces + metrics)
+  # =================================================================
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.113.0
+    container_name: crux-otel
+    networks:
+      monitor-network:
+        ipv4_address: 172.23.0.40
+      app-network:
+    expose:
+      - "4317"
+      - "4318"
+    command:
+      - '--config=/etc/otel-collector-config.yaml'
+    volumes:
+      - ./monitoring/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    tmpfs:
+      - /tmp:size=32M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:13133/ | grep -q \"Service is ready\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
 # ------------------------------------------------------------------
 # SECRETS: Gestión segura de credenciales
 # ------------------------------------------------------------------
@@ -556,10 +933,18 @@ secrets:
     file: ./secrets/postgres_password.txt
   minio_password:
     file: ./secrets/minio_password.txt
+  grafana_password:
+    file: ./secrets/grafana_password.txt
   mail_server_tls_key:
     file: ./secrets/tls_key.pem
   mail_server_tls_cert:
     file: ./secrets/tls_cert.pem
+  redis_password:
+    file: ./secrets/redis_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  jwt_refresh_secret:
+    file: ./secrets/jwt_refresh_secret.txt
 
 # ------------------------------------------------------------------
 # SECCOMP PROFILE GLOBAL (opcional, requiere Docker >= 20.10)

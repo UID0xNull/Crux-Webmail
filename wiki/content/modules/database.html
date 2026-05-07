@@ -1,0 +1,73 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>Base de Datos</span>
+    </div>
+    <h1>🗄️ Base de Datos & Redis</h1>
+    <p class="subtitle">PostgreSQL para persistencia + Redis para caché y sesiones.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>PostgreSQL</h2>
+    <h3>Tablas Principales</h3>
+    <table class="data-table">
+      <thead><tr><th>Tabla</th><th>Purpose</th><th>Indexes</th></tr></thead>
+      <tbody>
+        <tr><td><code>users</code></td><td>Users accounts, profiles</td><td>email (unique), created_at</td></tr>
+        <tr><td><code>emails</code></td><td>Emails metadata, flags</td><td>user_id, folder, date, flags</td></tr>
+        <tr><td><code>mailboxes</code></td><td>Mailboxes per user</td><td>user_id, name (unique pair)</td></tr>
+        <tr><td><code>contacts</code></td><td>Contacts directory</td><td>user_id, email (unique pair)</td></tr>
+        <tr><td><code>calendar_events</code></td><td>Calendar events</td><td>user_id, start_date, end_date</td></tr>
+        <tr><td><code>attachments</code></td><td>Attachment metadata</td><td>email_id, minio_key</td></tr>
+        <tr><td><code>audit_log</code></td><td>Security audit trail</td><td>user_id, action, timestamp</td></tr>
+        <tr><td><code>api_keys</code></td><td>API keys for services</td><td>hash (unique), expires_at</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Redis</h2>
+    <h3>Key Patterns</h3>
+    <div class="code-block"><pre><code>sess:{user_id}:{client_id}   → Refresh token (TTL: 7d)
+cache:emails:{user_id}:{page} → Paginated emails (TTL: 60s)
+rate:{ip}:{endpoint}         → Rate limit counter (TTL: 1min)
+lock:{resource_id}           → Distributed locks (TTL: 30s)
+q:send                       → Send queue (sorted set)
+notif:{user_id}              → User notifications (TTL: 24h)</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Migraciones Sequelize</h2>
+    <div class="code-block"><pre><code>// Ejemplo de migración
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.createTable('emails', {
+      id: { type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4, primaryKey: true },
+      uid: { type: Sequelize.STRING, allowNull: false },
+      from: { type: Sequelize.JSON, allowNull: false },
+      to: { type: Sequelize.JSON, allowNull: false },
+      subject: { type: Sequelize.STRING(1024) },
+      body_preview: { type: Sequelize.TEXT },
+      flags: { type: Sequelize.JSONB, defaultValue: [] },
+      folder: { type: Sequelize.STRING, defaultValue: 'INBOX' },
+      date: { type: Sequelize.DATE },
+      size_bytes: { type: Sequelize.BIGINT },
+      has_attachments: { type: Sequelize.BOOLEAN, defaultValue: false },
+      user_id: { type: Sequelize.UUID, references: { model: 'users' } },
+      created_at: { type: Sequelize.DATE },
+      updated_at: { type: Sequelize.DATE },
+    });
+  },
+};</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/infrastructure/docker">🐳 Docker & Compose</a></li>
+      <li><a href="#/development/setup">💻 Setup de Desarrollo</a></li>
+      <li><a href="#/deployment/backup">💾 Backup & Restauración</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

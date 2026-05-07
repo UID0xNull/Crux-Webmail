@@ -1,0 +1,68 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>Servicio JMAP</span>
+    </div>
+    <h1>🌐 Servicio JMAP</h1>
+    <p class="subtitle">Protocolo JMAP RFC 8620 para operaciones CRUD de email.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>¿Qué es JMAP?</h2>
+    <p>JMAP (JSON Meta Application Protocol, RFC 8620) es un protocolo moderno diseñado para reemplazar IMAP, SMTP y CalDAV. Usa HTTP POST con JSON y permite batching, filtrado del lado servidor y sync eficiente.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Implementación del Servicio</h2>
+    <div class="code-block"><pre><code>// JMAP router handler
+app.post('/jmap', {
+  schema: {
+    body: z.object({
+      using: z.array(z.string()),
+      methodCalls: z.array(z.tuple([
+        z.string(),         // method name
+        z.object({}),       // arguments
+        z.null(),          // invocation data
+      ])),
+    }),
+  },
+  handler: async (req, reply) => {
+    const { methodCalls } = req.body;
+    const responses = await Promise.all(
+      methodCalls.map(async ([method, args]) => {
+        const handler = jmapMethods.get(method);
+        if (!handler) return [method, { error: 'method_not_found' }, null];
+        const result = await handler(args, req.user);
+        return [method, result, null];
+      })
+    );
+    return { methodResponses: responses };
+  },
+});</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Métodos Soportados</h2>
+    <table class="data-table">
+      <thead><tr><th>Método JMAP</th><th>Implementación</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><code>Email/get</code></td><td>IMAP UID FETCH</td><td>Obtener emails con filtros</td></tr>
+        <tr><td><code>Email/set</code></td><td>IMAP STORE + APPEND</td><td>Cambiar flags, crear mensajes</td></tr>
+        <tr><td><code>Mailbox/get</code></td><td>IMAP LIST/LSUB</td><td>Obtener carpetas</td></tr>
+        <tr><td><code>Mailbox/set</code></td><td>IMAP CREATE/DELETE</td><td>Gestionar carpetas</td></tr>
+        <tr><td><code>Account/get</code></td><td>Sequelize DB</td><td>Cuentas de usuario</td></tr>
+        <tr><td><code>Contact/get</code></td><td>Sequelize DB</td><td>Contactos</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/modules/jmap-bridge">🌐 JMAP Bridge</a></li>
+      <li><a href="#/modules/email-backend">⚙️ Backend de Email (Fastify)</a></li>
+      <li><a href="#/architecture/api">📡 APIs & Contratos</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

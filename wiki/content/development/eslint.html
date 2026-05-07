@@ -1,0 +1,123 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/development">Desarrollo</a> <span class="sep">/</span> <span>Linting & Formateo</span>
+    </div>
+    <h1>🧹 Linting & Formateo</h1>
+    <p class="subtitle">ESLint + Prettier configurados para el stack Next.js + Fastify con reglas estrictas.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Configuración</h2>
+    <div class="code-block"><pre><code>{
+  "extends": [
+    "next/core-web-vitals",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/strict",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "plugin:react-hooks/recommended",
+    "plugin:import/recommended",
+    "plugin:import/typescript"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint", "import", "react-hooks"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unused-vars": "error",
+    "import/order": ["error", {
+      "newlines-between": "always",
+      "alphabetize": { "order": "asc" }
+    }]
+  }
+}
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Comandos</h2>
+    <div class="code-block"><pre><code># Lint todo el proyecto
+npm run lint
+
+# Lint + auto-fix
+npm run lint:fix
+
+# Formatear con Prettier
+npm run format
+
+# Formatear + lint en un paso
+npm run format:check
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Reglas Estrictas del Proyecto</h2>
+    <table class="data-table">
+      <thead><tr><th>Regla</th><th>Valor</th><th>Por qué</th></tr></thead>
+      <tbody>
+        <tr><td><code>no-explicit-any</code></td><td>error</td><td>Evita `any` que rompe type safety</td></tr>
+        <tr><td><code>no-unused-vars</code></td><td>error</td><td>Dead code = deuda técnica</td></tr>
+        <tr><td><code>import/order</code></td><td>error</td><td>Imports ordenados para legibilidad</td></tr>
+        <tr><td><code>react-hooks/exhaustive-deps</code></td><td>warn</td><td>Catch missing deps en useEffect</td></tr>
+        <tr><td><code>no-console</code></td><td>warn</td><td>Usar logger en vez de console.log</td></tr>
+        <tr><td><code>prefer-const</code></td><td>error</td><td>No reasignar innecesariamente</td></tr>
+        <tr><td><code>@typescript-eslint/strict-boolean-expressions</code></td><td>error</td><td>No truthy/falsy coercion accidental</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Prettier</h2>
+    <div class="code-block"><pre><code>{
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "arrowParens": "always",
+  "endOfLine": "lf"
+}
+</code></pre></div>
+    <p>Prettier se ejecuta automáticamente al hacer commit con <code>lint-staged</code> + <code>husky</code>.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Husky + Lint-Staged</h2>
+    <div class="code-block"><pre><code>{
+  "hooks": {
+    "pre-commit": "lint-staged"
+  }
+}
+// package.json
+"lint-staged": {
+  "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
+  "*.{css,scss,md,json,yml}": ["prettier --write"]
+}
+</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Edición en VS Code</h2>
+    <div class="code-block"><pre><code>{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "typescript.preferences.quoteStyle": "single",
+  "typescript.preferences.importModuleSpecifier": "non-relative"
+}
+</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/development/types">📐 TypeScript Estricto</a></li>
+      <li><a href="#/development/style-guide">📝 Guía de Código</a></li>
+      <li><a href="#/development/ci-cd">🔄 CI/CD</a></li>
+    </ul>
+  </nav>
+</div>

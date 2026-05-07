@@ -1,0 +1,91 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>Backend Fastify</span>
+    </div>
+    <h1>⚙️ Backend de Email — Fastify Server</h1>
+    <p class="subtitle">API REST + JMAP con validación Zod, rate limiting y observabilidad.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Estructura del Backend</h2>
+    <div class="code-block"><pre><code>src/server/
+├── config/
+│   ├── index.ts         # App config (Zod validation)
+│   └── schema.ts        # Zod schemas para env vars
+├── middleware/
+│   ├── auth.ts          # JWT verification
+│   ├── rateLimit.ts     # Redis-based rate limiting
+│   └── errorHandler.ts  # Central error handling
+├── routes/
+│   ├── auth.routes.ts   # /api/auth/*
+│   ├── email.routes.ts  # /api/emails/*
+│   ├── user.routes.ts   # /api/users/*
+│   └── health.routes.ts # /api/health/*
+├── services/
+│   ├── emailService.ts  # Email CRUD
+│   ├── authService.ts   # Login, tokens, refresh
+│   └── contactService.ts# Contact management
+├── modules/
+│   ├── imap-bridge.ts   # IMAP client pool
+│   ├── smtp-bridge.ts   # SMTP send adapter
+│   └── jmap-bridge.ts   # JMAP protocol translator
+├── models/
+│   ├── user.model.ts    # Sequelize User
+│   ├── email.model.ts   # Sequelize Email
+│   └── mailbox.model.ts # Sequelize Mailbox
+└── app.ts              # Fastify factory</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Middleware Pipeline</h2>
+    <ol>
+      <li><strong>Helmet:</strong> CSP, X-Frame-Options, X-Content-Type-Options</li>
+      <li><strong>CORS:</strong> Restrict origins al frontend + dev origins</li>
+      <li><strong>Pino Logger:</strong> Structured JSON logs con correlation ID</li>
+      <li><strong>Rate Limiting:</strong> Redis counter (100 req/min per IP, 5/min en auth)</li>
+      <li><strong>JWT Auth:</strong> fastify-jwt con decode + verify en cada endpoint</li>
+      <li><strong>Zod Validation:</strong> Schema validation en request body/query/params</li>
+      <li><strong>Error Handler:</strong> Central handler que retorna errores consistentes</li>
+    </ol>
+  </section>
+
+  <section class="doc-section">
+    <h2>Métricas Expuestas</h2>
+    <div class="code-block"><pre><code>app.get('/metrics', async (request, reply) => {
+  return {
+    // Fastify response metrics
+    requests_total: 12345,
+    request_errors_total: 12,
+    requests_avg_time_ms: 45,
+    
+    // Business metrics
+    emails_sent_today: 234,
+    emails_received_today: 567,
+    active_users: 12,
+    
+    // Infra metrics
+    cpu_usage: 0.23,
+    mem_used_mb: 256,
+    connections_active: 45,
+    
+    // Upstream health
+    redis_connected: true,
+    postgres_connected: true,
+    dovecot_connected: true,
+    postfix_connected: true,
+  };
+});</code></pre></div>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/modules/email-client">💻 Cliente de Email</a></li>
+      <li><a href="#/modules/imap-bridge">🔗 IMAP Bridge</a></li>
+      <li><a href="#/modules/smtp-bridge">📤 SMTP Bridge</a></li>
+      <li><a href="#/development/cicd">🔄 CI/CD Pipeline</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

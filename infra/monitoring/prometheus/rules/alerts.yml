@@ -1,0 +1,241 @@
+# ============================================================================
+# Prometheus Alert Rules — Crux-Webmail Zero-Trust
+# ============================================================================
+# Reglas de alerteo para: errores HTTP/5xx, latencia > SLA, colas BullMQ stuck,
+# pérdida de conexión a BD/Redis, presión de memoria/CPU, fallos de auth,
+# rate limiting excesivo y health-check failures.
+# ============================================================================
+
+groups:
+  # ------------------------------------------------------------------
+  # 1. Backend Availability & HTTP Errors
+  # ------------------------------------------------------------------
+  - name: crux-backend-availability
+    rules:
+      # Error rate > 5% en 5 minutos
+      - alert: HighHTTPErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) /
+          sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Alta tasa de errores HTTP 5xx"
+          description: "Más del 5% de requests con error 5xx en los últimos 5min"
+          runbook_url: "https://wiki.crux.local/runbooks/http-5xx"
+
+      # Latencia P95 > 2 segundos (SLA)
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))
+          > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Latencia P95 supera SLA de 2s"
+          description: "El 95% de las requests demoran más de 2 segundos"
+
+      # Latencia P99 > 5 segundos
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))
+          > 5
+        for: 3m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Latencia P99 crítica (>5s)"
+          description: "El 99% de las requests demoran más de 5 segundos"
+
+  # ------------------------------------------------------------------
+  # 2. Database Connectivity
+  # ------------------------------------------------------------------
+  - name: crux-database
+    rules:
+      # PostgreSQL no responde
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "PostgreSQL no disponible"
+          description: "PostgreSQL no ha respondido por más de 2 minutos"
+
+      # Pool de conexiones al 90%
+      - alert: PostgresPoolNearLimit
+        expr: pg_pool_connections_active / pg_pool_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Pool de conexiones PostgreSQL cerca del límite"
+          description: "Más del 90% de conexiones del pool están activas"
+
+      # Redis no responde
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Redis no disponible"
+          description: "Redis no ha respondido por más de 2 minutos"
+
+      # Redis memoria > 80%
+      - alert: RedisMemoryHigh
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Redis usando más del 80% de memoria"
+          description: "Redis se está aproximando al límite de memoria configurado"
+
+  # ------------------------------------------------------------------
+  # 3. BullMQ Queue Health
+  # ------------------------------------------------------------------
+  - name: crux-queues
+    rules:
+      # Cola estancada: más de 100 mensajes pendientes por 10 min
+      - alert: BullMQQueueStuck
+        expr: crux_mail_queue_pending_messages > 100
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Cola BullMQ con mensajes estancados"
+          description: "Más de 100 mensajes pendientes en cola por más de 10 minutos"
+
+      # Cola crítica: más de 500 mensajes
+      - alert: BullMQQueueCritical
+        expr: crux_mail_queue_pending_messages > 500
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Cola BullMQ saturada (crítico)"
+          description: "Más de 500 mensajes pendientes — posible procesamiento roto"
+
+  # ------------------------------------------------------------------
+  # 4. Application Health & Resource Pressure
+  # ------------------------------------------------------------------
+  - name: crux-application
+    rules:
+      # Memory pressure > 90%
+      - alert: MemoryPressureHigh
+        expr: |
+          process_resident_memory_bytes / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Presión de memoria en el contenedor"
+          description: "El contenedor está usando más del 90% de la memoria disponible"
+
+      # CPU load > 80% average
+      - alert: CPULoadHigh
+        expr: |
+          1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Carga de CPU alta"
+          description: "El CPU está al 80%+ por más de 5 minutos"
+
+      # Health check failing
+      - alert: HealthCheckFailing
+        expr: probe_success{path="/health"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Health check del backend fallando"
+          description: "El endpoint /health no devuelve status ok"
+
+  # ------------------------------------------------------------------
+  # 5. Security & Auth Monitoring
+  # ------------------------------------------------------------------
+  - name: crux-security
+    rules:
+      # Spike en fallos de autenticación
+      - alert: AuthFailuresSpike
+        expr: |
+          increase(crux_auth_failures_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Pico de fallos de autenticación"
+          description: "Más de 50 fallos de auth en 5 minutos — posible brute force"
+
+      # Rate limiting excesivo
+      - alert: RateLimitingExcessive
+        expr: |
+          increase(crux_rate_limited_total[5m]) > 200
+        for: 10m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Rate limiting excesivo detectado"
+          description: "Más de 200 requests rate-limitadas en 5 minutos — posible abuso"
+
+      # Redis desconectado (gauge)
+      - alert: RedisDisconnected
+        expr: crux_redis_connected == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Redis desconectado del backend"
+          description: "El backend reporta que Redis está desconectado"
+
+  # ------------------------------------------------------------------
+  # 6. Disk & Infrastructure
+  # ------------------------------------------------------------------
+  - name: crux-infrastructure
+    rules:
+      # Disk usage > 85%
+      - alert: DiskSpaceLow
+        expr: |
+          node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.15
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Espacio en disco bajo"
+          description: "Menos del 15% de espacio disponible en disco"
+
+      # Disk usage > 95%
+      - alert: DiskSpaceCritical
+        expr: |
+          node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Espacio en disco crítico"
+          description: "Menos del 5% de espacio disponible — acción inmediata requerida"

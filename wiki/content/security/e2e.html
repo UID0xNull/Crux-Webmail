@@ -1,0 +1,98 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span>
+      <a href="#/security/overview">Seguridad Zero-Trust</a> <span class="sep">/</span>
+      <span>Cifrado E2E con WebCrypto</span>
+    </div>
+    <h1>🔐 Cifrado End-to-End con WebCrypto</h1>
+    <p class="subtitle">Criptografía del lado del cliente usando la Web Crypto API nativa del navegador.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura de Cifrado</h2>
+    <div class="info-box">
+      El cifrado E2E garantiza que el contenido de los emails nunca se descifra en el servidor. Las claves residían exclusivamente en el cliente (navegador), protegidas por el keystorage de WebCrypto con <code>extractable: false</code>.
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Stack Criptográfico</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Algoritmo</th>
+          <th>Uso</th>
+          <th>Biblioteca</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AES-GCM 256</td>
+          <td>Cifrado de contenido (simétrico)</td>
+          <td>Web Crypto API nativo</td>
+        </tr>
+        <tr>
+          <td>ECDH P-256</td>
+          <td>Key exchange (asimétrico)</td>
+          <td>Web Crypto API nativo</td>
+        </tr>
+        <tr>
+          <td>Salted Argon2id</td>
+          <td>Key derivation de passphrase</td>
+          <td>openpgp-js / Crypto-JS</td>
+        </tr>
+        <tr>
+          <td>SHA-256 / SHA-512</td>
+          <td>Fingerprints, verificaciones</td>
+          <td>Web Crypto API (SubtleCrypto)</td>
+        </tr>
+        <tr>
+          <td>Ed25519</td>
+          <td>Firmas DKIM y verificación</td>
+          <td>DHparams en DNS</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Flujo de Cifrado</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  ┌─── EMISOR ─────┐                  ┌─── RECEPTOR ──────┐
+  │                │                  │                   │
+  │ 1. User enters  │                  │ 6. Decrypt AES-GCM │
+  │    content      │                  │    with session    │
+  │                 │                  │    key             │
+  │ 2. Derive key   │                  │                    │
+  │    from pass   │                  │ 7. Render decrypted │
+  │                 │                  │    content         │
+  │ 3. Encrypt AES │─── Encrypted ────▶│                    │
+  │    GCM (data)  │──── blob ────────▶│ 5. Receive blob   │
+  │                 │    S3/MinIO      │                    │
+  │ 4. Upload to   │                  │ 8. Session key     │
+  │    MinIO blob  │                  │    destroyed       │
+  └────────────────┘                  └────────────────────┘
+  </pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Dependencias Criptográficas</h2>
+    <ul>
+      <li><strong>Crypto-JS (v4.2.0):</strong> Utilidades criptográficas generales (hashing, HMAC)</li>
+      <li><strong>OpenPGP.js (v6.1.0):</strong> Implementación PGP para firma/verificación de emails</li>
+      <li><strong>Web Crypto API:</strong> AES-GCM, ECDH, SHA-256 — nativo del navegador</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/security/overview">🛡️ Política de Seguridad</a></li>
+      <li><a href="#/modules/webcrypto">🔑 Módulo WebCrypto</a></li>
+      <li><a href="#/security/sanitization">🧼 Sanitización WASM</a></li>
+    </ul>
+  </nav>
+</div>

@@ -1,0 +1,81 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/modules">Módulos</a> <span class="sep">/</span> <span>SMTP Bridge</span>
+    </div>
+    <h1>📤 SMTP Bridge — Módulo de Envío</h1>
+    <p class="subtitle">Adaptador SMTP seguro para envío de emails a través de Postfix.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Arquitectura</h2>
+    <p>El SMTP Bridge permite enviar emails desde la API Fastify hacia Postfix. Cada mensaje pasa por la cadena de filtros: DKIM signing → Amavis → Postfix queue.</p>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+  [Client] → Fastify API → [SMTP Bridge] → Postfix:25
+       │                       │                │
+       │  /api/send            │  MAIL FROM     │
+       │                       │  RCPT TO       │
+       │                       │  DATA          │
+       │                       │                │
+       │                       │  ┌──────────────┤
+       │                       │  │ DKIM Sign    │
+       │                       │  │ Amavis Scan  │
+       │                       │  │ Greylist     │
+       └─── JWT Auth ──────────┴──┴──────────────┘
+      </pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Endpoint</h2>
+    <table class="data-table">
+      <thead><tr><th>Método</th><th>Endpoint</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST</code></td><td><code>/api/send</code></td><td>Enviar email (body: from, to, cc, bcc, subject, text, html, attachments)</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/send/batch</code></td><td>Envío masivo (max 50 por batch)</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/sent/:queue-id</code></td><td>Estado de un email en cola</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Configuración</h2>
+    <div class="code-block"><pre><code>POSTFIX_HOST=172.21.0.10
+POSTFIX_PORT=25
+POSTFIX_HOSTNAME=mail.crux.local
+POSTFIX_MESSAGE_SIZE_LIMIT=26214400</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Validaciones</h2>
+    <ul>
+      <li><strong>Tamaño:</strong> Límite de 25MB por mensaje (incluye attachments)</li>
+      <li><strong>Recipients:</strong> Máximo 100 destinatarios por email</li>
+      <li><strong>DKIM:</strong> Firma automática con selector "default" y Ed25519</li>
+      <li><strong>Rate limit:</strong> 300 RPM en endpoints de autenticación</li>
+      <li><strong>Spam check:</strong> Mensajes pasan por Amavis antes de salir</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Cadena de Filtros de Salida</h2>
+    <ol>
+      <li><strong>SMTP Bridge:</strong> Recibe request de Fastify, valida estructura MIME</li>
+      <li><strong>OpenDKIM:</strong> Firma con milter (algoritmo ed25519)</li>
+      <li><strong>Amavis:</strong> ClamAV antivirus + SpamAssassin</li>
+      <li><strong>Postfix queue:</strong> Mensaje en cola hasta entrega final</li>
+    </ol>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/modules/imap-bridge">🔗 IMAP Bridge</a></li>
+      <li><a href="#/modules/jmap-bridge">🌐 JMAP Bridge</a></li>
+      <li><a href="#/infrastructure/postfix">📮 Postfix MTA</a></li>
+      <li><a href="#/security/dkim-dmarc">📨 DKIM / DMARC / SPF</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---

@@ -1,0 +1,191 @@
+<div class="page-content">
+  <header class="page-header">
+    <div class="breadcrumb">
+      <a href="#/home">🏠 Inicio</a> <span class="sep">/</span> <a href="#/development">Desarrollo</a> <span class="sep">/</span> <span>Testing</span>
+    </div>
+    <h1>🧪 Testing — Jest + ts-jest</h1>
+    <p class="subtitle">Estrategia de testing unit e integración alineada con los scripts de <code>package.json</code> del monorepo.</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>Scripts Disponibles</h2>
+    <p>El <code>package.json</code> expone tres comandos de testing configurados con Jest:</p>
+    <table class="data-table">
+      <thead><tr><th>Script</th><th>Comando</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><code>npm test</code></td><td><code>jest --coverage --detectOpenHandles</code></td><td>Todos los tests + reporte de cobertura + detección de handles abiertos.</td></tr>
+        <tr><td><code>npm run test:unit</code></td><td><code>jest --coverage --testPathIgnorePatterns=tests/integration</code></td><td>Solo unitarios, excluye <code>tests/integration</code>.</td></tr>
+        <tr><td><code>npm run test:integration</code></td><td><code>jest --config jest.integration.config.ts</code></td><td>Integración con config dedicada (DB real, Redis real, etc.).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Configuración de Jest</h2>
+    <p>Jest usa <code>ts-jest</code> como transformer para ejecutar código TypeScript directamente sin build previo:</p>
+    <div class="code-block"><pre><code>// jest.config.ts (estructura base)
+export default {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['&lt;rootDir>/src'],
+  testMatch: ['**/*.test.ts', '**/*.spec.ts'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Estrategia de Mocking por Dependencia</h2>
+    <table class="data-table">
+      <thead><tr><th>Dependencia</th><th>Mechanismo</th><th>Propósito</th></tr></thead>
+      <tbody>
+        <tr><td><code>pg</code> (PostgreSQL)</td><td><code>jest.mock('pg')</code></td><td>Evitar conexiones DB reales en unit tests.</td></tr>
+        <tr><td><code>ioredis</code> (Redis)</td><td><code>jest.mock('ioredis')</code></td><td>Simular caché, sesiones y rate-limit sin servidor Redis.</td></tr>
+        <tr><td><code>nodemailer</code></td><td><code>jest.mock('nodemailer')</code></td><td>No enviar emails reales al SMTP.</td></tr>
+        <tr><td><code>simple-imap</code></td><td><code>jest.mock('simple-imap')</code></td><td>Simular conexión Dovecot sin servidor IMAP real.</td></tr>
+        <tr><td><code>@opentelemetry/*</code></td><td><code>jest.mock('@opentelemetry/api')</code></td><td>Evitar spans reales; validar que tracing esté wiring-correcto.</td></tr>
+        <tr><td><code>bullmq</code></td><td><code>jest.mock('bullmq')</code></td><td>Probar jobs sin Redis Queue real.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="doc-section">
+    <h2>Ejemplo: Unit Test — Auth Service</h2>
+    <div class="code-block"><pre><code>// src/server/src/services/__tests__/auth.test.ts
+import { describe, it, expect, jest } from '@jest/globals';
+import { authenticateUser } from '../auth';
+import bcrypt from 'bcrypt';
+
+jest.mock('pg');
+jest.mock('jsonwebtoken');
+
+describe('authService.authenticateUser', () => {
+  it('should return JWT pair on valid credentials', async () => {
+    const mockPool = require('pg').Pool;
+    mockPool.prototype.query.mockResolvedValue({
+      rows: [{
+        id: 'usr_001',
+        email: 'admin@crux.local',
+        password_hash: await bcrypt.hash('secure123', 12),
+        role: 'admin',
+      }],
+    });
+
+    const result = await authenticateUser('admin@crux.local', 'secure123');
+    expect(result).toHaveProperty('accessToken');
+    expect(result).toHaveProperty('refreshToken');
+    expect(result.user.role).toBe('admin');
+  });
+
+  it('should throw on invalid password', async () => {
+    await expect(
+      authenticateUser('admin@crux.local', 'wrong-password')
+    ).rejects.toThrow('Invalid credentials');
+  });
+
+  it('should lock account after max failed attempts', async () => {
+    for (let i = 0; i < 5; i++) {
+      await authenticateUser('admin@crux.local', 'wrong').catch(() => {});
+    }
+    await expect(
+      authenticateUser('admin@crux.local', 'correct')
+    ).rejects.toThrow('Account locked');
+  });
+});</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Ejemplo: Test de Integración — Fastify Routes</h2>
+    <div class="code-block"><pre><code>// src/server/tests/integration/auth.routes.test.ts
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import Fastify, { FastifyInstance } from 'fastify';
+import authPlugin from '../../src/plugins/auth';
+
+describe('POST /auth/login — Integration', () => {
+  let app: FastifyInstance;
+
+  beforeAll(async () => {
+    app = Fastify();
+    await app.register(authPlugin, {
+      database: { uri: process.env.TEST_DB_URL },
+      redis: { host: 'localhost', port: 6379 },
+    });
+  });
+
+  afterAll(async () => { await app.close(); });
+
+  it('should 200 with tokens on valid login', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'admin@crux.local', password: 'secure123' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body).toHaveProperty('accessToken');
+  });
+
+  it('should 429 on rate-limited requests', async () => {
+    let res;
+    for (let i = 0; i < 11; i++) {
+      res = await app.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email: 'test@test.com', password: 'wrong' },
+      });
+    }
+    expect(res.statusCode).toBe(429); // @fastify/rate-limit
+  });
+});</code></pre></div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Umbrales de Cobertura</h2>
+    <div class="diagram-box">
+      <pre class="ascii-diagram">
+┌──────────────────────────────────────────────┐
+│          Cobertura Mínima Requerida           │
+├────────────┬───────────┬──────────┬──────────┤
+│ Líneas     │ Funciones │ Branches │ Stmts    │
+├────────────┼───────────┼──────────┼──────────┤
+│    80%     │    80%    │   80%    │   80%    │
+└────────────┴───────────┴──────────┴──────────┘
+
+🔴 < 80%  → CI falla, bloquea merge
+🟡 80-90% → Warning en reporte SonarQube
+🟢 > 90%  → Calidad A (quality gate)</pre>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>Principios de Testing Zero-Trust</h2>
+    <ul>
+      <li><strong>Unit tests</strong> aislados: zero I/O real, todo mockeado.</li>
+      <li><strong>Integration tests</strong> validan contratos completos: DB real (PostgreSQL 17 en Docker), Redis 7, Fastify plugins de seguridad activos.</li>
+      <li><strong>--detectOpenHandles</strong> en <code>npm test</code> previene memory leaks por conexiones, timers y listeners no cerrados.</li>
+      <li><strong>Seguridad</strong>: los tests verifican que middlewares (@fastify/rate-limit, @fastify/jwt, @fastify/helmet) se apliquen.</li>
+      <li><strong>OpenTelemetry</strong>: mocks en unit, wiring validation en integration.</li>
+    </ul>
+  </section>
+
+  <nav class="related-pages">
+    <h3>Páginas relacionadas</h3>
+    <ul>
+      <li><a href="#/development/cicd">🔄 CI/CD Pipeline</a></li>
+      <li><a href="#/development/style-guide">📝 Guía de Código</a></li>
+      <li><a href="#/development/setup">💻 Setup de Desarrollo</a></li>
+      <li><a href="#/modules/auth">🔐 Sistema de Autenticación</a></li>
+    </ul>
+  </nav>
+</div>
+---CODE---
