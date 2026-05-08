@@ -63,8 +63,7 @@ const fastify: FastifyInstance = Fastify({
       : undefined,
   },
   bodyLimit: 10 * 1024 * 1024,
-  exposeRequestId: true,
-});
+} as any);
 
 export function createApp(): FastifyInstance {
   return fastify;
