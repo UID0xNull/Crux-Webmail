@@ -49,6 +49,10 @@ secrets:
     file: ./secrets/jwt_secret.txt
   jwt_refresh_secret:
     file: ./secrets/jwt_refresh_secret.txt
+  session_encryption_key:
+    file: ./secrets/session_encryption_key.txt
+  ip_hash_salt:
+    file: ./secrets/ip_hash_salt.txt
 
 # ------------------------------------------------------------------
 # SERVICES
@@ -148,9 +152,11 @@ services:
       # OTel
       - OTLP_ENDPOINT=http://otel-collector:4318
 
-      # JWT
+      # JWT & Encryption
       - JWT_SECRET_FILE=/run/secrets/jwt_secret
       - JWT_REFRESH_SECRET_FILE=/run/secrets/jwt_refresh_secret
+      - SESSION_ENCRYPTION_KEY_FILE=/run/secrets/session_encryption_key
+      - IP_HASH_SALT_FILE=/run/secrets/ip_hash_salt
     tmpfs:
       - /tmp:size=64M
     read_only: true
@@ -179,6 +185,13 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    secrets:
+      - postgres_password
+      - redis_password
+      - jwt_secret
+      - jwt_refresh_secret
+      - session_encryption_key
+      - ip_hash_salt
     logging:
       driver: json-file
       options:

@@ -102,6 +102,8 @@ SECRET_FILES=(
   "secrets/redis_password.txt"
   "secrets/jwt_secret.txt"
   "secrets/jwt_refresh_secret.txt"
+  "secrets/session_encryption_key.txt"
+  "secrets/ip_hash_salt.txt"
 )
 
 for sf in "${SECRET_FILES[@]}"; do
@@ -145,9 +147,12 @@ if [[ -f ".env" ]]; then
   # Check required vars
   REQUIRED_VARS=(
     "JWT_SECRET"
-    "ENCRYPTION_KEY"
-    "SESSION_SECRET"
+    "SESSION_ENCRYPTION_KEY"
+    "IP_HASH_SALT"
     "POSTGRES_PASSWORD"
+    "REDIS_PASSWORD"
+    "MINIO_ROOT_USER"
+    "MINIO_ROOT_PASSWORD"
   )
 
   for var in "${REQUIRED_VARS[@]}"; do
