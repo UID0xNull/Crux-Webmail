@@ -15,6 +15,7 @@ WORKDIR /app
 
 # Copy workspace manifests first (best cache hit ratio)
 COPY package.json ./
+COPY package-lock.json ./
 
 RUN mkdir -p src/server src/web
 COPY src/server/package.json ./src/server/

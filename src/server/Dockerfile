@@ -15,6 +15,7 @@ WORKDIR /app
 
 # Copy root workspace files first (better cache for unchanged deps)
 COPY package.json ./
+COPY package-lock.json ./
 
 # Server package.json
 RUN mkdir -p src/server
@@ -66,8 +67,9 @@ RUN addgroup -g ${USER_ID} -S appgroup && \
 WORKDIR /app
 
 # Copy ONLY production dependencies via package.json + npm ci --production
-# Trick: install only prod deps in a fresh env
+# Copy package-lock.json from deps stage for npm ci compatibility
 COPY --from=deps /app/package.json ./package.json
+COPY --from=deps /app/package-lock.json ./package-lock.json
 COPY --from=deps /app/src/server/package.json ./src/server/package.json
 
 RUN npm ci --omit=dev --ignore-scripts && \
