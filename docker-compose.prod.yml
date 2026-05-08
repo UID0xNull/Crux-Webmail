@@ -110,7 +110,7 @@ services:
   # =================================================================
   fastify-backend:
     image: ghcr.io/crux/crux-server:latest
-    pull_policy: if-not-present
+    pull_policy: if_not_present
     build:
       context: .
       dockerfile: src/server/Dockerfile
@@ -207,7 +207,7 @@ services:
   # =================================================================
   nextjs-frontend:
     image: ghcr.io/crux/crux-web:latest
-    pull_policy: if-not-present
+    pull_policy: if_not_present
     build:
       context: .
       dockerfile: src/web/Dockerfile
