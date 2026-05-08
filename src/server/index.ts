@@ -19,8 +19,8 @@ export { registerAuthRoutes } from './routes/auth.routes';
 export { registerMailRoutes } from './routes/mail.routes';
 
 // Modules
-export { getSmtpBridge } from './modules/mail/smtp-bridge';
-export { getImapBridgePool } from './modules/mail/imap-bridge';
+export { getSmtpBridge } from './modules/mail/adapter/smtp-adapter';
+export { getImapBridgePool } from './modules/mail/adapter/imap-adapter';
 export { SecureSessionManager, getSessionManager } from './modules/auth/session-manager';
 
 // Utils

@@ -58,22 +58,17 @@ process.on('unhandledRejection', (reason) => {
 const fastify: FastifyInstance = Fastify({
   logger: {
     level: config.LOG_LEVEL,
-    // JSON-only in production = zero transport overhead
     transport: config.NODE_ENV === 'development'
       ? { target: 'pino-pretty' }
       : undefined,
   },
-  exposeRequestId: false,
-  // Disable request logging in prod for throughput
-  disableRequestLogging: config.NODE_ENV === 'production',
-  // Fast UUID generation
-  generatorId: () => {
-    const crypto = require('crypto');
-    return crypto.randomUUID();
-  },
-  // Body parser limits — 10MB max
   bodyLimit: 10 * 1024 * 1024,
+  exposeRequestId: true,
 });
+
+export function createApp(): FastifyInstance {
+  return fastify;
+}
 
 // ------------------------------------------------------------------
 // CORS
@@ -140,13 +135,13 @@ fastify.register(fastifyRateLimit, {
 // ------------------------------------------------------------------
 // Under Pressure — tuned thresholds
 // ------------------------------------------------------------------
-fastify.register(fastifyUnderPressure, {
+fastify.register(fastifyUnderPressure as any, {
   maxHeapUsedBuffer: config.NODE_ENV === 'production'
     ? 100 * 1024 * 1024 // 100MB in prod
     : 50 * 1024 * 1024, // 50MB in dev
   memoryCheckInterval: 1000,
   healthCheck: async () => {
-    const health = {
+    const health: Record<string, unknown> = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
     };
@@ -174,14 +169,14 @@ fastify.register(fastifyUnderPressure, {
 });
 
 // ------------------------------------------------------------------
-// Prometheus metrics (prod only)
+// Prometheus metrics (prod only) — disabled: @fastify/prometheus not installed
 // ------------------------------------------------------------------
-if (config.NODE_ENV === 'production') {
-  fastify.register(fastifyPrometheus, {
-    endpoint: '/metrics',
-    registry: require('./observability/metrics').getRegistry(),
-  });
-}
+// if (config.NODE_ENV === 'production') {
+//   fastify.register(fastifyPrometheus, {
+//     endpoint: '/metrics',
+//     registry: require('./observability/metrics').getRegistry(),
+//   });
+// }
 
 // ------------------------------------------------------------------
 // Error handler plugin

@@ -1,0 +1,444 @@
+app.ts(46,45): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+app.ts(51,46): error TS2353: Object literal may only specify known properties, and 'reason' does not exist in type 'Partial<AuditEvent>'.
+app.ts(58,7): error TS2322: Type 'FastifyInstance<Http2SecureServer<typeof IncomingMessage, typeof ServerResponse, typeof Http2ServerRequest, typeof Http2ServerResponse>, Http2ServerRequest, Http2ServerResponse<...>, FastifyBaseLogger, FastifyTypeProviderDefault> & PromiseLike<...> & { ...; }' is not assignable to type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+  Types of property 'server' are incompatible.
+    Type 'Http2SecureServer<typeof IncomingMessage, typeof ServerResponse, typeof Http2ServerRequest, typeof Http2ServerResponse>' is missing the following properties from type 'Server<typeof IncomingMessage, typeof ServerResponse>': maxHeadersCount, maxRequestsPerSocket, timeout, headersTimeout, and 5 more.
+app.ts(66,3): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'exposeRequestId' does not exist in type 'FastifyHttpOptions<RawServerDefault, FastifyBaseLogger>'.
+app.ts(144,3): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(plugin: FastifyPluginCallback<FastifyUnderPressureOptions, RawServerDefault, FastifyTypeProviderDefault, FastifyBaseLogger>, opts: FastifyRegisterOptions<...>): FastifyInstance<...> & ... 1 more ... & { ...; }', gave the following error.
+    Object literal may only specify known properties, and 'maxHeapUsedBuffer' does not exist in type 'FastifyRegisterOptions<FastifyUnderPressureOptions>'.
+  Overload 2 of 6, '(plugin: FastifyPluginAsync<FastifyUnderPressureOptions, RawServerDefault, FastifyTypeProviderDefault, FastifyBaseLogger>, opts: FastifyRegisterOptions<...>): FastifyInstance<...> & ... 1 more ... & { ...; }', gave the following error.
+    Object literal may only specify known properties, and 'maxHeapUsedBuffer' does not exist in type 'FastifyRegisterOptions<FastifyUnderPressureOptions>'.
+  Overload 3 of 6, '(plugin: FastifyPluginCallback<FastifyUnderPressureOptions, RawServerDefault, FastifyTypeProviderDefault, FastifyBaseLogger> | FastifyPluginAsync<...> | Promise<...> | Promise<...>, opts: FastifyRegisterOptions<...>): FastifyInstance<...> & ... 1 more ... & { ...; }', gave the following error.
+    Object literal may only specify known properties, and 'maxHeapUsedBuffer' does not exist in type 'FastifyRegisterOptions<FastifyUnderPressureOptions>'.
+app.ts(157,14): error TS2339: Property 'database' does not exist on type '{ status: string; timestamp: string; }'.
+app.ts(159,14): error TS2339: Property 'database' does not exist on type '{ status: string; timestamp: string; }'.
+app.ts(166,14): error TS2339: Property 'redis' does not exist on type '{ status: string; timestamp: string; }'.
+app.ts(168,14): error TS2339: Property 'redis' does not exist on type '{ status: string; timestamp: string; }'.
+app.ts(180,20): error TS2304: Cannot find name 'fastifyPrometheus'.
+app.ts(298,7): error TS2353: Object literal may only specify known properties, and 'environment' does not exist in type 'Partial<AuditEvent>'.
+app.ts(338,7): error TS2353: Object literal may only specify known properties, and 'environment' does not exist in type 'Partial<AuditEvent>'.
+app.ts(343,7): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+cache/redis-client.ts(55,5): error TS2353: Object literal may only specify known properties, and 'maxReconnectDelay' does not exist in type 'RedisOptions'.
+errors/handler_full.ts(19,31): error TS2307: Cannot find module 'shared/types' or its corresponding type declarations.
+errors/handler_new.ts(64,26): error TS2304: Cannot find name 'generateSecureUuid'.
+errors/handler_new.ts(144,48): error TS2304: Cannot find name 'generateSecureUuid'.
+errors/handler_new.ts(180,19): error TS2304: Cannot find name 'ApiError'.
+index.ts(7,10): error TS2305: Module '"./app"' has no exported member 'createApp'.
+index.ts(22,31): error TS2307: Cannot find module './modules/mail/smtp-bridge' or its corresponding type declarations.
+index.ts(23,35): error TS2307: Cannot find module './modules/mail/imap-bridge' or its corresponding type declarations.
+middleware/cors.ts(46,50): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(obj: "CORS: origin blocked", msg?: never): void', gave the following error.
+    Argument of type '{ origin: string; path: string; ip: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 3, '(obj: "CORS: origin blocked", msg?: never, ...args: unknown[]): void', gave the following error.
+    Argument of type '{ origin: string; path: string; ip: string; }' is not assignable to parameter of type 'never'.
+middleware/csrf.ts(39,37): error TS2339: Property 'cookies' does not exist on type 'FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>'.
+middleware/csrf.ts(48,35): error TS2339: Property 'default' does not exist on type 'Redis'.
+middleware/csrf.ts(55,13): error TS2339: Property 'setCookie' does not exist on type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>'.
+middleware/email-header-sanitizer.ts(264,53): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(obj: "Email headers sanitized", msg?: never): void', gave the following error.
+    Argument of type '{ violations: string[]; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 3, '(obj: "Email headers sanitized", msg?: never, ...args: unknown[]): void', gave the following error.
+    Argument of type '{ violations: string[]; }' is not assignable to parameter of type 'never'.
+middleware/https-redirect.ts(29,37): error TS2339: Property 'encrypted' does not exist on type 'Socket'.
+middleware/https-redirect.ts(37,77): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(obj: "HTTP request in production — redirecting to HTTPS", msg?: never): void', gave the following error.
+    Argument of type '{ url: string; ip: string; forwardedProto: string | string[]; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 3, '(obj: "HTTP request in production — redirecting to HTTPS", msg?: never, ...args: unknown[]): void', gave the following error.
+    Argument of type '{ url: string; ip: string; forwardedProto: string | string[]; }' is not assignable to parameter of type 'never'.
+middleware/https-redirect.ts(43,29): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+middleware/prometheus.ts(9,31): error TS2307: Cannot find module '@fastify/prometheus' or its corresponding type declarations.
+middleware/security-headers.ts(128,40): error TS2552: Cannot find name 'report'. Did you mean 'Report'?
+middleware/security-headers.ts(129,33): error TS2552: Cannot find name 'report'. Did you mean 'Report'?
+middleware/security-headers.ts(130,41): error TS2552: Cannot find name 'report'. Did you mean 'Report'?
+middleware/security-headers.ts(131,33): error TS2552: Cannot find name 'report'. Did you mean 'Report'?
+middleware/security-headers.ts(132,33): error TS2552: Cannot find name 'report'. Did you mean 'Report'?
+models/AuditLog.ts(9,28): error TS2307: Cannot find module '../../utils/crypto' or its corresponding type declarations.
+models/User.ts(10,30): error TS2307: Cannot find module '../../utils/crypto' or its corresponding type declarations.
+models/User.ts(161,29): error TS2339: Property 'password' does not exist on type 'UserAttributes'.
+models/User.ts(162,66): error TS2339: Property 'password' does not exist on type 'UserAttributes'.
+models/User.ts(166,29): error TS2339: Property 'password' does not exist on type 'UserAttributes'.
+models/User.ts(167,66): error TS2339: Property 'password' does not exist on type 'UserAttributes'.
+modules/admin/security-audit-service.ts(12,10): error TS2724: '"utils/connections"' has no exported member named 'sequelize'. Did you mean 'getSequelize'?
+modules/admin/security-audit-service.ts(371,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(this: ModelStatic<...>, options: { col?: string; where?: WhereOptions<AuditLogAttributes>; include?: Includeable | Includeable[]; logging?: boolean | ((sql: string, timing?: number) => void); ... 6 more ...; group: GroupOption; }): Promise<...>', gave the following error.
+    Object literal may only specify known properties, and 'created_at' does not exist in type 'WhereOptions<AuditLogAttributes>'.
+  Overload 2 of 2, '(this: ModelStatic<AuditLogModel>, options?: Omit<CountOptions<AuditLogAttributes>, "group">): Promise<...>', gave the following error.
+    Object literal may only specify known properties, and 'created_at' does not exist in type 'WhereOptions<AuditLogAttributes>'.
+modules/admin/security-audit-service.ts(375,9): error TS2365: Operator '>' cannot be applied to types 'GroupedCountResultItem[]' and 'number'.
+modules/auth/auth-service.ts(112,9): error TS2353: Object literal may only specify known properties, and 'password' does not exist in type 'Optional<UserAttributes, NullishPropertiesOf<UserAttributes>>'.
+modules/auth/auth-service.ts(211,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(this: ModelStatic<...>, values: { id?: string | Fn | Col | Literal; username?: string | Fn | Col | Literal; passwordHash?: string | Fn | Col | Literal; display_name?: string | ... 2 more ... | Literal; ... 9 more ...; deleted_at?: string | ... 2 more ... | Literal; }, options: Omit<...> & { ...; }): Promise<...>', gave the following error.
+    Type 'Date' is not assignable to type 'string | Fn | Col | Literal'.
+  Overload 2 of 2, '(this: ModelStatic<...>, values: { id?: string | Fn | Col | Literal; username?: string | Fn | Col | Literal; passwordHash?: string | Fn | Col | Literal; display_name?: string | ... 2 more ... | Literal; ... 9 more ...; deleted_at?: string | ... 2 more ... | Literal; }, options: UpdateOptions<...>): Promise<...>', gave the following error.
+    Type 'Date' is not assignable to type 'string | Fn | Col | Literal'.
+modules/auth/auth-service.ts(249,9): error TS2345: Argument of type '{ browser: string; os: string; screen: string; timezone: string; languages: string[]; }' is not assignable to parameter of type 'DeviceFingerprint'.
+  Property 'hash' is missing in type '{ browser: string; os: string; screen: string; timezone: string; languages: string[]; }' but required in type 'DeviceFingerprint'.
+modules/auth/auth-service.ts(369,9): error TS2345: Argument of type '{ browser: string; os: string; screen: string; timezone: string; languages: string[]; }' is not assignable to parameter of type 'DeviceFingerprint'.
+  Property 'hash' is missing in type '{ browser: string; os: string; screen: string; timezone: string; languages: string[]; }' but required in type 'DeviceFingerprint'.
+modules/auth/auth-service.ts(547,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(this: ModelStatic<...>, values: { id?: string | Fn | Col | Literal; username?: string | Fn | Col | Literal; passwordHash?: string | Fn | Col | Literal; display_name?: string | ... 2 more ... | Literal; ... 9 more ...; deleted_at?: string | ... 2 more ... | Literal; }, options: Omit<...> & { ...; }): Promise<...>', gave the following error.
+    Object literal may only specify known properties, and 'password' does not exist in type '{ id?: string | Fn | Col | Literal; username?: string | Fn | Col | Literal; passwordHash?: string | Fn | Col | Literal; display_name?: string | ... 2 more ... | Literal; ... 9 more ...; deleted_at?: string | ... 2 more ... | Literal; }'.
+  Overload 2 of 2, '(this: ModelStatic<...>, values: { id?: string | Fn | Col | Literal; username?: string | Fn | Col | Literal; passwordHash?: string | Fn | Col | Literal; display_name?: string | ... 2 more ... | Literal; ... 9 more ...; deleted_at?: string | ... 2 more ... | Literal; }, options: UpdateOptions<...>): Promise<...>', gave the following error.
+    Object literal may only specify known properties, and 'password' does not exist in type '{ id?: string | Fn | Col | Literal; username?: string | Fn | Col | Literal; passwordHash?: string | Fn | Col | Literal; display_name?: string | ... 2 more ... | Literal; ... 9 more ...; deleted_at?: string | ... 2 more ... | Literal; }'.
+modules/auth/auth-service.ts(676,22): error TS2802: Type 'Buffer<ArrayBufferLike>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/auth/session-manager.ts(528,44): error TS2345: Argument of type 'Record<string, string>' is not assignable to parameter of type '{ iv: string; tag: string; ciphertext: string; }'.
+  Type 'Record<string, string>' is missing the following properties from type '{ iv: string; tag: string; ciphertext: string; }': iv, tag, ciphertext
+modules/draft/draft.controller.ts(166,30): error TS2339: Property 'file' does not exist on type 'FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>'.
+modules/email/email-queue.ts(10,10): error TS2724: '"./imap-service"' has no exported member named 'connectIMAP'. Did you mean 'disconnectIMAP'?
+modules/email/email-queue.ts(11,21): error TS2459: Module '"./smtp-service"' declares 'SMTPConfig' locally, but it is not exported.
+modules/email/email-queue.ts(225,25): error TS2339: Property 'getProcessingCount' does not exist on type 'Queue<any, any, string, any, any, string>'.
+modules/email/email.controller.ts(121,13): error TS2339: Property 'cc' does not exist on type 'EmailMessage'.
+modules/email/imap-service.ts(29,15): error TS2709: Cannot use namespace 'SimpleIMAP' as a type.
+modules/email/imap-service.ts(142,59): error TS2709: Cannot use namespace 'SimpleIMAP' as a type.
+modules/email/imap-service.ts(144,22): error TS2351: This expression is not constructable.
+  Type 'typeof import("simple-imap")' has no construct signatures.
+modules/email/imap-service.ts(186,65): error TS2709: Cannot use namespace 'SimpleIMAP' as a type.
+modules/email/imap-service.ts(584,31): error TS2802: Type 'Map<string, ConnectionEntry>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/email/index.ts(55,33): error TS2459: Module '"./smtp-service"' declares 'SMTPConfig' locally, but it is not exported.
+modules/email/search/index.ts(27,8): error TS2724: '"./search-queue-handler"' has no exported member named 'RemoveIndexData'. Did you mean 'RemoveIndexJobData'?
+modules/email/search/search-indexer.ts(245,28): error TS2802: Type 'Set<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/email/search/search-indexer.ts(260,36): error TS2802: Type 'Map<number, number>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/email/search/search-route.ts(58,27): error TS2345: Argument of type '401' is not assignable to parameter of type '200'.
+modules/email/search/search-route.ts(65,27): error TS2345: Argument of type '400' is not assignable to parameter of type '200'.
+modules/email/search/search-route.ts(78,25): error TS2345: Argument of type '500' is not assignable to parameter of type '200'.
+modules/email/search/search-route.ts(102,27): error TS2345: Argument of type '401' is not assignable to parameter of type '200'.
+modules/email/search/search-route.ts(109,25): error TS2345: Argument of type '500' is not assignable to parameter of type '200'.
+modules/email/search/search-route.ts(132,27): error TS2345: Argument of type '401' is not assignable to parameter of type '200'.
+modules/email/search/search-route.ts(143,25): error TS2345: Argument of type '500' is not assignable to parameter of type '200'.
+modules/email/smtp-service.ts(9,10): error TS2305: Module '"openpgp"' has no exported member 'openpgp'.
+modules/email/smtp-service.ts(217,35): error TS2802: Type 'Map<string, Transporter<any, TransportOptions>>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/mail/adapter/imap-adapter.ts(11,10): error TS2305: Module '"simple-imap"' has no exported member 'SimpleImap'.
+modules/mail/adapter/imap-adapter.ts(12,15): error TS2305: Module '"simple-imap"' has no exported member 'SearchBox'.
+modules/mail/adapter/imap-adapter.ts(12,26): error TS2305: Module '"simple-imap"' has no exported member 'FetchResults'.
+modules/mail/adapter/imap-adapter.ts(27,27): error TS2307: Cannot find module '../../errors/handler' or its corresponding type declarations.
+modules/mail/adapter/imap-adapter.ts(28,29): error TS2307: Cannot find module '../../utils/audit-logger' or its corresponding type declarations.
+modules/mail/adapter/imap-adapter.ts(29,36): error TS2307: Cannot find module '../../utils/crypto' or its corresponding type declarations.
+modules/mail/adapter/imap-adapter.ts(875,37): error TS2339: Property 'value' does not exist on type 'object'.
+modules/mail/adapter/imap-adapter.ts(875,52): error TS2339: Property 'data' does not exist on type 'object'.
+modules/mail/adapter/smtp-adapter.ts(17,27): error TS2307: Cannot find module '../../errors/handler' or its corresponding type declarations.
+modules/mail/adapter/smtp-adapter.ts(18,29): error TS2307: Cannot find module '../../utils/audit-logger' or its corresponding type declarations.
+modules/mail/adapter/smtp-adapter.ts(19,36): error TS2307: Cannot find module '../../utils/crypto' or its corresponding type declarations.
+modules/mail/adapter/smtp-adapter.ts(20,24): error TS2307: Cannot find module '../../config/app.config' or its corresponding type declarations.
+modules/mail/adapter/smtp-adapter.ts(196,75): error TS2694: Namespace '"d:/Github/Crux-Webmail/node_modules/@types/nodemailer/index"' has no exported member 'Attachment'.
+modules/mail/adapter/smtp-adapter.ts(205,25): error TS2694: Namespace '"d:/Github/Crux-Webmail/node_modules/@types/nodemailer/index"' has no exported member 'Attachment'.
+modules/mail/connection-manager.ts(17,8): error TS2307: Cannot find module '../contracts' or its corresponding type declarations.
+modules/mail/connection-manager.ts(18,29): error TS2307: Cannot find module './imap-adapter' or its corresponding type declarations.
+modules/mail/connection-manager.ts(19,29): error TS2307: Cannot find module './smtp-adapter' or its corresponding type declarations.
+modules/mail/connection-manager.ts(187,32): error TS2802: Type 'Map<string, PoolEntry>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/mail/connection-manager.ts(318,34): error TS2802: Type 'Map<string, PoolEntry>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/mail/connection-manager.ts(345,32): error TS2802: Type 'Map<string, PoolEntry>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/mail/extensions/extensions-manager.ts(8,29): error TS2307: Cannot find module '../../utils/audit-logger' or its corresponding type declarations.
+modules/mail/flag-sync.service.ts(14,30): error TS2307: Cannot find module 'ws/ws-gateway' or its corresponding type declarations.
+modules/mail/flag-sync.service.ts(158,13): error TS2345: Argument of type '"set" | "remove" | "add"' is not assignable to parameter of type '"remove" | "add"'.
+  Type '"set"' is not assignable to type '"remove" | "add"'.
+modules/mail/flag-sync.service.ts(252,48): error TS2345: Argument of type '{ flags: string[]; parsed: NormalizedFlags; lastSynced: number; pending: false; }' is not assignable to parameter of type 'FlagState'.
+  Type '{ flags: string[]; parsed: NormalizedFlags; lastSynced: number; pending: false; }' is missing the following properties from type 'FlagState': uid, mailbox
+modules/mail/flag-sync.service.ts(299,46): error TS2345: Argument of type '{ flags: string[]; parsed: NormalizedFlags; lastSynced: number; pending: false; }' is not assignable to parameter of type 'FlagState'.
+  Type '{ flags: string[]; parsed: NormalizedFlags; lastSynced: number; pending: false; }' is missing the following properties from type 'FlagState': uid, mailbox
+modules/mail/flag-sync.service.ts(373,29): error TS2802: Type 'Map<string, number>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/mail/jmap-client.service.ts(19,58): error TS2307: Cannot find module './imap-bridge' or its corresponding type declarations.
+modules/mail/jmap-client.service.ts(20,31): error TS2307: Cannot find module './smtp-bridge' or its corresponding type declarations.
+modules/mail/mail-plugin.ts(28,68): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(obj: "[MailPlugin] MailConnectionManager started", msg?: never): void', gave the following error.
+    Argument of type '{ maxPoolSize: number; idleTimeoutMs: number; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 3, '(obj: "[MailPlugin] MailConnectionManager started", msg?: never, ...args: unknown[]): void', gave the following error.
+    Argument of type '{ maxPoolSize: number; idleTimeoutMs: number; }' is not assignable to parameter of type 'never'.
+modules/mail/mail-plugin.ts(64,62): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(obj: "[MailPlugin] Pool status failed", msg?: never): void', gave the following error.
+    Argument of type '{ error: string; }' is not assignable to parameter of type 'never'.
+  Overload 2 of 3, '(obj: "[MailPlugin] Pool status failed", msg?: never, ...args: unknown[]): void', gave the following error.
+    Argument of type '{ error: string; }' is not assignable to parameter of type 'never'.
+modules/mail/mail-service.ts(24,27): error TS2307: Cannot find module '../errors/handler' or its corresponding type declarations.
+modules/mail/mail-service.ts(25,29): error TS2307: Cannot find module '../utils/audit-logger' or its corresponding type declarations.
+modules/mail/mail-service.ts(386,35): error TS2341: Property 'profiles' is private and only accessible within class 'ImapExtensionsManager'.
+modules/mail/mailbox-sync.service.ts(10,30): error TS2307: Cannot find module 'ws/ws-gateway' or its corresponding type declarations.
+modules/mail/mailbox-sync.service.ts(106,28): error TS2802: Type 'MapIterator<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/mail/mailbox-sync.service.ts(198,33): error TS2802: Type 'Map<string, MailboxState>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/mail/mailbox-sync.service.ts(237,35): error TS2339: Property 'getConnectionManager' does not exist on type 'MailService'.
+modules/mail/mailbox-sync.service.ts(347,32): error TS2802: Type 'Map<string, Timeout>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/mail/mime/attachment-validator.ts(12,29): error TS2307: Cannot find module '../../utils/audit-logger' or its corresponding type declarations.
+modules/mail/mime/clamav-scanner.ts(11,29): error TS2307: Cannot find module '../../utils/audit-logger' or its corresponding type declarations.
+modules/mail/mime/html-sanitizer.ts(10,29): error TS2307: Cannot find module '../../utils/audit-logger' or its corresponding type declarations.
+modules/mail/mime/html-sanitizer.ts(159,7): error TS2322: Type 'string[]' is not assignable to type '{ [index: string]: { [index: string]: RegExp[]; }; }'.
+  Index signature for type 'string' is missing in type 'string[]'.
+modules/mail/mime/html-sanitizer.ts(219,55): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+modules/mail/mime/html-sanitizer.ts(220,55): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+modules/mail/mime/html-sanitizer.ts(221,55): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+modules/mail/mime/html-sanitizer.ts(222,53): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+modules/mail/mime/html-sanitizer.ts(223,51): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+modules/mail/mime/mime-parser.ts(10,24): error TS2305: Module '"mailparser"' has no exported member 'ParserDelegate'.
+modules/mail/mime/mime-parser.ts(12,29): error TS2307: Cannot find module '../../utils/audit-logger' or its corresponding type declarations.
+modules/mail/mime/mime-parser.ts(119,39): error TS2345: Argument of type 'Readable' is not assignable to parameter of type 'string | Buffer<ArrayBufferLike>'.
+  Type 'Readable' is missing the following properties from type 'Buffer<ArrayBufferLike>': slice, subarray, write, toJSON, and 90 more.
+modules/mail/mime/mime-parser.ts(125,25): error TS2339: Property 'messageId' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(126,23): error TS2339: Property 'subject' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(127,44): error TS2339: Property 'from' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(128,42): error TS2339: Property 'to' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(129,42): error TS2339: Property 'cc' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(130,43): error TS2339: Property 'bcc' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(131,47): error TS2339: Property 'replyTo' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(132,20): error TS2339: Property 'date' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(132,50): error TS2339: Property 'dateString' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(133,25): error TS2339: Property 'inReplyTo' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(134,26): error TS2339: Property 'references' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(135,20): error TS2339: Property 'text' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(136,20): error TS2339: Property 'html' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(137,25): error TS2339: Property 'textPlain' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(138,27): error TS2339: Property 'attachments' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(140,21): error TS2339: Property 'headers' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(141,21): error TS2339: Property 'headersRaw' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-parser.ts(143,26): error TS2339: Property 'headersRaw' does not exist on type 'void & Promise<ParsedMail>'.
+modules/mail/mime/mime-pipeline.ts(10,29): error TS2307: Cannot find module '../../utils/audit-logger' or its corresponding type declarations.
+modules/mail/mime/mime-pipeline.ts(343,9): error TS2322: Type 'string' is not assignable to type '{ xssThreatsFound: number; sanitizedElements: string[]; clamavScanComplete: boolean; attachmentsQuarantined: number; overallRisk: "critical" | "medium" | "low" | "high"; }'.
+modules/mail/mime/mime-pipeline.ts(345,7): error TS2322: Type 'string' is not assignable to type '{ xssThreatsFound: number; sanitizedElements: string[]; clamavScanComplete: boolean; attachmentsQuarantined: number; overallRisk: "critical" | "medium" | "low" | "high"; }'.
+modules/mail/mime/mime-pipeline.ts(347,7): error TS2322: Type 'string' is not assignable to type '{ xssThreatsFound: number; sanitizedElements: string[]; clamavScanComplete: boolean; attachmentsQuarantined: number; overallRisk: "critical" | "medium" | "low" | "high"; }'.
+modules/mail/mime/mime-pipeline.ts(349,7): error TS2322: Type 'string' is not assignable to type '{ xssThreatsFound: number; sanitizedElements: string[]; clamavScanComplete: boolean; attachmentsQuarantined: number; overallRisk: "critical" | "medium" | "low" | "high"; }'.
+modules/mail/mime/mime-pipeline.ts(367,7): error TS2322: Type '{ xssThreatsFound: number; sanitizedElements: string[]; clamavScanComplete: boolean; attachmentsQuarantined: number; overallRisk: "critical" | "medium" | "low" | "high"; }' is not assignable to type '"critical" | "medium" | "low" | "high"'.
+modules/ws/ws-bridge.ts(54,7): error TS2322: Type 'string' is not assignable to type 'WSServerEventType'.
+modules/ws/ws-gateway.ts(140,11): error TS2451: Cannot redeclare block-scoped variable 'client'.
+modules/ws/ws-gateway.ts(160,37): error TS2307: Cannot find module '../../mail/connection-manager' or its corresponding type declarations.
+modules/ws/ws-gateway.ts(165,11): error TS2451: Cannot redeclare block-scoped variable 'client'.
+modules/ws/ws-gateway.ts(176,37): error TS2307: Cannot find module '../../mail/connection-manager' or its corresponding type declarations.
+modules/ws/ws-gateway.ts(205,17): error TS2339: Property 'debug' does not exist on type 'AuditLogger'.
+modules/ws/ws-gateway.ts(231,9): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+modules/ws/ws-gateway.ts(246,22): error TS2802: Type 'Set<WebSocket>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/ws/ws-gateway.ts(253,30): error TS2802: Type 'Map<string, WSClient>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/ws/ws-gateway.ts(257,28): error TS2802: Type 'Set<WebSocket>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/ws/ws-gateway.ts(267,31): error TS2802: Type 'Map<string, Set<WebSocket>>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/ws/ws-gateway.ts(279,38): error TS2802: Type 'Map<string, WSClient>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/ws/ws-gateway.ts(306,30): error TS2802: Type 'Map<string, WSClient>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/ws/ws-gateway.ts(314,30): error TS2802: Type 'Map<string, WSClient>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+modules/ws/ws-handler.ts(24,46): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProvider, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Argument of type '(connection: { raw: WebSocket; }, req: FastifyInstance) => Promise<void>' is not assignable to parameter of type 'WebsocketHandler<RawServerDefault, IncomingMessage, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProvider, FastifyBaseLogger>'.
+      Types of parameters 'connection' and 'socket' are incompatible.
+        Property 'raw' is missing in type 'WebSocket' but required in type '{ raw: WebSocket; }'.
+  Overload 2 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProvider, FastifyBaseLogger>, handler: RouteHandlerMethod<...>): FastifyInstance<...>', gave the following error.
+    Argument of type '(connection: { raw: WebSocket; }, req: FastifyInstance) => Promise<void>' is not assignable to parameter of type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProvider, FastifyBaseLogger>'.
+      Types of parameters 'connection' and 'request' are incompatible.
+        Type 'FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProvider, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is not assignable to type '{ raw: WebSocket; }'.
+          Types of property 'raw' are incompatible.
+            Type 'IncomingMessage' is missing the following properties from type 'WebSocket': binaryType, bufferedAmount, extensions, protocol, and 16 more.
+modules/ws/ws-handler.ts(76,11): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+modules/ws/ws-handler.ts(83,55): error TS2304: Cannot find name 'fastify'.
+modules/ws/ws-handler.ts(84,47): error TS2345: Argument of type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' is not assignable to parameter of type 'WebSocket'.
+  Property 'dispatchEvent' is missing in type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' but required in type 'WebSocket'.
+modules/ws/ws-handler.ts(94,40): error TS2345: Argument of type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' is not assignable to parameter of type 'WebSocket'.
+  Property 'dispatchEvent' is missing in type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' but required in type 'WebSocket'.
+modules/ws/ws-handler.ts(100,11): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+modules/ws/ws-handler.ts(113,7): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+modules/ws/ws-handler.ts(129,22): error TS2345: Argument of type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' is not assignable to parameter of type 'WebSocket'.
+  Property 'dispatchEvent' is missing in type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' but required in type 'WebSocket'.
+modules/ws/ws-handler.ts(140,22): error TS2345: Argument of type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' is not assignable to parameter of type 'WebSocket'.
+  Property 'dispatchEvent' is missing in type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' but required in type 'WebSocket'.
+modules/ws/ws-handler.ts(151,24): error TS2345: Argument of type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' is not assignable to parameter of type 'WebSocket'.
+  Property 'dispatchEvent' is missing in type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' but required in type 'WebSocket'.
+modules/ws/ws-handler.ts(161,27): error TS2345: Argument of type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' is not assignable to parameter of type 'WebSocket'.
+  Property 'dispatchEvent' is missing in type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' but required in type 'WebSocket'.
+modules/ws/ws-handler.ts(164,26): error TS2345: Argument of type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' is not assignable to parameter of type 'WebSocket'.
+  Property 'dispatchEvent' is missing in type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' but required in type 'WebSocket'.
+modules/ws/ws-handler.ts(176,29): error TS2345: Argument of type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' is not assignable to parameter of type 'WebSocket'.
+  Property 'dispatchEvent' is missing in type 'import("d:/Github/Crux-Webmail/node_modules/@types/ws/index").default' but required in type 'WebSocket'.
+modules/ws/ws-handler.ts(211,19): error TS2339: Property 'debug' does not exist on type 'AuditLogger'.
+routes/admin.routes.ts(80,32): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(request: FastifyRequest<RouteGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>, reply: FastifyReply<...>, done: HookHandlerDoneFunction) => Promise<...>' is not assignable to parameter of type 'onRequestAsyncHookHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+      Target signature provides too few arguments. Expected 3 or more, but got 2.
+routes/admin.routes.ts(83,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(103,54): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(110,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(120,58): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(127,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(137,56): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(144,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(156,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { Querystring: Record<...>; }, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(164,40): error TS2345: Argument of type '{ search?: string; sort?: "username" | "last_login" | "created_at"; isActive?: boolean; mfaEnabled?: boolean; order?: "desc" | "asc"; limit?: number; page?: number; role?: "user" | "admin" | "moderator"; }' is not assignable to parameter of type 'AdminUserListParams'.
+  Property 'page' is optional in type '{ search?: string; sort?: "username" | "last_login" | "created_at"; isActive?: boolean; mfaEnabled?: boolean; order?: "desc" | "asc"; limit?: number; page?: number; role?: "user" | "admin" | "moderator"; }' but required in type 'AdminUserListParams'.
+routes/admin.routes.ts(172,51): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(179,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(189,49): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(195,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { Params: { ...; }; }, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(209,54): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(216,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { Body: { username: string; password: string; display_name?: string; roles?: string[]; }; }, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(236,52): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(243,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { Params: { ...; }; Body: { ...; }; }, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(268,53): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(275,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { Params: { ...; }; Body: { ...; }; }, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(300,54): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(307,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { Params: { ...; }; }, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(326,50): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(333,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { Querystring: Record<...>; }, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(341,43): error TS2345: Argument of type '{ search?: string; level?: "info" | "warn" | "error" | "critical"; actor_id?: string; category?: "password" | "auth" | "session" | "mfa" | "account" | "system" | "security"; to?: string; limit?: number; from?: string; page?: number; }' is not assignable to parameter of type 'AuditLogParams'.
+  Property 'page' is optional in type '{ search?: string; level?: "info" | "warn" | "error" | "critical"; actor_id?: string; category?: "password" | "auth" | "session" | "mfa" | "account" | "system" | "security"; to?: string; limit?: number; from?: string; page?: number; }' but required in type 'AuditLogParams'.
+routes/admin.routes.ts(349,51): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(356,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(366,52): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/admin.routes.ts(373,11): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, handler: RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'schema' does not exist in type 'RouteHandlerMethod<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>'.
+  Overload 3 of 4, '(path: string, opts: RouteShorthandOptionsWithHandler<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'description' does not exist in type 'FastifySchema'.
+routes/admin.routes.ts(383,52): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type 'Partial<AuditEvent>'.
+routes/auth.routes.ts(76,9): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>, handler: RouteHandlerMethod<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+routes/auth.routes.ts(83,28): error TS2345: Argument of type 'FastifyRequest<RequestGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is not assignable to parameter of type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>'.
+  Type 'FastifyRequest<RequestGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is missing the following properties from type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>': elapsedTime, request, code, status, and 27 more.
+routes/auth.routes.ts(89,26): error TS2345: Argument of type 'FastifyRequest<RequestGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is not assignable to parameter of type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>'.
+  Type 'FastifyRequest<RequestGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is missing the following properties from type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>': elapsedTime, request, code, status, and 27 more.
+routes/auth.routes.ts(139,9): error TS2322: Type '{ browser?: string; os?: string; screen?: string; timezone?: string; languages?: string[]; }' is not assignable to type '{ browser: string; os: string; screen: string; timezone: string; languages: string[]; }'.
+  Property 'browser' is optional in type '{ browser?: string; os?: string; screen?: string; timezone?: string; languages?: string[]; }' but required in type '{ browser: string; os: string; screen: string; timezone: string; languages: string[]; }'.
+routes/auth.routes.ts(156,13): error TS2339: Property 'setCookie' does not exist on type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { ...; }, { ...; }, FastifyTypeProviderDefault, unknown>'.
+routes/auth.routes.ts(195,15): error TS2339: Property 'clearCookie' does not exist on type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { ...; }, { ...; }, FastifyTypeProviderDefault, unknown>'.
+routes/auth.routes.ts(226,9): error TS2554: Expected 1 arguments, but got 3.
+routes/auth.routes.ts(230,13): error TS2339: Property 'clearCookie' does not exist on type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, { ...; }, FastifyTypeProviderDefault, unknown>'.
+routes/auth.routes.ts(278,9): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>, handler: RouteHandlerMethod<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+routes/auth.routes.ts(288,28): error TS2345: Argument of type 'FastifyRequest<RequestGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is not assignable to parameter of type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>'.
+  Type 'FastifyRequest<RequestGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is missing the following properties from type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>': elapsedTime, request, code, status, and 27 more.
+routes/auth.routes.ts(290,26): error TS2345: Argument of type 'FastifyRequest<RequestGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is not assignable to parameter of type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>'.
+  Type 'FastifyRequest<RequestGenericInterface, RawServerDefault, IncomingMessage, FastifySchema, FastifyTypeProviderDefault, unknown, FastifyBaseLogger, ResolveFastifyRequestType<...>>' is missing the following properties from type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>': elapsedTime, request, code, status, and 27 more.
+routes/auth.routes.ts(318,13): error TS2339: Property 'setCookie' does not exist on type 'FastifyReply<RouteGenericInterface, RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, { ...; }, { ...; }, FastifyTypeProviderDefault, unknown>'.
+routes/email.routes.ts(132,9): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>, handler: RouteHandlerMethod<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+routes/email.routes.ts(234,64): error TS2345: Argument of type '{ folder?: string; uid?: number; flag?: "UNSEEN" | "FLAGGED" | "SEEN" | "UNFLAGGED" | "DELETED"; }' is not assignable to parameter of type 'MarkFlagRequest'.
+  Property 'uid' is optional in type '{ folder?: string; uid?: number; flag?: "UNSEEN" | "FLAGGED" | "SEEN" | "UNFLAGGED" | "DELETED"; }' but required in type 'MarkFlagRequest'.
+routes/email.routes.ts(260,62): error TS2345: Argument of type '{ uid?: number; fromFolder?: string; toFolder?: string; }' is not assignable to parameter of type 'MoveEmailRequest'.
+  Property 'uid' is optional in type '{ uid?: number; fromFolder?: string; toFolder?: string; }' but required in type 'MoveEmailRequest'.
+routes/email.routes.ts(318,63): error TS2345: Argument of type '{ cc?: string[]; bcc?: string[]; to?: string[]; subject?: string; text?: string; html?: string; replyTo?: string; }' is not assignable to parameter of type 'SendEmailRequest'.
+  Property 'to' is optional in type '{ cc?: string[]; bcc?: string[]; to?: string[]; subject?: string; text?: string; html?: string; replyTo?: string; }' but required in type 'SendEmailRequest'.
+routes/email.routes.ts(348,62): error TS2345: Argument of type '{ folder?: string; flag?: "UNSEEN" | "FLAGGED" | "SEEN" | "UNFLAGGED" | "DELETED"; uids?: number[]; }' is not assignable to parameter of type 'BulkOperationRequest & { flag: "UNSEEN" | "FLAGGED" | "SEEN" | "UNFLAGGED" | "DELETED"; }'.
+  Type '{ folder?: string; flag?: "UNSEEN" | "FLAGGED" | "SEEN" | "UNFLAGGED" | "DELETED"; uids?: number[]; }' is not assignable to type 'BulkOperationRequest'.
+    Property 'uids' is optional in type '{ folder?: string; flag?: "UNSEEN" | "FLAGGED" | "SEEN" | "UNFLAGGED" | "DELETED"; uids?: number[]; }' but required in type 'BulkOperationRequest'.
+routes/email.routes.ts(375,63): error TS2345: Argument of type '{ folder?: string; toFolder?: string; uids?: number[]; }' is not assignable to parameter of type 'BulkOperationRequest & { toFolder: string; }'.
+  Type '{ folder?: string; toFolder?: string; uids?: number[]; }' is not assignable to type 'BulkOperationRequest'.
+    Property 'uids' is optional in type '{ folder?: string; toFolder?: string; uids?: number[]; }' but required in type 'BulkOperationRequest'.
+routes/email.routes.ts(392,9): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, { ...; }, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, { ...; }, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>, handler: RouteHandlerMethod<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+routes/email.routes.ts(416,9): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>, handler: RouteHandlerMethod<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+routes/email.routes.ts(440,9): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RequestGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger> & { ...; }, handler?: WebsocketHandler<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+  Overload 2 of 4, '(path: string, opts: RouteShorthandOptions<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, FastifyBaseLogger>, handler: RouteHandlerMethod<...>): FastifyInstance<...>', gave the following error.
+    Object literal may only specify known properties, and 'summary' does not exist in type 'FastifySchema'.
+routes/mail.routes.ts(88,56): error TS2345: Argument of type '{ cc?: string[]; bcc?: string[]; to?: string[]; subject?: string; from?: string; text?: string; html?: string; }' is not assignable to parameter of type '{ from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; text: string; html?: string; }'.
+  Property 'from' is optional in type '{ cc?: string[]; bcc?: string[]; to?: string[]; subject?: string; from?: string; text?: string; html?: string; }' but required in type '{ from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; text: string; html?: string; }'.
+services/admin-service.ts(281,51): error TS2353: Object literal may only specify known properties, and 'password' does not exist in type 'Optional<UserAttributes, NullishPropertiesOf<UserAttributes>>'.
+services/attachment-service.ts(242,9): error TS2554: Expected 3-4 arguments, but got 2.
+services/attachment-service.ts(336,13): error TS2554: Expected 2 arguments, but got 1.
+tsconfig.json(2,14): error TS6053: File 'tsconfig.base.json' not found.
+utils/api-response.ts(9,44): error TS2307: Cannot find module 'shared/types' or its corresponding type declarations.
+utils/api-response.ts(113,9): error TS2353: Object literal may only specify known properties, and 'correlationId' does not exist in type '{ details?: Record<string, unknown>; }'.
+utils/connections.ts(36,39): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(options?: Options): Sequelize', gave the following error.
+    Argument of type '{ database: string; username: string; password: string; host: string; port: number; dialect: "postgres"; logging: boolean | { (...data: any[]): void; (message?: any, ...optionalParams: any[]): void; }; pool: { ...; }; ssl: { ...; }; define: { ...; }; }' is not assignable to parameter of type 'Options'.
+      Types of property 'ssl' are incompatible.
+        Type '{ rejectUnauthorized: boolean; }' is not assignable to type 'boolean'.
+  Overload 2 of 4, '(uri: string, options?: Options): Sequelize', gave the following error.
+    Argument of type '{ database: string; username: string; password: string; host: string; port: number; dialect: "postgres"; logging: boolean | { (...data: any[]): void; (message?: any, ...optionalParams: any[]): void; }; pool: { ...; }; ssl: { ...; }; define: { ...; }; }' is not assignable to parameter of type 'string'.
+utils/input-sanitizer.ts(68,75): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+utils/input-sanitizer.ts(91,103): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+utils/input-sanitizer.ts(100,79): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+utils/otel-setup.ts(14,3): error TS2724: '"@opentelemetry/instrumentation-http"' has no exported member named 'FsInstrumentation'. Did you mean 'HttpInstrumentation'?
+utils/otel-setup.ts(47,9): error TS2353: Object literal may only specify known properties, and 'ignoreOutgoingUrls' does not exist in type 'HttpInstrumentationConfig'.
+utils/otel-setup.ts(54,7): error TS2353: Object literal may only specify known properties, and 'service' does not exist in type 'IResource'.
+utils/ssrf-protection.ts(176,32): error TS2802: Type 'URLSearchParams' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+utils/ssrf-protection.ts(252,21): error TS2802: Type 'Set<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.

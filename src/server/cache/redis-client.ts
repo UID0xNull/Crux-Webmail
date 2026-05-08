@@ -51,8 +51,6 @@ export async function initRedis(overrideConfig?: RedisConfig): Promise<Redis> {
       return Math.min(times * 200, 2000) + jitter;
     },
     lazyConnect: true,
-    // Circuit breaker
-    maxReconnectDelay: 1000,
     // Timeouts
     connectTimeout: 10000,
     commandTimeout: 5000,

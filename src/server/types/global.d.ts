@@ -249,6 +249,12 @@ export interface AuditEvent {
   client_ip?: string;
   user_agent?: string;
   metadata?: Record<string, unknown>;
+  error?: string;
+  reason?: string;
+  environment?: string;
+  port?: number;
+  stack?: string;
+  fatal?: boolean;
 }
 
 // ------------------------------------------------------------------

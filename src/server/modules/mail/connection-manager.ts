@@ -15,8 +15,8 @@ import type {
   IConnectionInfo,
   ConnectionPhase,
 } from '../contracts';
-import { ImapAdapter } from './imap-adapter';
-import { SmtpAdapter } from './smtp-adapter';
+import { ImapAdapter } from './adapter/imap-adapter';
+import { SmtpAdapter } from './adapter/smtp-adapter';
 import { CruxError } from '../../errors/handler';
 import { auditLogger } from '../../utils/audit-logger';
 import { config } from '../../config/app.config';
