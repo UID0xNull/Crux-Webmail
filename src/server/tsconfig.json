@@ -1,9 +1,9 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
     "outDir": "./dist",
     "rootDir": ".",
     "declaration": true,
@@ -11,6 +11,10 @@
     "sourceMap": true,
     "experimentalDecorators": false,
     "emitDecoratorMetadata": false,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "skipLibCheck": true,
     "types": [
       "node",
       "jest"
