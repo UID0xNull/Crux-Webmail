@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useRef, useState, ReactNod
 // ------------------------------------------------------------------
 // Types
 // ------------------------------------------------------------------
-interface PerformanceMetrics {
+export interface PerformanceMetrics {
   // Core Web Vitals
   fcp: number | null;      // First Contentful Paint
   lcp: number | null;      // Largest Contentful Paint
@@ -86,6 +86,7 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
   const slowRendersRef = useRef<Map<string, number>>(new Map());
   const renderCountRef = useRef(0);
   const observersRef = useRef<PerformanceObserver[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ----------------------------------------------------------------
   // Navigation Timing
@@ -135,18 +136,18 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
         for (const entry of entries) {
           lcpValue = entry.startTime;
         }
+        setMetrics((prev) => ({ ...prev, lcp: lcpValue }));
       });
 
       lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
       observersRef.current.push(lcpObserver);
-
-      setMetrics((prev) => ({ ...prev, lcp: lcpValue }));
     } catch {
       // LCP not supported
     }
 
     return () => {
       observersRef.current.forEach((obs) => obs.disconnect());
+      observersRef.current = [];
     };
   }, []);
 
@@ -156,13 +157,13 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    let clsValue = 0;
-
     try {
       const clsObserver = new PerformanceObserver((list) => {
+        let clsValue = 0;
         for (const entry of list.getEntries()) {
-          if (!entry.hadRecentInput) {
-            clsValue += entry.value;
+          const ls = entry as LayoutShift;
+          if (!ls.hadRecentInput) {
+            clsValue += ls.value;
           }
         }
         setMetrics((prev) => ({ ...prev, cls: clsValue }));
@@ -235,6 +236,27 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ----------------------------------------------------------------
+  // Dev: periodic slow-render logging
+  // ----------------------------------------------------------------
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+
+    intervalRef.current = setInterval(() => {
+      if (slowRendersRef.current.size > 0) {
+        console.group('[Performance] Slow Renders');
+        slowRendersRef.current.forEach((ms, name) => {
+          console.warn(`${name}: ${ms.toFixed(2)}ms`);
+        });
+        console.groupEnd();
+      }
+    }, 30_000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  // ----------------------------------------------------------------
   // Cleanup observers on unmount
   // ----------------------------------------------------------------
   useEffect(() => {
@@ -262,7 +284,7 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
     isMonitoring: true,
     report: (name: string, value: number) => {
       slowRendersRef.current.set(name, value);
-      setMetrics((prev) => ({ ...prev })); // Trigger re-render
+      setMetrics((prev) => ({ ...prev })); // trigger re-render
     },
     clearMetrics: () => {
       setMetrics(defaultMetrics());
@@ -273,42 +295,9 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
 
   return (
     <PerformanceContext.Provider value={contextValue}>
-      <RenderCounter>
-        {children}
-      </RenderCounter>
+      {children}
     </PerformanceContext.Provider>
   );
-}
-
-// ------------------------------------------------------------------
-// RenderCounter — tracks total component renders for debug
-// ------------------------------------------------------------------
-function RenderCounter({ children }: { children: ReactNode }) {
-  if (process.env.NODE_ENV === 'production') {
-    return <>{children}</>;
-  }
-
-  // In development, wrap children with render tracking
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      // Log summary every 30 seconds in dev
-      if (slowRendersRef.current.size > 0) {
-        console.group('[Performance] Slow Renders');
-        slowRendersRef.current.forEach((ms, name) => {
-          console.warn(`${name}: ${ms.toFixed(2)}ms`);
-        });
-        console.groupEnd();
-      }
-    }, 30000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
-
-  return <>{children}</>;
 }
 
 // ------------------------------------------------------------------
