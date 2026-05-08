@@ -25,7 +25,6 @@ import fastifyHelmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyUnderPressure from '@fastify/under-pressure';
-import fastifyPrometheus from '@fastify/prometheus';
 import fastifyStatic from '@fastify/static';
 
 // Routes
