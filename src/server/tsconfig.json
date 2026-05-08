@@ -1,6 +1,7 @@
 {
-  "extends": "tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
@@ -10,17 +11,41 @@
     "sourceMap": true,
     "experimentalDecorators": false,
     "emitDecoratorMetadata": false,
-    "types": ["node", "jest"],
+    "types": [
+      "node",
+      "jest"
+    ],
     "paths": {
-      "@config/*": ["config/*"],
-      "@modules/*": ["modules/*"],
-      "@middleware/*": ["middleware/*"],
-      "@utils/*": ["utils/*"],
-      "@types/*": ["types/*"],
-      "@routes/*": ["routes/*"],
-      "@errors/*": ["errors/*"]
+      "@config/*": [
+        "config/*"
+      ],
+      "@modules/*": [
+        "modules/*"
+      ],
+      "@middleware/*": [
+        "middleware/*"
+      ],
+      "@utils/*": [
+        "utils/*"
+      ],
+      "@types/*": [
+        "types/*"
+      ],
+      "@routes/*": [
+        "routes/*"
+      ],
+      "@errors/*": [
+        "errors/*"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": [
+    "**/*.ts",
+    "**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts"
+  ]
 }
