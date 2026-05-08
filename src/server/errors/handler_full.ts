@@ -1,3 +1,4 @@
+// empty marker 
 // ============================================================================
 // Crux-Webmail — Centralized Error Handler
 // ============================================================================
@@ -15,7 +16,7 @@ import {
   FastifyRequest,
 } from 'fastify';
 import { generateSecureUuid } from 'utils/crypto';
-import type { ApiError } from 'types';
+import type { ApiError } from 'shared/types';
 
 // ------------------------------------------------------------------
 // Códigos de error internos → HTTP mapping
@@ -58,7 +59,7 @@ export class CruxError extends Error {
     options?: {
       details?: Record<string, unknown>;
       originalError?: Error;
-    },
+    }
   ) {
     super(message);
     this.name = 'CruxError';
@@ -82,12 +83,14 @@ export function createBridgeError(service: string, message: string): CruxError {
 
 export function createValidationError(
   message: string,
-  details: Record<string, unknown> = {},
+  details: Record<string, unknown> = {}
 ): CruxError {
   return new CruxError('INVALID_PAYLOAD', message, { details });
 }
 
-export function createRateLimitError(message: string = 'Rate limit exceeded'): CruxError {
+export function createRateLimitError(
+  message: string = 'Rate limit exceeded'
+): CruxError {
   return new CruxError('RATE_LIMIT_EXCEEDED', message);
 }
 
@@ -160,7 +163,7 @@ export function errorHandler(
         status: httpStatus,
         timestamp: new Date().toISOString(),
         message: crux.safeMessage,
-      }),
+      })
     );
   } else {
     console.error(
@@ -172,7 +175,7 @@ export function errorHandler(
         timestamp: new Date().toISOString(),
         message: crux.message,
         stack: (error as Error).stack,
-      }),
+      })
     );
   }
 
@@ -182,7 +185,9 @@ export function errorHandler(
     code: crux.code,
     message: isProduction ? crux.safeMessage : crux.message,
     correlation_id: correlationId,
-    ...(error instanceof CruxError && !isProduction ? { details: error.details } : {}),
+    ...(error instanceof CruxError && !isProduction
+      ? { details: error.details }
+      : {}),
   };
 
   reply.code(httpStatus).send({

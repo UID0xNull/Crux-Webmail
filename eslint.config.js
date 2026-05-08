@@ -13,11 +13,12 @@ export default [
       'dist/**',
       '.next/**',
       'coverage/**',
-      '*.js',
       'src/web/out/**',
       'infra/**',
       '.github/**',
       'docs/**',
+      'monitoring/**',
+      'scripts/**',
     ],
   },
 
@@ -40,8 +41,8 @@ export default [
       '@typescript-eslint': tseslint,
     },
     rules: {
-      // --- Strict ---
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // --- Strict type safety ---
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',

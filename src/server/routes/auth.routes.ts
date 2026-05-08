@@ -3,14 +3,18 @@
 // ============================================================================
 // Login, Register, Refresh, Logout, Profile, Change Password,
 // MFA Setup/Verify/Enable — con rate-limiting y audit logging.
+//
+// Formato unificado: todas las respuestas siguen ApiResponse<T>:
+//   { data?: T; error?: ApiError; correlation_id: string }
 // ============================================================================
 
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { getAuthService } from '../modules/auth/auth-service';
-import { getSessionManager } from '../modules/auth/session-manager';
-import { auditLogger } from '../utils/audit-logger';
-import { CruxError } from '../errors/handler';
+import { getAuthService } from 'modules/auth/auth-service';
+import { getSessionManager } from 'modules/auth/session-manager';
+import { auditLogger } from 'utils/audit-logger';
+import { CruxError } from 'errors/handler';
+import { sendSuccess, sendError, sendOperation } from 'utils/api-response';
 
 // ------------------------------------------------------------------
 // Schemas (Zod validation)
@@ -76,13 +80,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     async (request: any, reply) => {
       try {
         const profile = await authService.getProfile(request.user_id);
-        return { data: profile };
+        return sendSuccess(reply, profile);
       } catch (err) {
         auditLogger.error('Profile fetch failed', {
           actor_id: (request as any).user_id,
           metadata: { error: (err as Error).message },
         });
-        return reply.code(500).send({ error: { code: 'INTERNAL_ERROR' } });
+        return sendError(reply, 500, 'INTERNAL_ERROR', 'Internal Server Error');
       }
     }
   );
@@ -107,10 +111,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       });
 
       if (!result.success) {
-        return reply.code(400).send({ error: { code: result.error } });
+        return sendError(reply, 400, result.error ?? 'REGISTRATION_FAILED', result.error ?? 'Registration failed');
       }
 
-      return reply.code(201).send({ data: result });
+      return sendSuccess(reply, result, 201);
     }
   );
 
@@ -138,16 +142,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       });
 
       if (result.requiresMFA) {
-        return reply.code(200).send({
-          data: {
-            requires_mfa: true,
-            mfa_session_id: result.mfaSessionId,
-          },
+        return sendSuccess(reply, {
+          requires_mfa: true,
+          mfa_session_id: result.mfaSessionId,
         });
       }
 
       if (!result.success) {
-        return reply.code(401).send({ error: { code: result.error } });
+        return sendError(reply, 401, result.error ?? 'AUTH_FAILED', result.error ?? 'Authentication failed');
       }
 
       // Set refresh token as HTTP-only cookie
@@ -158,13 +160,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         maxAge: 7 * 24 * 60 * 60,
       });
 
-      return reply.code(200).send({
-        data: {
-          access_token: result.token,
-          session_id: result.session_id,
-          fingerprint: result.fingerprint,
-          expires_in: 3600,
-        },
+      return sendSuccess(reply, {
+        access_token: result.token,
+        session_id: result.session_id,
+        fingerprint: result.fingerprint,
+        expires_in: 3600,
       });
     }
   );
@@ -193,17 +193,15 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
 
       if (!result.success) {
         reply.clearCookie('refresh_token');
-        return reply.code(401).send({ error: { code: 'INVALID_REFRESH_TOKEN' } });
+        return sendError(reply, 401, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token');
       }
 
-      return reply.code(200).send({
-        data: {
-          access_token: result.token,
-          refresh_token: result.refreshToken,
-          session_id: result.session_id,
-          fingerprint: result.fingerprint,
-          expires_in: 3600,
-        },
+      return sendSuccess(reply, {
+        access_token: result.token,
+        refresh_token: result.refreshToken,
+        session_id: result.session_id,
+        fingerprint: result.fingerprint,
+        expires_in: 3600,
       });
     }
   );
@@ -236,7 +234,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         client_ip: clientIp,
       });
 
-      return { data: { status: 'logged_out' } };
+      return sendSuccess(reply, { status: 'logged_out' });
     }
   );
 
@@ -264,10 +262,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       );
 
       if (!result.success) {
-        return reply.code(400).send({ error: { code: result.error } });
+        return sendError(reply, 400, result.error ?? 'PASSWORD_CHANGE_FAILED', result.error ?? 'Password change failed');
       }
 
-      return { data: { status: 'password_changed' } };
+      return sendSuccess(reply, { status: 'password_changed' });
     }
   );
 
@@ -287,9 +285,9 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
           request.user_id,
           request.ip
         );
-        return { data: result };
+        return sendSuccess(reply, result);
       } catch (err) {
-        return reply.code(500).send({ error: { code: 'MFA_SETUP_ERROR' } });
+        return sendError(reply, 500, 'MFA_SETUP_ERROR', 'MFA setup failed');
       }
     }
   );
@@ -314,7 +312,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       );
 
       if (!result.success) {
-        return reply.code(401).send({ error: { code: result.error } });
+        return sendError(reply, 401, result.error ?? 'MFA_VERIFY_FAILED', result.error ?? 'MFA verification failed');
       }
 
       reply.setCookie('refresh_token', result.refreshToken!, {
@@ -324,7 +322,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         maxAge: 7 * 24 * 60 * 60,
       });
 
-      return { data: { access_token: result.token } };
+      return sendSuccess(reply, { access_token: result.token });
     }
   );
 
@@ -348,10 +346,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       );
 
       if (!result.success) {
-        return reply.code(400).send({ error: { code: result.error } });
+        return sendError(reply, 400, result.error ?? 'MFA_ENABLE_FAILED', result.error ?? 'MFA enable failed');
       }
 
-      return { data: { status: 'mfa_enabled' } };
+      return sendSuccess(reply, { status: 'mfa_enabled' });
     }
   );
 }
@@ -364,16 +362,14 @@ async function verifyAuthMiddleware(request: any, reply: any) {
   const authHeader = request.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    reply.code(401);
-    return { error: { code: 'MISSING_AUTH_TOKEN' } };
+    return sendError(reply, 401, 'MISSING_AUTH_TOKEN', 'Missing authentication token');
   }
 
   const token = authHeader.slice(7);
   const result = await sessionManager.verifySession(token);
 
   if (!result.valid || !result.user_id) {
-    reply.code(401);
-    return { error: { code: 'INVALID_SESSION' } };
+    return sendError(reply, 401, 'INVALID_SESSION', 'Invalid session');
   }
 
   request.user_id = result.user_id;

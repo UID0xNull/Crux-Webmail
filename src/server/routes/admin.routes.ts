@@ -3,12 +3,16 @@
 // ============================================================================
 // REST API para el panel de administración: usuarios, sistema, audit logs,
 // cola de correo, sesiones activas, configuración.
+//
+// Formato unificado: todas las respuestas siguen ApiResponse<T>:
+//   { data?: T; error?: ApiError; correlation_id: string }
 // ============================================================================
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { adminAuthPreHandler } from 'middleware/admin-auth.middleware';
 import { auditLogger } from 'utils/audit-logger';
+import { sendSuccess, sendError } from 'utils/api-response';
 import {
   getUserStats,
   listUsers,
@@ -89,17 +93,15 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
           getAuditLogSummary(),
           getRecentActivity(10),
         ]);
-        reply.send({
-          data: {
-            system: health,
-            users: userStats,
-            audits: auditSummary,
-            recentActivity: recent.events,
-          },
+        sendSuccess(reply, {
+          system: health,
+          users: userStats,
+          audits: auditSummary,
+          recentActivity: recent.events,
         });
       } catch (err) {
         auditLogger.error('Admin dashboard error', { error: (err as Error).message });
-        reply.code(500).send({ error: 'Internal server error' });
+        sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
   });
@@ -113,10 +115,10 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
     handler: async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const health = await getSystemHealth();
-        reply.send({ data: health });
+        sendSuccess(reply, health);
       } catch (err) {
         auditLogger.error('System health check error', { error: (err as Error).message });
-        reply.code(500).send({ error: 'Internal server error' });
+        sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
   });
@@ -130,10 +132,10 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
     handler: async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const stats = await getMailSystemStats();
-        reply.send({ data: stats });
+        sendSuccess(reply, stats);
       } catch (err) {
         auditLogger.error('Mail system stats error', { error: (err as Error).message });
-        reply.code(500).send({ error: 'Internal server error' });
+        sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
   });
@@ -146,7 +148,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
     },
     handler: async (_request: FastifyRequest, reply: FastifyReply) => {
       const settings = getAppSettings();
-      reply.send({ data: settings });
+      sendSuccess(reply, settings);
     },
   });
 
@@ -160,13 +162,15 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       try {
         const params = UserListSchema.parse(request.query);
         const result = await listUsers(params);
-        reply.send({ data: result });
+        sendSuccess(reply, result);
       } catch (err) {
         if (err instanceof z.ZodError) {
-          reply.code(400).send({ error: 'Invalid query parameters', details: err.errors });
+          sendError(reply, 400, 'INVALID_QUERY_PARAMS', 'Invalid query parameters', {
+            details: { errors: err.errors },
+          });
         } else {
           auditLogger.error('List users error', { error: (err as Error).message });
-          reply.code(500).send({ error: 'Internal server error' });
+          sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
         }
       }
     },
@@ -180,10 +184,10 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
     handler: async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const stats = await getUserStats();
-        reply.send({ data: stats });
+        sendSuccess(reply, stats);
       } catch (err) {
         auditLogger.error('User stats error', { error: (err as Error).message });
-        reply.code(500).send({ error: 'Internal server error' });
+        sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
   });
@@ -197,13 +201,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       try {
         const user = await getUserDetail(request.params.userId);
         if (!user) {
-          reply.code(404).send({ error: 'User not found' });
+          sendError(reply, 404, 'USER_NOT_FOUND', 'User not found');
           return;
         }
-        reply.send({ data: user });
+        sendSuccess(reply, user);
       } catch (err) {
         auditLogger.error('Get user detail error', { error: (err as Error).message });
-        reply.code(500).send({ error: 'Internal server error' });
+        sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
   });
@@ -222,13 +226,15 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
           actor_id: (request as any).admin?.user_id,
           metadata: { username: body.username },
         });
-        reply.code(201).send({ data: user });
+        sendSuccess(reply, user, 201);
       } catch (err) {
         if (err instanceof z.ZodError) {
-          reply.code(400).send({ error: 'Invalid input', details: err.errors });
+          sendError(reply, 400, 'INVALID_INPUT', 'Invalid input', {
+            details: { errors: err.errors },
+          });
         } else {
           auditLogger.error('Create user error', { error: (err as Error).message });
-          reply.code(400).send({ error: (err as Error).message });
+          sendError(reply, 400, 'CREATE_USER_FAILED', (err as Error).message);
         }
       }
     },
@@ -249,16 +255,18 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         });
         const user = await updateUserRole(request.params.userId, body.roles);
         if (!user) {
-          reply.code(404).send({ error: 'User not found' });
+          sendError(reply, 404, 'USER_NOT_FOUND', 'User not found');
           return;
         }
-        reply.send({ data: user });
+        sendSuccess(reply, user);
       } catch (err) {
         if (err instanceof z.ZodError) {
-          reply.code(400).send({ error: 'Invalid input', details: err.errors });
+          sendError(reply, 400, 'INVALID_INPUT', 'Invalid input', {
+            details: { errors: err.errors },
+          });
         } else {
           auditLogger.error('Update roles error', { error: (err as Error).message });
-          reply.code(400).send({ error: (err as Error).message });
+          sendError(reply, 400, 'UPDATE_ROLES_FAILED', (err as Error).message);
         }
       }
     },
@@ -279,16 +287,18 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         });
         const user = await toggleUserStatus(request.params.userId, body.isActive);
         if (!user) {
-          reply.code(404).send({ error: 'User not found' });
+          sendError(reply, 404, 'USER_NOT_FOUND', 'User not found');
           return;
         }
-        reply.send({ data: user });
+        sendSuccess(reply, user);
       } catch (err) {
         if (err instanceof z.ZodError) {
-          reply.code(400).send({ error: 'Invalid input', details: err.errors });
+          sendError(reply, 400, 'INVALID_INPUT', 'Invalid input', {
+            details: { errors: err.errors },
+          });
         } else {
           auditLogger.error('Toggle status error', { error: (err as Error).message });
-          reply.code(500).send({ error: 'Internal server error' });
+          sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
         }
       }
     },
@@ -308,13 +318,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         });
         const success = await unlockUser(request.params.userId);
         if (!success) {
-          reply.code(404).send({ error: 'User not found' });
+          sendError(reply, 404, 'USER_NOT_FOUND', 'User not found');
           return;
         }
-        reply.send({ data: { unlocked: true } });
+        sendSuccess(reply, { unlocked: true });
       } catch (err) {
         auditLogger.error('Unlock user error', { error: (err as Error).message });
-        reply.code(500).send({ error: 'Internal server error' });
+        sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
   });
@@ -329,13 +339,15 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       try {
         const params = AuditLogSchema.parse(request.query);
         const result = await getAuditLogs(params);
-        reply.send({ data: result });
+        sendSuccess(reply, result);
       } catch (err) {
         if (err instanceof z.ZodError) {
-          reply.code(400).send({ error: 'Invalid query parameters', details: err.errors });
+          sendError(reply, 400, 'INVALID_QUERY_PARAMS', 'Invalid query parameters', {
+            details: { errors: err.errors },
+          });
         } else {
           auditLogger.error('Audit logs error', { error: (err as Error).message });
-          reply.code(500).send({ error: 'Internal server error' });
+          sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
         }
       }
     },
@@ -349,10 +361,10 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
     handler: async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const summary = await getAuditLogSummary();
-        reply.send({ data: summary });
+        sendSuccess(reply, summary);
       } catch (err) {
         auditLogger.error('Audit summary error', { error: (err as Error).message });
-        reply.code(500).send({ error: 'Internal server error' });
+        sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
   });
@@ -366,10 +378,10 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
     handler: async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const sessions = await getActiveSessions();
-        reply.send({ data: { sessions, total: sessions.length } });
+        sendSuccess(reply, { sessions, total: sessions.length });
       } catch (err) {
         auditLogger.error('Sessions list error', { error: (err as Error).message });
-        reply.code(500).send({ error: 'Internal server error' });
+        sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
   });

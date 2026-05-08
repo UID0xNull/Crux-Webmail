@@ -1,13 +1,16 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "tsconfig.base.json",
   "compilerOptions": {
     "types": ["jest", "node"],
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "noEmit": true
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noPropertyAccessFromIndexSignature": false
   },
   "include": [
     "**/*.ts",
-    "../../src/server/**/*.ts"
+    "src/server/**/*.ts"
   ]
 }

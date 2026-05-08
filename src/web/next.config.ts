@@ -4,10 +4,10 @@
 // Optimizations applied:
 // - Image optimization (WebP/AVIF, responsive sizes)
 // - Compression (Gzip/Brotli) for all assets
-// - Modular server config for memory/performance tuning
 // - Tree-shaking: no unnecessary polyfills
 // - Experimental turbopack for dev speed
 // - Standalone output for Docker
+// - Security headers (CSP, COOP, COEP)
 // ============================================================================
 
 import type { NextConfig } from 'next';
@@ -28,10 +28,9 @@ const nextConfig: NextConfig = {
   // ------------------------------------------------------------------
   images: {
     formats: ['image/avif', 'image/webp'],
-    devices: [640, 768, 1024, 1280, 1536, 1920],
+    deviceSizes: [640, 768, 1024, 1280, 1536, 1920],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: false,
-    enableBasicAuthorization: false,
   },
 
   // ------------------------------------------------------------------
@@ -40,27 +39,9 @@ const nextConfig: NextConfig = {
   compress: true,
 
   // ------------------------------------------------------------------
-  // Modular Server — fine-tune Node.js memory/performance
-  // ------------------------------------------------------------------
-  serverRuntimeConfig: {
-    apiRateLimit: 100,
-    apiTimeout: 30000,
-  },
-
-  serverBundleDependencies: isProd ? false : undefined,
-
-  // ------------------------------------------------------------------
   // Experimental — TurboPack for dev, PPR for streaming
   // ------------------------------------------------------------------
   experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.tsx',
-        },
-      },
-    },
     optimizePackageImports: [
       'lucide-react',
       '@emotion/react',
@@ -123,7 +104,12 @@ const nextConfig: NextConfig = {
               child-src 'self';
             `.replace(/\s+/g, ' ').trim(),
           },
-          // Cache static assets aggressively
+        ],
+      },
+      // Cache static assets aggressively
+      {
+        source: '/static/:path*',
+        headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',

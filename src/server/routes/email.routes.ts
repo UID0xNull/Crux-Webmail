@@ -4,14 +4,18 @@
 // Endpoints REST para operaciones de correo: listar, buscar, leer, enviar,
 // marcar, mover, eliminar. Validación estricta con Zod + delegación al
 // controller (business logic). Zero-Trust: cada ruta requiere auth.
+//
+// Formato unificado: todas las respuestas siguen ApiResponse<T>:
+//   { data?: T; error?: ApiError; correlation_id: string }
 // ============================================================================
 
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { CruxError } from '../errors/handler';
+import { CruxError } from 'errors/handler';
+import { sendSuccess, sendError } from 'utils/api-response';
 
 // Controller (business logic)
-import * as emailCtrl from '../modules/email/email.controller';
+import * as emailCtrl from 'modules/email/email.controller';
 
 // ------------------------------------------------------------------
 // Validation Schemas (Zod)
@@ -81,10 +85,6 @@ const BulkMoveBodySchema = z.object({
   toFolder: z.string().min(1).max(256),
 });
 
-/** GET /folders — sin params */
-/** GET /sync/status — sin params */
-/** POST /sync — sin body requerido */
-
 // ------------------------------------------------------------------
 // User ID resolver (inyectado por middleware de auth en app.ts)
 // ------------------------------------------------------------------
@@ -96,6 +96,24 @@ function getUserId(request: any): string {
     });
   }
   return userId;
+}
+
+// ------------------------------------------------------------------
+// Helper: manejo unificado de CruxError en cada endpoint
+// ------------------------------------------------------------------
+function handleEmailError(err: unknown, reply: any): any {
+  if (err instanceof CruxError) {
+    return sendError(reply, err.code.includes('IMAP') ? 503 : 500, err.code, err.message, {
+      details: err.details,
+    });
+  }
+  throw err;
+}
+
+function handleValidationError(err: z.ZodError, reply: any): any {
+  return sendError(reply, 400, 'INVALID_QUERY_PARAMS', 'Parámetros inválidos', {
+    details: { errors: err.errors },
+  });
 }
 
 // ------------------------------------------------------------------
@@ -113,15 +131,6 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       schema: {
         summary: 'Listar carpetas IMAP del usuario',
         tags: ['email'],
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              status: { type: 'string' },
-              data: { type: 'array', items: { type: 'object' } },
-            },
-          },
-        },
       },
     },
     async (request: any, reply: any) => {
@@ -129,14 +138,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const folders = await emailCtrl.listUserFolders(userId);
-        return reply.send({ status: 'success', data: folders });
+        return sendSuccess(reply, folders);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply
-            .code(err.code.includes('IMAP') ? 503 : 500)
-            .send({ status: 'error', code: err.code, message: err.message });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -153,23 +157,6 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
         summary: 'Buscar correos con paginación',
         tags: ['email'],
         querystring: SearchQuerySchema,
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              status: { type: 'string' },
-              data: {
-                type: 'object',
-                properties: {
-                  items: { type: 'array', items: { type: 'object' } },
-                  total: { type: 'number' },
-                  hasNext: { type: 'boolean' },
-                  nextCursor: { type: 'string', nullable: true },
-                },
-              },
-            },
-          },
-        },
       },
     },
     async (request: any, reply: any) => {
@@ -185,22 +172,12 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
           filter.cursor,
           pageLimit,
         );
-        return reply.send({ status: 'success', data: result });
+        return sendSuccess(reply, result);
       } catch (err: any) {
-        if (err instanceof CruxError) {
-          return reply
-            .code(err.code.includes('IMAP') ? 503 : 400)
-            .send({ status: 'error', code: err.code, message: err.message });
-        }
         if (err instanceof z.ZodError) {
-          return reply.code(400).send({
-            status: 'error',
-            code: 'INVALID_QUERY_PARAMS',
-            message: 'Parámetros de búsqueda inválidos',
-            details: { errors: err.errors },
-          });
+          return handleValidationError(err, reply);
         }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -225,15 +202,11 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const detail = await emailCtrl.getEmailByUID(userId, folder, uid);
-        return reply.send({ status: 'success', data: detail });
+        return sendSuccess(reply, detail);
       } catch (err) {
         if (err instanceof CruxError) {
           const code = err.code === 'MESSAGE_NOT_FOUND' ? 404 : 503;
-          return reply.code(code).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
+          return sendError(reply, code, err.code, err.message, { details: err.details });
         }
         throw err;
       }
@@ -259,16 +232,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const result = await emailCtrl.toggleEmailFlag(userId, body);
-        return reply.send({ status: 'success', data: result });
+        return sendSuccess(reply, result);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(503).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -292,16 +258,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const result = await emailCtrl.moveUserEmail(userId, body);
-        return reply.send({ status: 'success', data: result });
+        return sendSuccess(reply, result);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(503).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -330,16 +289,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
           uid,
           folder: body.folder,
         });
-        return reply.send({ status: 'success', data: result });
+        return sendSuccess(reply, result);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(503).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -364,24 +316,12 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const result = await emailCtrl.queueEmailSend(userId, body);
-        return reply.code(202).send({ status: 'success', data: result });
+        return sendSuccess(reply, result, 202);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(500).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
         if (err instanceof z.ZodError) {
-          return reply.code(400).send({
-            status: 'error',
-            code: 'INVALID_PAYLOAD',
-            message: 'Payload de envío inválido',
-            details: { errors: err.errors },
-          });
+          return handleValidationError(err, reply);
         }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -406,16 +346,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const result = await emailCtrl.bulkMarkFlags(userId, body);
-        return reply.send({ status: 'success', data: result });
+        return sendSuccess(reply, result);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(503).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -440,16 +373,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const result = await emailCtrl.bulkMoveEmails(userId, body);
-        return reply.send({ status: 'success', data: result });
+        return sendSuccess(reply, result);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(503).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -472,16 +398,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const result = await emailCtrl.triggerSync(userId);
-        return reply.send({ status: 'success', data: result });
+        return sendSuccess(reply, result);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(503).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -503,16 +422,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const status = await emailCtrl.getSyncStatus(userId);
-        return reply.send({ status: 'success', data: status });
+        return sendSuccess(reply, status);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(503).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );
@@ -534,16 +446,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
 
       try {
         const result = await emailCtrl.closeIMAPConnection(userId);
-        return reply.send({ status: 'success', data: result });
+        return sendSuccess(reply, result);
       } catch (err) {
-        if (err instanceof CruxError) {
-          return reply.code(503).send({
-            status: 'error',
-            code: err.code,
-            message: err.message,
-          });
-        }
-        throw err;
+        return handleEmailError(err, reply);
       }
     }
   );

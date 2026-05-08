@@ -1,6 +1,9 @@
 // ============================================================================
 // Crux-Webmail Frontend — Shared Types
 // ============================================================================
+// Definiciones centralizadas para el frontend. Se alinea con src/shared/types.ts
+// para consistencia del contrato API bidireccional.
+// ============================================================================
 
 // ------------------------------------------------------------------
 // Auth
@@ -10,7 +13,6 @@ export interface AuthToken {
   refresh_token: string;
   session_id: string;
   expires_in: number;
-  correlation_id: string;
 }
 
 export interface LoginPayload {
@@ -40,12 +42,58 @@ export interface ActiveSession {
 }
 
 // ------------------------------------------------------------------
+// Session / Fingerprint
+// ------------------------------------------------------------------
+export interface ClientFingerprint {
+  browser: string;
+  os: string;
+  screen: string;
+  timezone: string;
+  languages: string[];
+  hash: string;
+}
+
+export interface SessionState {
+  isAuthenticated: boolean;
+  token: string | null;
+  refreshToken: string | null;
+  sessionId: string | null;
+  user: UserProfile | null;
+  expiresAt: number;
+  fingerprint: ClientFingerprint | null;
+}
+
+// ------------------------------------------------------------------
+// API Response (unificado — se importa desde shared para el contrato)
+// ------------------------------------------------------------------
+export interface ApiError {
+  status: number;
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+  correlation_id: string;
+}
+
+export interface ApiResponse<T = unknown> {
+  data?: T;
+  error?: ApiError;
+  correlation_id: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  queryId: string;
+  newPosition: string | null;
+  total?: number;
+}
+
+// ------------------------------------------------------------------
 // Mail / JMAP
 // ------------------------------------------------------------------
 export interface Mailbox {
   id: string;
   name: string;
-  role: string;
+  role?: string;
   subscriptionEnabled: boolean;
   parentId?: string;
   childMailboxes?: string[];
@@ -105,6 +153,16 @@ export interface EmailBodyPart {
   size: number;
 }
 
+export interface AttachmentData {
+  name: string;
+  mimeType: string;
+  data: string; // base64
+  size: number;
+}
+
+// ------------------------------------------------------------------
+// Compose
+// ------------------------------------------------------------------
 export interface ComposePayload {
   to: EmailAddress[];
   cc?: EmailAddress[];
@@ -115,13 +173,6 @@ export interface ComposePayload {
   attachments?: AttachmentData[];
   encrypt?: boolean;
   sign?: boolean;
-}
-
-export interface AttachmentData {
-  name: string;
-  mimeType: string;
-  data: string; // base64
-  size: number;
 }
 
 // ------------------------------------------------------------------
@@ -153,31 +204,6 @@ export interface PGPKeyInfo {
 }
 
 // ------------------------------------------------------------------
-// API Response
-// ------------------------------------------------------------------
-export interface ApiResponse<T> {
-  data: T;
-  status: number;
-  correlation_id: string;
-  timestamp: string;
-}
-
-export interface ApiError {
-  status: number;
-  code: string;
-  message: string;
-  details?: Record<string, unknown>;
-  correlation_id: string;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  queryId: string;
-  newPosition: string | null;
-  total?: number;
-}
-
-// ------------------------------------------------------------------
 // Quarantine / Forensic
 // ------------------------------------------------------------------
 export interface QuarantineEntry {
@@ -203,28 +229,6 @@ export interface ScanReport {
   dmarc_result: 'pass' | 'fail';
   sandbox_verdict?: string;
   forensic_digest: string;
-}
-
-// ------------------------------------------------------------------
-// Session / Fingerprint
-// ------------------------------------------------------------------
-export interface ClientFingerprint {
-  browser: string;
-  os: string;
-  screen: string;
-  timezone: string;
-  languages: string[];
-  hash: string;
-}
-
-export interface SessionState {
-  isAuthenticated: boolean;
-  token: string | null;
-  refreshToken: string | null;
-  sessionId: string | null;
-  user: UserProfile | null;
-  expiresAt: number;
-  fingerprint: ClientFingerprint | null;
 }
 
 // ------------------------------------------------------------------
@@ -340,4 +344,14 @@ export interface AdminPaginatedAuditLogs {
   page: number;
   totalPages: number;
 }
----CODE---
+
+// ------------------------------------------------------------------
+// WebSocket Types (re-export para convenience)
+// ------------------------------------------------------------------
+export type WSConnectionState =
+  | 'disconnected'
+  | 'connecting'
+  | 'authenticated'
+  | 'connected'
+  | 'reconnecting'
+  | 'error';
