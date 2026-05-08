@@ -15,7 +15,6 @@ WORKDIR /app
 
 # Copy root workspace files first (better cache for unchanged deps)
 COPY package.json ./
-COPY .npmrc .npmrc 2>/dev/null || true
 
 # Server package.json
 RUN mkdir -p src/server

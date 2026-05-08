@@ -15,7 +15,6 @@ WORKDIR /app
 
 # Copy workspace manifests first (best cache hit ratio)
 COPY package.json ./
-COPY .npmrc .npmrc 2>/dev/null || true
 
 RUN mkdir -p src/server src/web
 COPY src/server/package.json ./src/server/
