@@ -55,7 +55,7 @@ process.on('unhandledRejection', (reason) => {
 // ------------------------------------------------------------------
 // Create Fastify instance — optimized for prod
 // ------------------------------------------------------------------
-const fastify: FastifyInstance = Fastify({
+const fastify = Fastify({
   logger: {
     level: config.LOG_LEVEL,
     transport: config.NODE_ENV === 'development'
@@ -63,7 +63,7 @@ const fastify: FastifyInstance = Fastify({
       : undefined,
   },
   bodyLimit: 10 * 1024 * 1024,
-} as any);
+});
 
 export function createApp(): FastifyInstance {
   return fastify;
