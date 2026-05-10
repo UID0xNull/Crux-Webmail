@@ -57,7 +57,7 @@ export async function adminAuthPreHandler(
     // Adjuntar info al request
     request.admin = {
       user_id: result.user_id,
-      session_id: result.session_id,
+      session_id: result.session_id!,
       username: user.username,
     };
 

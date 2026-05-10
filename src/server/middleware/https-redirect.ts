@@ -26,7 +26,7 @@ const httpsRedirectPlugin: FastifyPluginCallback = (fastify, _opts, done) => {
 
     // Check forwarded protocol (for reverse proxy / TLS termination)
     const forwardedProto = request.headers['x-forwarded-proto'];
-    const isSecure = request.socket.encrypted ||
+    const isSecure = (request.socket as any).encrypted ||
                      forwardedProto === 'https' ||
                      request.headers['x-forwarded-ssl'] === 'on';
 
@@ -34,13 +34,9 @@ const httpsRedirectPlugin: FastifyPluginCallback = (fastify, _opts, done) => {
       const host = request.headers.host || `${config.SERVER_HOST}:${config.SERVER_PORT}`;
       const redirectUrl = `https://${host}${path}`;
 
-      fastify.log.warn('HTTP request in production — redirecting to HTTPS', {
-        url: path,
-        ip: request.ip,
-        forwardedProto,
-      });
+      fastify.log.warn({ url: path, ip: request.ip, forwardedProto }, 'HTTP request in production — redirecting to HTTPS');
 
-      return reply.redirect(301, redirectUrl);
+      return (reply as any).redirect(301, redirectUrl);
     }
   });
 

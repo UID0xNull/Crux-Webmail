@@ -6,7 +6,8 @@
 // ============================================================================
 
 import { FastifyPluginCallback } from 'fastify';
-import fastifyPrometheus from '@fastify/prometheus';
+// @fastify/prometheus not installed — metrics exposed via custom registry only
+// import fastifyPrometheus from '@fastify/prometheus';
 import { Registry, Counter, Histogram, Gauge, collectDefaultMetrics } from 'prom-client';
 
 // ------------------------------------------------------------------
@@ -95,12 +96,12 @@ export const emailProcessDuration = new Histogram({
 // ------------------------------------------------------------------
 // Plugin Fastify: expone métricas en /metrics
 // ------------------------------------------------------------------
-export const prometheusPlugin: FastifyPluginCallback = (fastify, _opts, done) => {
-  fastify.register(fastifyPrometheus, {
-    endpoint: '/metrics',
-    registry: metricsRegistry,
-    defaultMetrics: { register: metricsRegistry },
-    metricType: 'metrics',
+export const prometheusPlugin: FastifyPluginCallback = async (fastify, _opts, done) => {
+  fastify.get('/metrics', async (_request, reply) => {
+    const metrics = await metricsRegistry.metrics();
+    reply
+      .header('Content-Type', metricsRegistry.contentType)
+      .send(metrics);
   });
 
   done();

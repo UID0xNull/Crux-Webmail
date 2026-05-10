@@ -43,17 +43,14 @@ const corsPlugin: FastifyPluginCallback = (fastify, _opts, done) => {
     if (!isAllowed && !isStaticAllowed) {
       // En producción: bloquear estrictamente
       if (config.NODE_ENV === 'production') {
-        fastify.log.warn('CORS: origin blocked', {
-          origin,
-          path: request.url,
-          ip: request.ip,
-        });
-        return reply.status(403).send({
+        fastify.log.warn(`CORS: origin blocked - origin: ${origin}, path: ${request.url}`);
+        reply.code(403).send({
           status: 403,
           code: 'CORS_ORIGIN_BLOCKED',
           message: 'Origin not allowed.',
           correlation_id: request.id,
-        });
+        } as any);
+        return;
       }
     }
 

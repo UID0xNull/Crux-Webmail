@@ -36,7 +36,7 @@ const csrfPlugin: FastifyPluginCallback = (fastify, _opts, done) => {
 
     if (!sessionId) {
       // Sin sesión: permitir fallback a cookie pattern
-      const existingToken = request.cookies?.[CSRF_COOKIE_NAME];
+      const existingToken = (request as any).cookies?.[CSRF_COOKIE_NAME];
       if (existingToken) {
         (request as any).csrfToken = existingToken;
         return;
@@ -44,15 +44,14 @@ const csrfPlugin: FastifyPluginCallback = (fastify, _opts, done) => {
       return;
     }
 
-    const redis = await import('../utils/connections').then(m => m.getRedis());
-    const redisConn = await redis.default;
+    const redisConn = await import('utils/connections').then(m => m.getRedis());
     const csrfKey = `csrf:${sessionId}`;
 
     let token = await redisConn.get(csrfKey);
     if (!token) {
       token = generateNonce(CSRF_TOKEN_LENGTH);
       await redisConn.set(csrfKey, token, 'EX', 3600); // 1 hour TTL
-      reply.setCookie(CSRF_COOKIE_NAME, token, {
+      (reply as any).setCookie(CSRF_COOKIE_NAME, token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict' as const,

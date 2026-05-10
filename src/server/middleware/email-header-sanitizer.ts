@@ -249,7 +249,7 @@ const emailHeaderSanitizerPlugin: FastifyPluginCallback = (fastify, _opts, done)
 
         // En producción: rechazar completamente
         if (process.env.NODE_ENV === 'production') {
-          return reply.status(400).send({
+          return reply.code(400).send({
             status: 400,
             code: 'HEADER_INJECTION_DETECTED',
             message: 'Potentially malicious content detected in email headers. Message rejected.',
@@ -261,9 +261,7 @@ const emailHeaderSanitizerPlugin: FastifyPluginCallback = (fastify, _opts, done)
         }
 
         // En desarrollo: sanitizar y continuar con warning
-        fastify.log.warn('Email headers sanitized', {
-          violations: result.violations,
-        });
+        fastify.log.warn({ violations: result.violations }, 'Email headers sanitized');
 
         // Reemplazar body con headers sanitizados
         if (body.headers) {

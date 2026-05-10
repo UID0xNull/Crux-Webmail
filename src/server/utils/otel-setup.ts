@@ -9,10 +9,8 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import {
-  HttpInstrumentation,
-  FsInstrumentation,
-} from '@opentelemetry/instrumentation-http';
+import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { FsInstrumentation } from '@opentelemetry/instrumentation-fs';
 import { v4 as uuidv4 } from 'uuid';
 
 let sdk: NodeSDK | null = null;
