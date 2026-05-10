@@ -1,162 +1,175 @@
-# Implementación de Panel de Administración y Hardening para Producción en Crux-Webmail
+# Plan de Remediación de Inconsistencias Arquitectónicas y de Código en Crux-Webmail
 
-Plan de implementación enfocado en cerrar las brechas identificadas: desarrollo completo del panel de administración (backend + frontend), configuración robusta de entorno, hardening de seguridad específico para servicios de correo, pipeline CI/CD, orquestación con contenedores, monitoreo continuo y checklist de validación pre-producción. Responde directamente a la ausencia de admin UI/UX y a los requisitos de deployabilidad, estabilidad y cumplimiento de estándares para entornos productivos.
-
----
-
-## 1. Centralizar configuración y validación de entorno para producción
-
-Se reemplazará el manejo ad-hoc de variables por un sistema centralizado que valide estrictamente cada variable requerida al inicio. Se define un contrato inmutable que expone configuración a todos los módulos. Se incluye fallback seguro y logs explícitos si falta algo crítico.
-
-**Archivos involucrados:**
-- `config/env.ts`
-- `config/validation.ts`
-- `.env.example`
-- `src/constants.ts`
-
-**Cambios:**
-- Implementar validación estricta con Zod o Joi para DB_URL, REDIS_URL, JWT_SECRET, SMTP_RELAY, NODE_ENV
-- Crear función loadAndValidateConfig() que aborte con código de salida 1 si falta variable crítica
-- Exportar objeto config singleton inmutable consumido por rutas, middlewares y servicios
-- Agregar documentación de variables obligatorias vs opcionales en .env.example
-
-*Tiempo estimado: ~8min*
+Plan estructurado para detectar y corregir inconsistencias de tipo, flujo de datos, manejo de errores, autenticación, esquema de base de datos y configuración de build en el proyecto Crux-Webmail. Incluye refactoring de módulos acoplados, estandarización de interfaces TypeScript, unificación de la capa de API y alineación de estados frontend/backend. Resultado esperado: base de código estable, tipada estrictamente, sin dependencias circulares ni fugas de estado.
 
 ---
 
-## 2. Backend API para Panel de Administración
+## 1. Estandarizar configuración de TypeScript y Linting
 
-Se creará un módulo admin aislado con middleware de rol, rutas protegidas, controladores CRUD para usuarios/mailboxes, configuración de dominios, y registro de auditoría. Se aplicará rate limiting estricto y validación de inputs.
+Unificar tsconfig.json entre frontend y backend, eliminar aliases duplicados, activar strict mode global y corregir reglas de ESLint que permiten implicits any o imports circulares. Se ajustarán path mappings para evitar rutas relativas anidadas.
 
 **Archivos involucrados:**
-- `src/modules/admin/admin.routes.ts`
-- `src/modules/admin/admin.controller.ts`
-- `src/modules/admin/admin.services.ts`
-- `src/middleware/admin.guard.ts`
-- `src/middleware/rateLimiter.ts`
-- `src/utils/auditLogger.ts`
+- `tsconfig.json`
+- `src/frontend/tsconfig.app.json`
+- `src/backend/tsconfig.build.json`
+- `eslint.config.js`
+- `.prettierrc`
 
 **Cambios:**
-- Crear AdminGuard middleware que verifique token + claim role==='superadmin' o 'moderator'
-- Implementar controladores: /api/admin/users (CRUD, activación/bloqueo, reset contraseña), /api/admin/domains, /api/admin/audit-logs
-- Servicio admin.service.ts con transacciones DB para cambios críticos y hooks de notificación
-- Middleware rateLimiter admin-dedicated: 15 req/min por IP, con clave IP+role
-- auditLogger.write(action, user, payload, meta) para rastro inmutable en tabla logs_admin
+- Agregar "strict": true, "noImplicitAny": true, "forceConsistentCasingInFileNames": true en tsconfig raíz
+- Definir alias únicos: "@ui/*": ["src/frontend/ui/*"], "@api/*": ["src/api/*"], "@db/*": ["src/backend/db/*"]
+- Reemplazar eslint-plugin-import warnings por reglas de resolución de paths y suprimir falsos positivos en módulos ESM
+- Eliminar extensiones duplicadas en .prettierrc y fijar tabWidth: 2, semi: true, trailingComma: "all"
 
 *Tiempo estimado: ~15min*
 
 ---
 
-## 3. Frontend del Panel de Administración
+## 2. Unificar formato de respuestas API y manejo de errores
 
-Interfaz dedicada con rutas protegidas, dashboard de métricas básicas, gestión de usuarios, configuración de dominios y visor de auditoría. Se integrará con state management y se aplicarán guards de navegación.
+Crear clases de error tipadas y middleware centralizado que intercepte excepciones, garantizando estructura consistente { success: boolean, data?: T, error?: { code: string, message: string } } en todas las rutas REST/GraphQL. Se eliminarán try/catch dispersos con respuestas inconsistentes.
 
 **Archivos involucrados:**
-- `src/frontend/pages/AdminDashboard.tsx`
-- `src/frontend/pages/UsersManagement.tsx`
-- `src/frontend/pages/DomainsConfig.tsx`
-- `src/frontend/pages/AuditLogs.tsx`
-- `src/frontend/router/admin.routes.tsx`
-- `src/frontend/guards/AdminRouteGuard.tsx`
-- `src/frontend/api/admin.client.ts`
+- `src/api/client.ts`
+- `src/api/types.ts`
+- `src/backend/middleware/error-handler.ts`
+- `src/backend/errors/AppError.ts`
+- `src/backend/controllers/base.controller.ts`
 
 **Cambios:**
-- AdminRouteGuard.tsx redirige a /login si falta rol admin, con manejo de sesión expirada
-- Dashboard: cards de métricas (usuarios activos, dominios, cola de envíos, uptime) consumiendo /api/admin/metrics
-- UsersManagement: tabla paginada, modales de edición/bloqueo, validación de formularios con React Hook Form + Zod
-- AuditLogs: visor filtrable por fecha/acción/usuario, exportación a CSV, paginación virtual para rendimiento
-- admin.client.ts con interceptors para adjuntar token, manejar errores HTTP y retry en 429
+- Implementar clase AppError extends Error con propiedades code, statusCode, isOperational, isExpected
+- Crear middleware errorHandler(req, res, next) que formatee stack traces y responda JSON estandarizado
+- Refactorizar fetch wrapper en src/api/client.ts para interceptar 4xx/5xx y normalizar res.json() con union types
+- Actualizar interfaces APIResponse<T> y APIErrorResponse en src/api/types.ts para forzar tipado estricto
 
-*Tiempo estimado: ~12min*
+*Tiempo estimado: ~25min*
 
 ---
 
-## 4. Hardening de seguridad y cumplimiento específico para Webmail
+## 3. Sincronizar flujo de autenticación y gestión de tokens
 
-Se aplican cabeceras de seguridad estrictas, políticas CSP, mitigación de XSS/CSRF, hashing robusto de credenciales, y validación de contenido de correo. Se configuran límites de tamaño y MIME types permitidos.
+Corregir deriva de sesiones entre frontend y backend, estandarizar refresh token rotación, implementar httpOnly cookies seguras y eliminar lógica duplicada de validación de JWT. Se alineará el estado de auth con la respuesta real del servidor.
 
 **Archivos involucrados:**
-- `src/middleware/security.headers.ts`
-- `src/utils/passwordHasher.ts`
-- `src/config/cors.config.ts`
-- `public/security.txt`
-- `src/middleware/attachment.validator.ts`
+- `src/frontend/services/auth.service.ts`
+- `src/frontend/context/AuthContext.tsx`
+- `src/backend/modules/auth/auth.controller.ts`
+- `src/backend/modules/auth/auth.service.ts`
+- `src/backend/utils/jwt.utils.ts`
 
 **Cambios:**
-- security.headers.ts: Helmet con content-security-policy estricta, X-Frame-Options SAMEORIGIN, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy
-- passwordHasher.ts: migración progresiva de bcrypt a Argon2id, con verificación de fuerza de password y bloqueo por intentos fallidos
-- cors.config.ts: whitelist explícita de orígenes, credenciales restrictivas, preflight caching optimizado
-- attachment.validator.ts: límite 25MB, whitelist MIME, escaneo de extensiones peligrosas, rechazo de archivos ejecutables y scripts
-- Generar security.txt en public/ con contact, encryption, preferred-languages, expires
+- Reemplazar localStorage tokens por httpOnly, secure, sameSite='strict' cookies configuradas en jwt.utils.ts
+- Implementar rotateRefreshToken() y clearSession() en auth.service.ts con validación de expiry y blacklisting en Redis/DB
+- Unificar AuthContext.tsx con useAuth() hook que sincroniza estado con respuesta real de /auth/verify
+- Agregar middleware validateAuth en backend que rehusa tokens expirados y dispara refresh automáticamente si aplica
 
-*Tiempo estimado: ~10min*
+*Tiempo estimado: ~35min*
 
 ---
 
-## 5. Contenedores, orquestación y pipeline CI/CD
+## 4. Refactorizar estado global y eliminación de redundancias
 
-Se construye infraestructura empaquetable con Docker multi-stage, definición de servicios en compose, configuración de reverse proxy con TLS, y workflow automatizado de build, test, security scan y deploy.
+Centralizar store de emails, filtros y carpetas, eliminar slices duplicados, corregir selectores impuros y aplicar normalización de entidades. Se integrará caché optimista con invalidación basada en eventos WebSocket/polling.
 
 **Archivos involucrados:**
-- `Dockerfile`
-- `docker-compose.prod.yml`
-- `.github/workflows/ci-cd.yml`
-- `infra/nginx.conf`
-- `deploy/scripts/pre-flight-check.sh`
+- `src/frontend/store/emailSlice.ts`
+- `src/frontend/store/filterSlice.ts`
+- `src/frontend/hooks/useEmailStore.ts`
+- `src/frontend/utils/entity-cache.ts`
+- `src/frontend/store/index.ts`
 
 **Cambios:**
-- Dockerfile: etapa node:20-alpine para deps, etapa para build, etapa prod sin devDependencies, usuario no-root, healthcheck EXPOSE
-- docker-compose.prod.yml: servicios app, redis, db, cache, volumes persistentes, restart policies, healthchecks cruzados, redes aisladas
-- ci-cd.yml: jobs para lint, test unit/e2e, snyk/trivy scan, build docker image, push a registry, deploy a staging/production con variables seguras
-- nginx.conf: rate limiting upstream, gzip/brotli, headers de seguridad, proxy_pass a app, manejo de websockets si aplica, logging estructurado
-- pre-flight-check.sh: validación de permisos, puertos, variables, certificados TLS, estado DB/Redis antes de iniciar servicio
+- Consolidar emailSlice y filterSlice en emailStore.ts con normalizeEntities() de ImmutabilityUtils
+- Reemplazar selectores impuros con createSelector() memoizado para evitar recálculos innecesarios
+- Implementar invalidateEmailCache(folderId, cursor) en entity-cache.ts para sincronizar con mutaciones
+- Eliminar provider redundante y exponer useEmailStore() con dispatch tipado y devTools integrado
 
-*Tiempo estimado: ~14min*
+*Tiempo estimado: ~30min*
 
 ---
 
-## 6. Logging estructurado, métricas y sistema de alertas
+## 5. Alinear esquema de base de datos y modelos ORM
 
-Se implementa trazabilidad completa con IDs de correlación, métricas operativas expuestas para Prometheus, puntos de salud detallados y integración con plataforma de alertas para fallos críticos.
+Sincronizar enums, tipos de columnas y relaciones entre Prisma/TypeORM y consultas activas. Corregir inconsistencias en naming (snake_case vs camelCase), añadir índices faltantes en consultas frecuentes y validar foreign keys.
 
 **Archivos involucrados:**
-- `src/utils/logger.ts`
-- `src/modules/monitoring/health.routes.ts`
-- `src/modules/monitoring/metrics.routes.ts`
-- `infra/prometheus.yml`
-- `deploy/scripts/backup-db.sh`
+- `prisma/schema.prisma`
+- `src/backend/db/migrations/20240520_fix_enum_case.sql`
+- `src/backend/repositories/email.repository.ts`
+- `src/backend/models/email.entity.ts`
+- `src/backend/services/email.service.ts`
 
 **Cambios:**
-- logger.ts: instanciación con Pino/Winston, serializador JSON, campos traceId, requestId, nivel, contexto, rotación por tamaño/fecha
-- health.routes.ts: GET /healthz (liveliness), /readyz (readiness con checks DB/Redis/SMTQ), headers Cache-Control: no-cache
-- metrics.routes.ts: exposición de histogramas (latencia requests, cola email), contadores (erros 5xx, intentos login fallidos), gauges (usuarios activos, memoria)
-- prometheus.yml: scrape config para app, alertas para uptime < 99.9%, error rate > 5%, cola > umbral
-- backup-db.sh: script cronable con snapshots comprimidos, retención configurable, validación checksum y envío a storage cold
+- Unificar enums EmailStatus y FolderType a PascalCase consistente en prisma/schema.prisma
+- Añadir índices compuestos en createdAt + userId para paginación cursor-based en email.repository.ts
+- Reemplazar raw queries por findMany con select/orderBy tipados en email.service.ts
+- Corregir mapping de timestamps y softDelete flags entre modelo entidad y tabla física
 
-*Tiempo estimado: ~11min*
+*Tiempo estimado: ~20min*
 
 ---
 
-## 7. Validación final, pruebas de carga y checklist de producción
+## 6. Estandarizar componentes UI y sistema de diseño
 
-Se ejecutan pruebas end-to-end en admin, simulación de carga en procesamiento de correo, auditoría de seguridad estática/dinámica, y generación de documentación operativa y playbook de rollback.
+Eliminar clases CSS duplicadas, unificar variables de tema, corregir props tipados inconsistentes y aplicar pattern de variant/scale en componentes reutilizables. Se activará type checking estricto en JSX.
 
 **Archivos involucrados:**
-- `tests/e2e/admin-panel.spec.ts`
-- `tests/load/email-queue.spec.ts`
-- `tests/security/ssrf-and-injection.spec.ts`
-- `docs/PRODUCTION-RUNBOOK.md`
-- `deploy/scripts/rollback.sh`
+- `src/frontend/ui/Button.tsx`
+- `src/frontend/ui/EmailList/Item.tsx`
+- `src/frontend/components/layouts/AppShell.tsx`
+- `tailwind.config.ts`
+- `src/frontend/styles/variables.css`
 
 **Cambios:**
-- admin-panel.spec.ts: flujos de login admin, creación/bloqueo de usuario, cambios de dominio, verificación de logs de auditoría
-- email-queue.spec.ts: k6/artillery test simulando 500 emails/min, validación de throughput, latencia p95, fallback a cola offline
-- ssrf-and-injection.spec.ts: pruebas automatizadas de SQLi, XSS, SSRF, header injection, validación de sanitización
-- PRODUCTION-RUNBOOK.md: procedimientos de deploy, verificación post-deploy, escalado, manejo de incidentes, contact matrix, SLAs
-- rollback.sh: script idempotente para revertir imagen/app, restaurar backup DB reciente, validar integridad y reiniciar servicios
+- Reemplazar style inlinado por clsx/tailwind-merge con interface PropsTipado{ variant?: 'primary'|'ghost', size?: 'sm'|'md'|'lg' }
+- Centralizar colores y breakpoints en tailwind.config.ts extend.theme, eliminar hardcodes en variables.css
+- Agregar react-compiler/typescript plugin para detectar missing keys en list renders e incorrectas event handler signatures
+- Refactorizar AppShell.tsx para usar CSS variables dinámicas y context de tema unificado
 
-*Tiempo estimado: ~9min*
+*Tiempo estimado: ~25min*
 
 ---
 
-> Plan generado el 5/7/2026, 3:26:36 PM — Esperando aprobación
+## 7. Implementar logging estructurado y tracing distribuido
+
+Eliminar console.log dispersos, integrar logger JSON con niveles, correlation IDs por request y sanitización de datos sensibles. Habilitar métricas básicas de latencia y error rates por módulo.
+
+**Archivos involucrados:**
+- `src/backend/utils/logger.ts`
+- `src/backend/middleware/correlation-id.ts`
+- `src/frontend/utils/console-replacer.ts`
+- `src/backend/modules/health/health.controller.ts`
+- `src/frontend/middleware/api-interceptor.ts`
+
+**Cambios:**
+- Instalar pino/winston y crear logger factory con transportes por entorno (dev: pretty, prod: JSON)
+- Inyectar x-correlation-id en headers via middleware correlation-id.ts y propagar en child loggers
+- Reemplazar console.log/warn/error en frontend por logger.debug/info/error con contextos { module, action }
+- Agregar sanitization hook que maskiea email contents, JWTs y IPs antes de serializar logs
+
+*Tiempo estimado: ~20min*
+
+---
+
+## 8. Cleanup de dependencias y optimización de build
+
+Eliminar paquetes no utilizados, resolver conflictos de versiones en lockfile, unificar scripts de dev/build/test y optimizar tree-shaking y code splitting. Se verificará compatibility con target runtime.
+
+**Archivos involucrados:**
+- `package.json`
+- `pnpm-lock.yaml`
+- `vite.config.ts`
+- `.gitignore`
+- `scripts/check-deps.sh`
+
+**Cambios:**
+- Ejecutar depcheck y remover dead dependencies (lodash-es, unused ui libraries, duplicate validators)
+- Unificar build scripts: dev, build, lint, typecheck, test, db:seed en package.json con cross-env
+- Configurar rollup/esbuild en vite.config.ts para alias resolution, legacy polyfills on-demand y CSS minification
+- Actualizar .gitignore para excluir logs, cache dirs, coverage y temp build artifacts
+
+*Tiempo estimado: ~15min*
+
+---
+
+> Plan generado el 5/7/2026, 8:41:38 PM — Esperando aprobación

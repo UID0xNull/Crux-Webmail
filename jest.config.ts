@@ -48,7 +48,7 @@ const config: Config = {
       statements: 80,
     },
   },
-  setupFilesAfterEach: ['<rootDir>/tests/setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 15000,
   verbose: true,
   forceExit: false,
