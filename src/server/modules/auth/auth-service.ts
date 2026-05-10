@@ -114,9 +114,9 @@ export class AuthService {
         roles: ['user'],
         is_active: true,
         mfa_enabled: false,
-      });
+      } as any);
 
-      await AuditLogModel.create({
+      await (AuditLogModel as any).create({
         event_id: generateSecureUuid(),
         timestamp: new Date().toISOString(),
         source: 'auth-service',
@@ -198,7 +198,7 @@ export class AuthService {
 
       // 5. Password valid — reset failed attempts & update last_login
       if (user.failed_attempts > 0 || user.locked_until) {
-        await UserModel.update(
+        await (UserModel as any).update(
           {
             failed_attempts: 0,
             locked_until: null,
@@ -207,7 +207,7 @@ export class AuthService {
         );
       }
 
-      await UserModel.update(
+      await (UserModel as any).update(
         { last_login: new Date() },
         { where: { id: user.id } }
       );
@@ -215,7 +215,7 @@ export class AuthService {
       // 6. Check MFA requirement
       if (user.mfa_enabled) {
         // Create pending MFA session
-        const mfaSession = await MFASessionModel.create({
+        const mfaSession = await (MFASessionModel as any).create({
           userId: user.id,
           session_id: generateSecureUuid(),
           method: 'totp',
@@ -246,7 +246,7 @@ export class AuthService {
       const authResult = await sessionManager.authenticate(
         user.id,
         req.password,
-        req.device_fingerprint,
+        req.device_fingerprint as any,
         clientIp,
         req.mtlsSerial
       );
@@ -257,7 +257,7 @@ export class AuthService {
 
       // 8. Store refresh token in DB
       const ipHash = hashIp(clientIp, 'refresh-token-salt');
-      await RefreshTokenModel.create({
+      await (RefreshTokenModel as any).create({
         userId: user.id,
         sessionId: authResult.session_id!,
         tokenHash: createHmac(authResult.refreshToken!, 'refresh-token-hmac'),
@@ -267,7 +267,7 @@ export class AuthService {
       });
 
       // 9. Audit log
-      await AuditLogModel.create({
+      await (AuditLogModel as any).create({
         event_id: generateSecureUuid(),
         timestamp: new Date().toISOString(),
         source: 'auth-service',
@@ -366,7 +366,7 @@ export class AuthService {
       const authResult = await sessionManager.authenticate(
         user.id,
         '', // password already verified
-        deviceFp,
+        deviceFp as any,
         clientIp,
         'none'
       );
@@ -375,7 +375,7 @@ export class AuthService {
         return authResult;
       }
 
-      await AuditLogModel.create({
+      await (AuditLogModel as any).create({
         event_id: generateSecureUuid(),
         timestamp: new Date().toISOString(),
         source: 'auth-service',
@@ -423,7 +423,7 @@ export class AuthService {
       }
 
       // Create MFA session (pending until verified)
-      const mfaSession = await MFASessionModel.create({
+      const mfaSession = await (MFASessionModel as any).create({
         userId,
         session_id: generateSecureUuid(),
         method: 'totp',

@@ -369,7 +369,7 @@ async function checkRecentFailedLogins(): Promise<SecurityCheckResult> {
       where: {
         level: 'warn',
         category: 'auth',
-        created_at: { [Op.gte]: oneDayAgo },
+        timestamp: { [Op.gte]: oneDayAgo },
       },
     });
 

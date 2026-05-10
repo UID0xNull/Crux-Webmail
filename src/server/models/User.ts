@@ -7,7 +7,7 @@
 
 import { DataTypes, Model, Optional } from 'sequelize';
 import bcrypt from 'bcryptjs';
-import { generateSalt } from '../../utils/crypto';
+import { generateSalt } from 'utils/crypto';
 import { z } from 'zod';
 
 // ------------------------------------------------------------------
