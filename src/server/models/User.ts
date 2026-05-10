@@ -28,6 +28,7 @@ const UserValidation = z.object({
 interface UserAttributes {
   id: string;
   username: string;
+  password?: string; // transient for creation/update via hooks
   passwordHash: string;
   display_name?: string;
   roles: string[];

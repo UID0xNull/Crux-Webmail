@@ -6,10 +6,10 @@
 // Solo accesible por usuarios con rol 'admin'.
 // ============================================================================
 
-import { getRedis } from 'utils/connections';
+import { getRedis, getSequelize } from 'utils/connections';
+import { Op } from 'sequelize';
 import { config } from 'config/app.config';
 import { auditLogger } from 'utils/audit-logger';
-import { sequelize } from 'utils/connections';
 import type { FastifyInstance } from 'fastify';
 
 // ------------------------------------------------------------------
@@ -101,7 +101,8 @@ async function checkSessionEncryptionKey(): Promise<SecurityCheckResult> {
 
 async function checkPostgresConnection(): Promise<SecurityCheckResult> {
   try {
-    const result = await sequelize!.authenticate();
+    const db = await getSequelize();
+    const result = await db.authenticate();
     void result;
 
     return {
@@ -366,9 +367,9 @@ async function checkRecentFailedLogins(): Promise<SecurityCheckResult> {
 
     const failedLogins = await AuditLogModel.count({
       where: {
-        level: 'warning',
+        level: 'warn',
         category: 'auth',
-        created_at: { [require('sequelize').Op.gte]: oneDayAgo },
+        created_at: { [Op.gte]: oneDayAgo },
       },
     });
 
