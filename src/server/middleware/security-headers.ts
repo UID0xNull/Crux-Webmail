@@ -125,11 +125,11 @@ const securityHeadersPlugin: FastifyPluginCallback = (fastify, _opts, done) => {
         client_ip: request.ip,
         session_id: request.id,
         metadata: {
-          violatedDirective: body?.csp-report?.violatedDirective,
-          blockedUri: body?.csp-report?.blockedUri,
-          effectiveDirective: body?.csp-report?.effectiveDirective,
-          sourceFile: body?.csp-report?.sourceFile,
-          lineNumber: body?.csp-report?.lineNumber,
+          violatedDirective: body?.['csp-report']?.violatedDirective,
+          blockedUri: body?.['csp-report']?.blockedUri,
+          effectiveDirective: body?.['csp-report']?.effectiveDirective,
+          sourceFile: body?.['csp-report']?.sourceFile,
+          lineNumber: body?.['csp-report']?.lineNumber,
         },
       });
     } catch {

@@ -6,7 +6,7 @@
 // ============================================================================
 
 import { DataTypes, Model, Optional } from 'sequelize';
-import { createHmac } from '../../utils/crypto';
+import { createHmac } from 'utils/crypto';
 
 // ------------------------------------------------------------------
 // Interface
