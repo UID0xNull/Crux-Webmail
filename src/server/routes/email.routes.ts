@@ -9,7 +9,7 @@
 //   { data?: T; error?: ApiError; correlation_id: string }
 // ============================================================================
 
-import { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { CruxError } from 'errors/handler';
 import { sendSuccess, sendError } from 'utils/api-response';
@@ -17,11 +17,12 @@ import { sendSuccess, sendError } from 'utils/api-response';
 // Controller (business logic)
 import * as emailCtrl from 'modules/email/email.controller';
 
+type RequestWithUser = FastifyRequest & { user_id?: string; secureContext?: { user_id?: string }; ip: string };
+
 // ------------------------------------------------------------------
 // Validation Schemas (Zod)
 // ------------------------------------------------------------------
 
-/** GET /search — filtros de búsqueda de correos */
 const SearchQuerySchema = z.object({
   folder: z.string().default('INBOX'),
   since: z.string().datetime().optional(),
@@ -32,35 +33,30 @@ const SearchQuerySchema = z.object({
   unread: z.coerce.boolean().default(false),
   flagged: z.coerce.boolean().default(false),
   hasAttachments: z.coerce.boolean().default(false),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
   cursor: z.string().optional(),
 });
 
-/** GET /:uid — params para obtener un correo por UID */
 const EmailUidParamsSchema = z.object({
   uid: z.coerce.number().int().positive(),
 });
 
-/** POST /flag — marcar un correo */
 const MarkFlagBodySchema = z.object({
   uid: z.number().int().positive(),
   folder: z.string().min(1).max(256),
   flag: z.enum(['SEEN', 'UNSEEN', 'FLAGGED', 'UNFLAGGED', 'DELETED']),
 });
 
-/** POST /move — mover un correo entre carpetas */
 const MoveEmailBodySchema = z.object({
   uid: z.number().int().positive(),
   fromFolder: z.string().min(1).max(256),
   toFolder: z.string().min(1).max(256),
 });
 
-/** DELETE /:uid — eliminar un correo */
 const DeleteEmailBodySchema = z.object({
   folder: z.string().min(1).max(256),
 });
 
-/** POST /send — enviar correo */
 const SendEmailBodySchema = z.object({
   to: z.array(z.string().email()).min(1).max(50),
   subject: z.string().min(1).max(256),
@@ -71,14 +67,12 @@ const SendEmailBodySchema = z.object({
   replyTo: z.string().email().optional(),
 });
 
-/** POST /bulk/flag — marcar múltiples correos */
 const BulkFlagBodySchema = z.object({
   uids: z.array(z.number().int().positive()).min(1).max(500),
   folder: z.string().min(1).max(256),
   flag: z.enum(['SEEN', 'UNSEEN', 'FLAGGED', 'UNFLAGGED', 'DELETED']),
 });
 
-/** POST /bulk/move — mover múltiples correos */
 const BulkMoveBodySchema = z.object({
   uids: z.array(z.number().int().positive()).min(1).max(500),
   folder: z.string().min(1).max(256),
@@ -86,56 +80,50 @@ const BulkMoveBodySchema = z.object({
 });
 
 // ------------------------------------------------------------------
-// User ID resolver (inyectado por middleware de auth en app.ts)
+// User ID resolver
 // ------------------------------------------------------------------
-function getUserId(request: any): string {
-  const userId = request.user_id || request.secureContext?.user_id;
+function getUserId(request: FastifyRequest): string {
+  const r = request as RequestWithUser;
+  const userId = r.user_id || (r.secureContext && (r.secureContext as any).user_id);
   if (!userId) {
     throw new CruxError('MISSING_USER_CONTEXT', 'No se pudo determinar el usuario autenticado', {
       details: { code: 'AUTH_CONTEXT_MISSING' },
     });
   }
-  return userId;
+  return userId as string;
 }
 
 // ------------------------------------------------------------------
-// Helper: manejo unificado de CruxError en cada endpoint
+// Helpers
 // ------------------------------------------------------------------
-function handleEmailError(err: unknown, reply: any): any {
+function handleEmailError(err: unknown, reply: FastifyReply) {
   if (err instanceof CruxError) {
-    return sendError(reply, err.code.includes('IMAP') ? 503 : 500, err.code, err.message, {
-      details: err.details,
-    });
+    const status = err.code.includes('IMAP') ? 503 : 500;
+    return sendError(reply, status, err.code, String(err.message), { details: (err as any).details });
   }
   throw err;
 }
 
-function handleValidationError(err: z.ZodError, reply: any): any {
+function handleValidationError(err: z.ZodError, reply: FastifyReply) {
   return sendError(reply, 400, 'INVALID_QUERY_PARAMS', 'Parámetros inválidos', {
     details: { errors: err.errors },
   });
 }
 
 // ------------------------------------------------------------------
-// Register Routes
+// Routes
 // ------------------------------------------------------------------
 export async function registerEmailRoutes(fastify: FastifyInstance): Promise<void> {
-
-  // ------------------------------------------------------------------
-  // GET /api/email/folders
-  // Listar carpetas IMAP del usuario
-  // ------------------------------------------------------------------
+  // GET /folders
   fastify.get(
     '/folders',
     {
-      schema: {
-        summary: 'Listar carpetas IMAP del usuario',
-        tags: ['email'],
-      },
+      description: 'List IMAP folders for the user',
+      tags: ['email'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-
       try {
         const folders = await emailCtrl.listUserFolders(userId);
         return sendSuccess(reply, folders);
@@ -145,35 +133,44 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     }
   );
 
-  // ------------------------------------------------------------------
-  // GET /api/email/search
-  // Buscar / listar correos con paginación cursor-based
-  // ------------------------------------------------------------------
+  // GET /search
   fastify.get(
     '/search',
     {
       config: { rateLimit: { max: 120, timeWindow: '60000' } },
-      schema: {
-        summary: 'Buscar correos con paginación',
-        tags: ['email'],
-        querystring: SearchQuerySchema,
-      },
+      description: 'Search emails with pagination',
+      tags: ['email'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-      const filter = SearchQuerySchema.parse(request.query);
-      const pageLimit = filter.limit;
-      delete filter.limit;
-
       try {
+        // parse query
+        const parsed = SearchQuerySchema.parse(request.query);
+        // extract limit before passing filter to searchEmails
+        const pageLimit = parsed.limit || 20;
+        const filterWithoutLimit = { ...parsed };
+        // make it explicitly optional-safe by constructing a new object
+        const filter: any = {
+          folder: filterWithoutLimit.folder,
+          since: filterWithoutLimit.since,
+          until: filterWithoutLimit.until,
+          from: filterWithoutLimit.from,
+          to: filterWithoutLimit.to,
+          subject: filterWithoutLimit.subject,
+          unread: filterWithoutLimit.unread,
+          flagged: filterWithoutLimit.flagged,
+          hasAttachments: filterWithoutLimit.hasAttachments,
+        };
+
         const result = await emailCtrl.searchEmails(
           userId,
           filter,
-          filter.cursor,
+          parsed.cursor,
           pageLimit,
         );
         return sendSuccess(reply, result);
-      } catch (err: any) {
+      } catch (err) {
         if (err instanceof z.ZodError) {
           return handleValidationError(err, reply);
         }
@@ -182,139 +179,121 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     }
   );
 
-  // ------------------------------------------------------------------
-  // GET /api/email/:uid
-  // Leer un correo por UID
-  // ------------------------------------------------------------------
+  // GET /:uid
   fastify.get(
     '/:uid',
     {
-      schema: {
-        summary: 'Leer un correo por UID',
-        tags: ['email'],
-        params: EmailUidParamsSchema,
-      },
+      description: 'Read email by UID',
+      tags: ['email'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-      const { uid } = EmailUidParamsSchema.parse(request.params);
-      const folder = (request.query as any).folder || 'INBOX';
-
       try {
+        const parsedParams = EmailUidParamsSchema.parse(request.params as any);
+        const uid = parsedParams.uid;
+        const folder = (request.query as Record<string, string> | undefined)?.folder || 'INBOX';
+
         const detail = await emailCtrl.getEmailByUID(userId, folder, uid);
         return sendSuccess(reply, detail);
       } catch (err) {
         if (err instanceof CruxError) {
           const code = err.code === 'MESSAGE_NOT_FOUND' ? 404 : 503;
-          return sendError(reply, code, err.code, err.message, { details: err.details });
+          return sendError(reply, code, err.code, String(err.message), { details: (err as any).details });
         }
         throw err;
       }
     }
   );
 
-  // ------------------------------------------------------------------
-  // POST /api/email/flag
-  // Marcar correo como leído/no leído/favorito
-  // ------------------------------------------------------------------
+  // POST /flag
   fastify.post(
     '/flag',
     {
-      schema: {
-        summary: 'Cambiar estado (flag) de un correo',
-        tags: ['email'],
-        body: MarkFlagBodySchema,
-      },
+      description: 'Mark/unmark email flags',
+      tags: ['email'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-      const body = MarkFlagBodySchema.parse(request.body);
-
       try {
+        const body = MarkFlagBodySchema.parse(request.body as any);
         const result = await emailCtrl.toggleEmailFlag(userId, body);
         return sendSuccess(reply, result);
       } catch (err) {
+        if (err instanceof z.ZodError) {
+          return handleValidationError(err, reply);
+        }
         return handleEmailError(err, reply);
       }
     }
   );
 
-  // ------------------------------------------------------------------
-  // POST /api/email/move
-  // Mover correo a otra carpeta
-  // ------------------------------------------------------------------
+  // POST /move
   fastify.post(
     '/move',
     {
-      schema: {
-        summary: 'Mover un correo a otra carpeta',
-        tags: ['email'],
-        body: MoveEmailBodySchema,
-      },
+      description: 'Move email to another folder',
+      tags: ['email'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-      const body = MoveEmailBodySchema.parse(request.body);
-
       try {
+        const body = MoveEmailBodySchema.parse(request.body as any);
         const result = await emailCtrl.moveUserEmail(userId, body);
         return sendSuccess(reply, result);
       } catch (err) {
+        if (err instanceof z.ZodError) {
+          return handleValidationError(err, reply);
+        }
         return handleEmailError(err, reply);
       }
     }
   );
 
-  // ------------------------------------------------------------------
-  // DELETE /api/email/:uid
-  // Eliminar correo permanentemente
-  // ------------------------------------------------------------------
+  // DELETE /:uid
   fastify.delete(
     '/:uid',
     {
-      schema: {
-        summary: 'Eliminar un correo permanentemente',
-        tags: ['email'],
-        params: EmailUidParamsSchema,
-        body: DeleteEmailBodySchema,
-      },
+      description: 'Delete an email permanently',
+      tags: ['email'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-      const { uid } = EmailUidParamsSchema.parse(request.params);
-      const body = DeleteEmailBodySchema.parse(request.body);
-
       try {
+        const parsedParams = EmailUidParamsSchema.parse(request.params as any);
+        const uid = parsedParams.uid;
+        const body = DeleteEmailBodySchema.parse(request.body as any);
+
         const result = await emailCtrl.deleteUserEmail(userId, {
           uid,
           folder: body.folder,
         });
         return sendSuccess(reply, result);
       } catch (err) {
+        if (err instanceof z.ZodError) {
+          return handleValidationError(err, reply);
+        }
         return handleEmailError(err, reply);
       }
     }
   );
 
-  // ------------------------------------------------------------------
-  // POST /api/email/send
-  // Enviar correo (cola async BullMQ)
-  // ------------------------------------------------------------------
+  // POST /send
   fastify.post(
     '/send',
     {
       config: { rateLimit: { max: 30, timeWindow: '60000' } },
-      schema: {
-        summary: 'Enviar correo electrónico (async)',
-        tags: ['email'],
-        body: SendEmailBodySchema,
-      },
+      description: 'Send email (async)',
+      tags: ['email'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-      const body = SendEmailBodySchema.parse(request.body);
-
       try {
+        const body = SendEmailBodySchema.parse(request.body as any);
         const result = await emailCtrl.queueEmailSend(userId, body);
         return sendSuccess(reply, result, 202);
       } catch (err) {
@@ -326,76 +305,65 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     }
   );
 
-  // ------------------------------------------------------------------
-  // POST /api/email/bulk/flag
-  // Marcar múltiples correos
-  // ------------------------------------------------------------------
+  // POST /bulk/flag
   fastify.post(
     '/bulk/flag',
     {
       config: { rateLimit: { max: 10, timeWindow: '60000' } },
-      schema: {
-        summary: 'Operación masiva: marcar correos',
-        tags: ['email', 'bulk'],
-        body: BulkFlagBodySchema,
-      },
+      description: 'Bulk flag emails',
+      tags: ['email', 'bulk'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-      const body = BulkFlagBodySchema.parse(request.body);
-
       try {
+        const body = BulkFlagBodySchema.parse(request.body as any);
         const result = await emailCtrl.bulkMarkFlags(userId, body);
         return sendSuccess(reply, result);
       } catch (err) {
+        if (err instanceof z.ZodError) {
+          return handleValidationError(err, reply);
+        }
         return handleEmailError(err, reply);
       }
     }
   );
 
-  // ------------------------------------------------------------------
-  // POST /api/email/bulk/move
-  // Mover múltiples correos
-  // ------------------------------------------------------------------
+  // POST /bulk/move
   fastify.post(
     '/bulk/move',
     {
       config: { rateLimit: { max: 10, timeWindow: '60000' } },
-      schema: {
-        summary: 'Operación masiva: mover correos',
-        tags: ['email', 'bulk'],
-        body: BulkMoveBodySchema,
-      },
+      description: 'Bulk move emails',
+      tags: ['email', 'bulk'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-      const body = BulkMoveBodySchema.parse(request.body);
-
       try {
+        const body = BulkMoveBodySchema.parse(request.body as any);
         const result = await emailCtrl.bulkMoveEmails(userId, body);
         return sendSuccess(reply, result);
       } catch (err) {
+        if (err instanceof z.ZodError) {
+          return handleValidationError(err, reply);
+        }
         return handleEmailError(err, reply);
       }
     }
   );
 
-  // ------------------------------------------------------------------
-  // POST /api/email/sync
-  // Activar sincronización IMAP
-  // ------------------------------------------------------------------
+  // POST /sync
   fastify.post(
     '/sync',
     {
       config: { rateLimit: { max: 5, timeWindow: '300000' } },
-      schema: {
-        summary: 'Activar sincronización IMAP',
-        tags: ['email', 'sync'],
-      },
+      description: 'Trigger IMAP sync for user',
+      tags: ['email', 'sync'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-
       try {
         const result = await emailCtrl.triggerSync(userId);
         return sendSuccess(reply, result);
@@ -405,21 +373,16 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     }
   );
 
-  // ------------------------------------------------------------------
-  // GET /api/email/sync/status
-  // Estado de sincronización
-  // ------------------------------------------------------------------
+  // GET /sync/status
   fastify.get(
     '/sync/status',
     {
-      schema: {
-        summary: 'Estado de sincronización IMAP',
-        tags: ['email', 'sync'],
-      },
+      description: 'Get IMAP sync status for user',
+      tags: ['email', 'sync'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-
       try {
         const status = await emailCtrl.getSyncStatus(userId);
         return sendSuccess(reply, status);
@@ -429,21 +392,16 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     }
   );
 
-  // ------------------------------------------------------------------
-  // DELETE /api/email/connection
-  // Cerrar conexión IMAP del usuario
-  // ------------------------------------------------------------------
+  // DELETE /connection
   fastify.delete(
     '/connection',
     {
-      schema: {
-        summary: 'Cerrar conexión IMAP del usuario',
-        tags: ['email', 'connection'],
-      },
+      description: 'Close user IMAP connection',
+      tags: ['email', 'connection'],
+      schema: {},
     },
-    async (request: any, reply: any) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
-
       try {
         const result = await emailCtrl.closeIMAPConnection(userId);
         return sendSuccess(reply, result);

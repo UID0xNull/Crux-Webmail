@@ -23,10 +23,10 @@ import {
   ISearchQuery,
   IAccountConfig,
   MailboxRole,
-} from '../contracts';
-import { CruxError } from '../../errors/handler';
-import { auditLogger } from '../../utils/audit-logger';
-import { generateSecureUuid } from '../../utils/crypto';
+} from 'contracts';
+import { CruxError } from 'server/errors/handler';
+import { auditLogger } from 'server/utils/audit-logger';
+import { generateSecureUuid } from 'server/utils/crypto';
 
 // ------------------------------------------------------------------
 // Internal state tracking

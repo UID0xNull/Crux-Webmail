@@ -15,7 +15,13 @@ import {
   FastifyRequest,
 } from 'fastify';
 import { generateSecureUuid } from 'utils/crypto';
-import type { ApiError } from 'types';
+type ApiError = {
+  status: number;
+  code: string;
+  message: string;
+  correlation_id: string;
+  details?: Record<string, unknown>;
+};
 
 // ------------------------------------------------------------------
 // Códigos de error internos → HTTP mapping

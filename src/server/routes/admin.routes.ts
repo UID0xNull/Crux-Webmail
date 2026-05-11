@@ -80,12 +80,14 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.addHook('onRequest', adminAuthPreHandler);
 
   // ---- Dashboard ----
-  fastify.get('/dashboard', {
-    schema: {
+  fastify.get(
+    '/dashboard',
+    {
       description: 'Get admin dashboard overview',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (_request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const [health, userStats, auditSummary, recent] = await Promise.all([
           getSystemHealth(),
@@ -104,15 +106,17 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
-  });
+  );
 
   // ---- System Health ----
-  fastify.get('/health', {
-    schema: {
+  fastify.get(
+    '/health',
+    {
       description: 'Get detailed system health',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (_request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const health = await getSystemHealth();
         sendSuccess(reply, health);
@@ -121,15 +125,17 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
-  });
+  );
 
   // ---- Mail System Status ----
-  fastify.get('/mail-system', {
-    schema: {
+  fastify.get(
+    '/mail-system',
+    {
       description: 'Get mail subsystem status (Postfix, Dovecot, Amavis, ClamAV, MinIO)',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (_request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const stats = await getMailSystemStats();
         sendSuccess(reply, stats);
@@ -138,27 +144,31 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
-  });
+  );
 
   // ---- App Settings ----
-  fastify.get('/settings', {
-    schema: {
+  fastify.get(
+    '/settings',
+    {
       description: 'Get current application settings',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (_request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       const settings = getAppSettings();
       sendSuccess(reply, settings);
     },
-  });
+  );
 
   // ---- Users ----
-  fastify.get('/users', {
-    schema: {
+  fastify.get(
+    '/users',
+    {
       description: 'List all users with pagination and filters',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (request: FastifyRequest<{ Querystring: Record<string, string> }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Querystring: Record<string, string> }>, reply: FastifyReply) => {
       try {
         const params = UserListSchema.parse(request.query);
         const result = await listUsers(params);
@@ -174,14 +184,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         }
       }
     },
-  });
+  );
 
-  fastify.get('/users/stats', {
-    schema: {
+  fastify.get(
+    '/users/stats',
+    {
       description: 'Get user statistics',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (_request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const stats = await getUserStats();
         sendSuccess(reply, stats);
@@ -190,14 +202,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
-  });
+  );
 
-  fastify.get('/users/:userId', {
-    schema: {
+  fastify.get(
+    '/users/:userId',
+    {
       description: 'Get user details',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) => {
       try {
         const user = await getUserDetail(request.params.userId);
         if (!user) {
@@ -210,15 +224,17 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
-  });
+  );
 
   // ---- User Management Actions ----
-  fastify.post('/users', {
-    schema: {
+  fastify.post(
+    '/users',
+    {
       description: 'Create a new user',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (request: FastifyRequest<{ Body: { username: string; password: string; display_name?: string; roles?: string[] } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Body: { username: string; password: string; display_name?: string; roles?: string[] } }>, reply: FastifyReply) => {
       try {
         const body = CreateUserSchema.parse(request.body);
         const user = await createUserUser(body.username, body.password, body.display_name, body.roles);
@@ -238,14 +254,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         }
       }
     },
-  });
+  );
 
-  fastify.patch('/users/:userId/roles', {
-    schema: {
+  fastify.patch(
+    '/users/:userId/roles',
+    {
       description: 'Update user roles',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (request: FastifyRequest<{ Params: { userId: string }; Body: { roles: string[] } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { userId: string }; Body: { roles: string[] } }>, reply: FastifyReply) => {
       try {
         const body = UpdateRoleSchema.parse(request.body);
         const adminId = (request as any).admin?.user_id;
@@ -270,14 +288,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         }
       }
     },
-  });
+  );
 
-  fastify.patch('/users/:userId/status', {
-    schema: {
+  fastify.patch(
+    '/users/:userId/status',
+    {
       description: 'Activate/deactivate a user',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (request: FastifyRequest<{ Params: { userId: string }; Body: { isActive: boolean } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { userId: string }; Body: { isActive: boolean } }>, reply: FastifyReply) => {
       try {
         const body = ToggleStatusSchema.parse(request.body);
         const adminId = (request as any).admin?.user_id;
@@ -302,14 +322,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         }
       }
     },
-  });
+  );
 
-  fastify.post('/users/:userId/unlock', {
-    schema: {
+  fastify.post(
+    '/users/:userId/unlock',
+    {
       description: 'Unlock a locked user account',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) => {
       try {
         const adminId = (request as any).admin?.user_id;
         auditLogger.info('User unlocked', {
@@ -327,15 +349,17 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
-  });
+  );
 
   // ---- Audit Logs ----
-  fastify.get('/audit/logs', {
-    schema: {
+  fastify.get(
+    '/audit/logs',
+    {
       description: 'List audit log entries with filters',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (request: FastifyRequest<{ Querystring: Record<string, string> }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Querystring: Record<string, string> }>, reply: FastifyReply) => {
       try {
         const params = AuditLogSchema.parse(request.query);
         const result = await getAuditLogs(params);
@@ -351,14 +375,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         }
       }
     },
-  });
+  );
 
-  fastify.get('/audit/summary', {
-    schema: {
+  fastify.get(
+    '/audit/summary',
+    {
       description: 'Get audit log summary statistics',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (_request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const summary = await getAuditLogSummary();
         sendSuccess(reply, summary);
@@ -367,15 +393,17 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
-  });
+  );
 
   // ---- Active Sessions ----
-  fastify.get('/sessions', {
-    schema: {
+  fastify.get(
+    '/sessions',
+    {
       description: 'List all active sessions',
       tags: ['admin'],
+      schema: {},
     },
-    handler: async (_request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const sessions = await getActiveSessions();
         sendSuccess(reply, { sessions, total: sessions.length });
@@ -384,7 +412,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         sendError(reply, 500, 'INTERNAL_ERROR', 'Internal server error');
       }
     },
-  });
+  );
 
   // ---- Admin Actions Audit ----
   fastify.addHook('onResponse', async (request: FastifyRequest, _reply: FastifyReply) => {

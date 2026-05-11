@@ -1,14 +1,6 @@
-// empty marker 
 // ============================================================================
-// Crux-Webmail — Centralized Error Handler
+// Crux-Webmail — Centralized Error Handler (handler_full)
 // ============================================================================
-// Sanitiza stack traces en producción, asigna correlation IDs (desde Fastify),
-// y traduce errores internos a respuestas ApiResponse-compatibles.
-//
-// Formato unificado: todas las respuestas siguen ApiResponse<T>:
-//   { data?: T; error?: ApiError; correlation_id: string }
-// ============================================================================
-
 import {
   FastifyInstance,
   FastifyError,
@@ -16,7 +8,7 @@ import {
   FastifyRequest,
 } from 'fastify';
 import { generateSecureUuid } from 'utils/crypto';
-// ApiError type defined inline to avoid unresolved 'shared/types' module
+
 type ApiError = {
   status: number;
   code: string;
@@ -25,8 +17,6 @@ type ApiError = {
   details?: Record<string, unknown>;
 };
 
-// ------------------------------------------------------------------
-// Códigos de error internos → HTTP mapping
 // ------------------------------------------------------------------
 const ERROR_CODE_MAP: Record<string, number> = {
   AUTH_FAILED: 401,
@@ -51,9 +41,6 @@ const ERROR_CODE_MAP: Record<string, number> = {
   INTERNAL_ERROR: 500,
 };
 
-// ------------------------------------------------------------------
-// Clases de Error Personalizadas
-// ------------------------------------------------------------------
 export class CruxError extends Error {
   public readonly code: string;
   public readonly correlationId: string;
@@ -66,7 +53,7 @@ export class CruxError extends Error {
     options?: {
       details?: Record<string, unknown>;
       originalError?: Error;
-    }
+    },
   ) {
     super(message);
     this.name = 'CruxError';
@@ -77,9 +64,6 @@ export class CruxError extends Error {
   }
 }
 
-// ------------------------------------------------------------------
-// Factory functions para errores específicos
-// ------------------------------------------------------------------
 export function createAuthError(message: string, code = 'AUTH_FAILED'): CruxError {
   return new CruxError(code, message);
 }
@@ -90,27 +74,19 @@ export function createBridgeError(service: string, message: string): CruxError {
 
 export function createValidationError(
   message: string,
-  details: Record<string, unknown> = {}
+  details: Record<string, unknown> = {},
 ): CruxError {
   return new CruxError('INVALID_PAYLOAD', message, { details });
 }
 
-export function createRateLimitError(
-  message: string = 'Rate limit exceeded'
-): CruxError {
+export function createRateLimitError(message: string = 'Rate limit exceeded'): CruxError {
   return new CruxError('RATE_LIMIT_EXCEEDED', message);
 }
 
-// ------------------------------------------------------------------
-// Helper: detectar si un error ya tiene HTTP status
-// ------------------------------------------------------------------
 function isHttpError(err: unknown): boolean {
   return typeof err === 'object' && err !== null && 'statusCode' in err;
 }
 
-// ------------------------------------------------------------------
-// Helper: convertir cualquier error a CruxError-like
-// ------------------------------------------------------------------
 function resolveCruxError(err: unknown): {
   code: string;
   message: string;
@@ -143,9 +119,6 @@ function resolveCruxError(err: unknown): {
   };
 }
 
-// ------------------------------------------------------------------
-// Error Handler para Fastify
-// ------------------------------------------------------------------
 export function errorHandler(
   error: FastifyError | CruxError | Error,
   request: FastifyRequest,
@@ -160,7 +133,6 @@ export function errorHandler(
     ? (error as any).statusCode ?? 500
     : crux.statusCode ?? 500;
 
-  // Log detallado (interno), sanitizado en producción
   if (isProduction) {
     console.error(
       JSON.stringify({
@@ -170,7 +142,7 @@ export function errorHandler(
         status: httpStatus,
         timestamp: new Date().toISOString(),
         message: crux.safeMessage,
-      })
+      }),
     );
   } else {
     console.error(
@@ -182,19 +154,16 @@ export function errorHandler(
         timestamp: new Date().toISOString(),
         message: crux.message,
         stack: (error as Error).stack,
-      })
+      }),
     );
   }
 
-  // Responder con formato ApiResponse unificado
   const apiError: ApiError = {
     status: httpStatus,
     code: crux.code,
     message: isProduction ? crux.safeMessage : crux.message,
     correlation_id: correlationId,
-    ...(error instanceof CruxError && !isProduction
-      ? { details: error.details }
-      : {}),
+    ...(error instanceof CruxError && !isProduction ? { details: error.details } : {}),
   };
 
   reply.code(httpStatus).send({
@@ -203,9 +172,6 @@ export function errorHandler(
   });
 }
 
-// ------------------------------------------------------------------
-// Fastify Plugin — error handler decorator
-// ------------------------------------------------------------------
 export async function errorPlugin(fastify: FastifyInstance): Promise<void> {
   fastify.setErrorHandler(errorHandler);
 }

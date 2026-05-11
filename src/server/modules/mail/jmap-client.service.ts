@@ -32,7 +32,7 @@ const MailQuerySchema = z.object({
 
 const MailGetSchema = z.object({
   ids: z.array(z.string()),
-  limit: z.number().int().min(1).max(1000).optional().default(100),
+  limit: z.number().int().min(1).max(1000).optional(),
   position: z.number().int().min(0).optional(),
   properties: z.array(z.string()).optional(),
 });

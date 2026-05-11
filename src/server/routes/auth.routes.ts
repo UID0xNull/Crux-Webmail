@@ -8,7 +8,7 @@
 //   { data?: T; error?: ApiError; correlation_id: string }
 // ============================================================================
 
-import { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { getAuthService } from 'modules/auth/auth-service';
 import { getSessionManager } from 'modules/auth/session-manager';
@@ -62,6 +62,30 @@ const MFAEnableSchema = z.object({
 });
 
 // ------------------------------------------------------------------
+// Shared middleware (declared before use)
+// ------------------------------------------------------------------
+async function verifyAuthMiddleware(request: FastifyRequest, reply: FastifyReply) {
+  const sessionManager = await getSessionManager();
+  const authHeader = request.headers.authorization as string | undefined;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    sendError(reply, 401, 'MISSING_AUTH_TOKEN', 'Missing authentication token');
+    return reply.send(null);
+  }
+
+  const token = authHeader.slice(7);
+  const result = await sessionManager.verifySession(token);
+
+  if (!result.valid || !result.user_id) {
+    sendError(reply, 401, 'INVALID_SESSION', 'Invalid session');
+    return reply.send(null);
+  }
+
+  (request as any).user_id = result.user_id;
+  (request as any).session_id = result.session_id;
+}
+
+// ------------------------------------------------------------------
 // Register routes
 // ------------------------------------------------------------------
 export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void> {
@@ -72,14 +96,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     '/profile',
     {
       preHandler: [verifyAuthMiddleware],
-      schema: {
-        summary: 'Get current user profile',
-        tags: ['auth'],
-      },
+      description: 'Get current user profile',
+      tags: ['auth'],
+      schema: {},
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const profile = await authService.getProfile(request.user_id);
+        const profile = await authService.getProfile((request as any).user_id);
         return sendSuccess(reply, profile);
       } catch (err) {
         auditLogger.error('Profile fetch failed', {
@@ -96,13 +119,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     '/register',
     {
       config: { rateLimit: { max: 10, timeWindow: '3600000' } },
-      schema: {
-        body: RegisterSchema,
-        summary: 'Register a new user',
-        tags: ['auth'],
-      },
+      description: 'Register a new user',
+      tags: ['auth'],
+      schema: { body: RegisterSchema },
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest<{ Body: z.infer<typeof RegisterSchema> }>, reply: FastifyReply) => {
       const body = RegisterSchema.parse(request.body);
       const result = await authService.register({
         username: body.username,
@@ -111,7 +132,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       });
 
       if (!result.success) {
-        return sendError(reply, 400, result.error ?? 'REGISTRATION_FAILED', result.error ?? 'Registration failed');
+        return sendError(reply, 400, (result.error ?? 'REGISTRATION_FAILED') as string, result.message ?? 'Registration failed');
       }
 
       return sendSuccess(reply, result, 201);
@@ -123,13 +144,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     '/login',
     {
       config: { rateLimit: { max: 20, timeWindow: '60000' } },
-      schema: {
-        body: LoginSchema,
-        summary: 'Login user',
-        tags: ['auth'],
-      },
+      description: 'Login user',
+      tags: ['auth'],
+      schema: { body: LoginSchema },
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest<{ Body: z.infer<typeof LoginSchema> }>, reply: FastifyReply) => {
       const body = LoginSchema.parse(request.body);
       const clientIp = request.ip;
 
@@ -138,7 +157,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         password: body.password,
         device_fingerprint: body.device_fingerprint,
         clientIp,
-        mtlsSerial: request.mtls_serial || 'none',
+        mtlsSerial: (request as any).mtls_serial || 'none',
       });
 
       if (result.requiresMFA) {
@@ -149,11 +168,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       }
 
       if (!result.success) {
-        return sendError(reply, 401, result.error ?? 'AUTH_FAILED', result.error ?? 'Authentication failed');
+        return sendError(reply, 401, (result.error ?? 'AUTH_FAILED') as string, result.message ?? 'Authentication failed');
       }
 
       // Set refresh token as HTTP-only cookie
-      reply.setCookie('refresh_token', result.refreshToken!, {
+      reply.cookie('refresh_token', String(result.refreshToken!), {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
@@ -174,13 +193,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     '/refresh',
     {
       config: { rateLimit: { max: 30, timeWindow: '60000' } },
-      schema: {
-        body: RefreshSchema,
-        summary: 'Refresh access token',
-        tags: ['auth'],
-      },
+      description: 'Refresh access token',
+      tags: ['auth'],
+      schema: { body: RefreshSchema },
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest<{ Body: z.infer<typeof RefreshSchema> }>, reply: FastifyReply) => {
       const body = RefreshSchema.parse(request.body);
       const clientIp = request.ip;
 
@@ -210,22 +227,22 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
   fastify.post(
     '/logout',
     {
-      schema: {
-        body: LogoutSchema,
-        summary: 'Logout user',
-        tags: ['auth'],
-      },
+      description: 'Logout user',
+      tags: ['auth'],
+      schema: { body: LogoutSchema },
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest<{ Body: z.infer<typeof LogoutSchema> }>, reply: FastifyReply) => {
       const body = LogoutSchema.parse(request.body);
       const clientIp = request.ip;
 
       const sessionManager = await getSessionManager();
-      await sessionManager.revokeSession(
-        body.session_id,
-        clientIp,
-        'User initiated logout'
-      );
+      if (body.session_id) {
+        await sessionManager.revokeSession(
+          body.session_id,
+          clientIp,
+          'User initiated logout',
+        );
+      }
 
       reply.clearCookie('refresh_token');
 
@@ -244,16 +261,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     {
       preHandler: [verifyAuthMiddleware],
       config: { rateLimit: { max: 10, timeWindow: '3600000' } },
-      schema: {
-        body: ChangePasswordSchema,
-        summary: 'Change user password',
-        tags: ['auth'],
-      },
+      description: 'Change user password',
+      tags: ['auth'],
+      schema: { body: ChangePasswordSchema },
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest<{ Body: z.infer<typeof ChangePasswordSchema> }>, reply: FastifyReply) => {
       const body = ChangePasswordSchema.parse(request.body);
       const result = await authService.changePassword(
-        request.user_id,
+        (request as any).user_id,
         {
           currentPassword: body.current_password,
           newPassword: body.new_password,
@@ -262,7 +277,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       );
 
       if (!result.success) {
-        return sendError(reply, 400, result.error ?? 'PASSWORD_CHANGE_FAILED', result.error ?? 'Password change failed');
+        return sendError(reply, 400, (result.error ?? 'PASSWORD_CHANGE_FAILED') as string, result.message ?? 'Password change failed');
       }
 
       return sendSuccess(reply, { status: 'password_changed' });
@@ -274,19 +289,19 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     '/mfa/setup',
     {
       preHandler: [verifyAuthMiddleware],
-      schema: {
-        summary: 'Initiate MFA setup',
-        tags: ['auth', 'mfa'],
-      },
+      description: 'Initiate MFA setup',
+      tags: ['auth', 'mfa'],
+      schema: {},
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const result = await authService.setupMFA(
-          request.user_id,
+          (request as any).user_id,
           request.ip
         );
         return sendSuccess(reply, result);
-      } catch (err) {
+      } catch (_err) {
+        // Don't leak internal details.
         return sendError(reply, 500, 'MFA_SETUP_ERROR', 'MFA setup failed');
       }
     }
@@ -297,13 +312,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     '/mfa/verify',
     {
       config: { rateLimit: { max: 10, timeWindow: '300000' } },
-      schema: {
-        body: MFAVerifySchema,
-        summary: 'Verify MFA during login',
-        tags: ['auth', 'mfa'],
-      },
+      description: 'Verify MFA during login',
+      tags: ['auth', 'mfa'],
+      schema: { body: MFAVerifySchema },
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest<{ Body: z.infer<typeof MFAVerifySchema> }>, reply: FastifyReply) => {
       const body = MFAVerifySchema.parse(request.body);
       const result = await authService.verifyMFA(
         body.mfa_session_id,
@@ -312,10 +325,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       );
 
       if (!result.success) {
-        return sendError(reply, 401, result.error ?? 'MFA_VERIFY_FAILED', result.error ?? 'MFA verification failed');
+        return sendError(reply, 401, (result.error ?? 'MFA_VERIFY_FAILED') as string, result.message ?? 'MFA verification failed');
       }
 
-      reply.setCookie('refresh_token', result.refreshToken!, {
+      reply.cookie('refresh_token', String(result.refreshToken!), {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
@@ -331,13 +344,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     '/mfa/enable',
     {
       preHandler: [verifyAuthMiddleware],
-      schema: {
-        body: MFAEnableSchema,
-        summary: 'Complete MFA setup',
-        tags: ['auth', 'mfa'],
-      },
+      description: 'Complete MFA setup',
+      tags: ['auth', 'mfa'],
+      schema: { body: MFAEnableSchema },
     },
-    async (request: any, reply) => {
+    async (request: FastifyRequest<{ Body: z.infer<typeof MFAEnableSchema> }>, reply: FastifyReply) => {
       const body = MFAEnableSchema.parse(request.body);
       const result = await authService.enableMFA(
         body.mfa_session_id,
@@ -346,32 +357,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       );
 
       if (!result.success) {
-        return sendError(reply, 400, result.error ?? 'MFA_ENABLE_FAILED', result.error ?? 'MFA enable failed');
+        return sendError(reply, 400, (result.error ?? 'MFA_ENABLE_FAILED') as string, result.message ?? 'MFA enable failed');
       }
 
       return sendSuccess(reply, { status: 'mfa_enabled' });
     }
   );
-}
-
-// ------------------------------------------------------------------
-// Shared middleware
-// ------------------------------------------------------------------
-async function verifyAuthMiddleware(request: any, reply: any) {
-  const sessionManager = await getSessionManager();
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return sendError(reply, 401, 'MISSING_AUTH_TOKEN', 'Missing authentication token');
-  }
-
-  const token = authHeader.slice(7);
-  const result = await sessionManager.verifySession(token);
-
-  if (!result.valid || !result.user_id) {
-    return sendError(reply, 401, 'INVALID_SESSION', 'Invalid session');
-  }
-
-  request.user_id = result.user_id;
-  request.session_id = result.session_id;
 }
