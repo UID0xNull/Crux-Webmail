@@ -140,7 +140,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       config: { rateLimit: { max: 120, timeWindow: '60000' } },
       description: 'Search emails with pagination',
       tags: ['email'],
-      schema: {},
+      schema: {
+        querystring: SearchQuerySchema,
+      },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
@@ -212,7 +214,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     {
       description: 'Mark/unmark email flags',
       tags: ['email'],
-      schema: {},
+      schema: { body: MarkFlagBodySchema.shape },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);

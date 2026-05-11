@@ -101,8 +101,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(request, reply) {
-      try {
+    async function handler(request: FastifyRequest, reply: FastifyReply) {      try {
         const userId = (request as any).user_id;
         const profile = await authService.getProfile(userId);
         return sendSuccess(reply, profile);
@@ -128,13 +127,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         response: { 201: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(request, reply) {
-      const body = (request as FastifyRequest<{ Body: z.infer<typeof RegisterSchema> }>);
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
+      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof RegisterSchema> }>;      const body = typedReq.body;
 
       const result = await authService.register({
-        username: body.body.username,
-        password: body.body.password,
-        display_name: body.body.display_name,
+        username: body.username,
+        password: body.password,
+        display_name: body.display_name,
       });
 
       if (!result.success) {

@@ -2,7 +2,7 @@
 // Crux-Webmail — SMTP Service (Nodemailer)
 // ============================================================================
 import nodemailer from 'nodemailer';
-import openpgp from 'openpgp';
+import * as openpgp from 'openpgp';
 export interface SMTPConfig {
   host: string;
   port: number;
