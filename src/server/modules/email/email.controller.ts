@@ -404,9 +404,9 @@ export async function triggerSync(
 ): Promise<{ jobId: string; status: string }> {
   await resolveUser(userId);
 
-  try {
-    const job = await addImapSyncJob(userId);
-    return { jobId: job.id, status: 'syncing' };
+    try {
+      const job = await addImapSyncJob(userId);
+      return { jobId: String(job?.id ?? ''), status: 'syncing' };
   } catch (err) {
     auditLogger.error('Failed to trigger sync', {
       actor_id: userId,

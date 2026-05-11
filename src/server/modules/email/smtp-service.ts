@@ -2,7 +2,7 @@
 // Crux-Webmail — SMTP Service (Nodemailer)
 // ============================================================================
 import nodemailer from 'nodemailer';
-import * as openpgp from 'openpgp';
+import { createMessage, readKey, encrypt } from 'openpgp';
 
 export interface SMTPConfig {
   host: string;
@@ -106,17 +106,17 @@ export async function sendEncryptedEmail(
   recipientPublicKey: string
 ): Promise<{ messageId: string; status: 'sent' }> {
   try {
-    const message = await openpgp.createMessage({ text: options.text || '' });
-    const encryptionKeys = await openpgp.readKey({ armoredKey: recipientPublicKey });
+    const message = await createMessage({ text: options.text || '' });
+    const encryptionKeys = await readKey({ armoredKey: recipientPublicKey });
 
-    const encryptedText = await openpgp.encrypt({
+    const encryptedText = await encrypt({
       message,
       encryptionKeys,
     });
 
     const encryptedOptions: SendEmailOptions = {
       ...options,
-      text: typeof encryptedText === 'string' ? encryptedText : encryptedText.toString(),
+      text: typeof encryptedText === 'string' ? encryptedText : String(encryptedText),
       html: undefined,
     };
 

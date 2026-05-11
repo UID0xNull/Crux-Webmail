@@ -2,7 +2,7 @@
 
 import simpleImapModule from 'simple-imap';
 import { auditLogger } from 'utils/audit-logger';
-import type { CruxError } from 'errors/handler';
+import { CruxError } from 'errors/handler';
 
 const SimpleImap: any = (simpleImapModule as any).SimpleImap || (simpleImapModule as any).default;
 
@@ -15,7 +15,7 @@ export interface IMAPAccount {
   tls: boolean;
 }
 
-type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
+export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
 export interface EmailMessage {
   uid: number;
@@ -75,7 +75,7 @@ function circuitRecordFailure(id: string) {
   const c = getCircuit(id); c.lastFailure = Date.now(); c.failures++;
   if (c.failures >= c.threshold && c.state !== 'open') {
     c.state = 'open';
-    auditLogger.warn('Circuit breaker OPEN', { actor_id: id, failures: c.failures });
+    auditLogger.warn('Circuit breaker OPEN', { actor_id: id, metadata: { failures: c.failures } as any });
   }
 }
 
@@ -94,14 +94,14 @@ export async function connectIMAP(account: IMAPAccount): Promise<any> {
     });
 
     conn.once('ready', () => {
-      auditLogger.info('IMAP connected', { actor_id: account.id, host: account.host });
+      auditLogger.info('IMAP connected', { actor_id: account.id, metadata: { host: account.host } as any });
       connectionPool.set(account.id, { conn, status: 'connected', lastActivity: Date.now() });
       circuitRecordSuccess(account.id);
       resolve(conn);
     });
 
     conn.once('error', (err: any) => {
-      auditLogger.error('IMAP connection error', { actor_id: account.id, host: account.host, error: err?.message || err });
+      auditLogger.error('IMAP connection error', { actor_id: account.id, metadata: { host: account.host, error: String(err?.message || err) } as any });
       connectionPool.delete(account.id);
       circuitRecordFailure(account.id);
       reject(err);
@@ -332,13 +332,16 @@ export function getIMAPStatus(userId: string): ConnectionStatus {
 }
 
 const IDLE_TIMEOUT_MS = 600_000;
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, entry] of connectionPool.entries()) {
-    if (now - entry.lastActivity > IDLE_TIMEOUT_MS) {
-      try { (entry.conn as any).end?.(); } catch {/*ignore*/}
-      connectionPool.delete(id);
-      auditLogger.info('IMAP idle cleanup', { actor_id: id });
+
+export function startIdleCleanup(): NodeJS.Timeout {
+  return setInterval(() => {
+    const now = Date.now();
+    for (const [id, entry] of connectionPool.entries()) {
+      if (now - entry.lastActivity > IDLE_TIMEOUT_MS) {
+        try { (entry.conn as any).end?.(); } catch {/*ignore*/}
+        connectionPool.delete(id);
+        auditLogger.info('IMAP idle cleanup', { actor_id: id });
+      }
     }
-  }
-}, 300_000);
+  }, 300_000);
+}

@@ -18,6 +18,8 @@ const SearchQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
+const errorSchema = { type: 'object', properties: { error: { type: 'string' } } };
+
 export async function registerSearchRoutes(server: FastifyInstance): Promise<void> {
   const indexer = new SearchIndexer();
 
@@ -45,10 +47,13 @@ export async function registerSearchRoutes(server: FastifyInstance): Promise<voi
           properties: {
             items: { type: 'array' },
             total: { type: 'number' },
-            nextCursor: { type: ['string', 'null'] },
-            prevCursor: { type: ['string', 'null'] },
+            nextCursor: { oneOf: [{ type: 'string' }, { type: 'null' }] },
+            prevCursor: { oneOf: [{ type: 'string' }, { type: 'null' }] },
           },
         },
+        400: errorSchema,
+        401: errorSchema,
+        500: errorSchema,
       },
     },
   }, async (request, reply) => {
@@ -64,7 +69,6 @@ export async function registerSearchRoutes(server: FastifyInstance): Promise<voi
       if (!parsed.success) {
         return reply.code(400).send({
           error: 'Invalid search parameters',
-          details: parsed.error.flatten(),
         });
       }
 
@@ -93,6 +97,8 @@ export async function registerSearchRoutes(server: FastifyInstance): Promise<voi
             lastUpdated: { type: 'string', format: 'date-time' },
           },
         },
+        401: errorSchema,
+        500: errorSchema,
       },
     },
   }, async (request, reply) => {
@@ -123,6 +129,8 @@ export async function registerSearchRoutes(server: FastifyInstance): Promise<voi
             message: { type: 'string' },
           },
         },
+        401: errorSchema,
+        500: errorSchema,
       },
     },
   }, async (request, reply) => {

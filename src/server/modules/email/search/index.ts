@@ -24,7 +24,7 @@ export {
   handleRemoveIndexJob,
   type IndexJobData,
   type BulkIndexJobData,
-  type RemoveIndexData,
+  type RemoveIndexJobData,
 } from './search-queue-handler';
 
 export type {
