@@ -11,11 +11,8 @@ import type { FastifyInstance } from 'fastify';
 import { auditLogger } from 'utils/audit-logger';
 import { getRedis } from 'cache/redis-client';
 
-export interface WSMessage {
-  type: string;
-  payload?: Record<string, unknown>;
-  timestamp?: number;
-}
+// ws-gateway reuses shared WSServerMessage instead of its own WSMessage.
+import type { WSServerMessage } from 'shared/types';
 
 // ------------------------------------------------------------------
 // Client metadata tracking
@@ -29,6 +26,13 @@ export interface WSClient {
   lastPing: number;
   remoteAddress: string;
   userAgent: string;
+}
+
+declare global {
+  // Attach internal client metadata to the WS object.
+  interface WebSocket {
+    __cruxClient?: WSClient;
+  }
 }
 
 // ------------------------------------------------------------------
@@ -117,7 +121,7 @@ export class WSGateway {
     this.userSockets.get(userId)!.add(ws);
 
     // Map WebSocket → client data (attached to ws for quick lookup)
-    (ws as any).__cruxClient = client;
+    ws.__cruxClient = client;
     this.clients.set(clientId, client);
 
     // Register with Redis PubSub for multi-instance
@@ -151,7 +155,7 @@ export class WSGateway {
   // Disconnect handling
   // ----------------------------------------------------------------
   async handleDisconnect(ws: WebSocket): Promise<void> {
-    const client = (ws as any).__cruxClient as WSClient | undefined;
+    const client = ws.__cruxClient;
     if (!client) return;
 
     // Remove from per-user socket set
@@ -189,7 +193,7 @@ export class WSGateway {
   // Subscribe / Unsubscribe to channels
   // ----------------------------------------------------------------
   subscribe(ws: WebSocket, channels: string[]): void {
-    const client = (ws as any).__cruxClient as WSClient | undefined;
+    const client = ws.__cruxClient;
     if (!client) return;
 
     for (const ch of channels) {
@@ -204,7 +208,7 @@ export class WSGateway {
   }
 
   unsubscribe(ws: WebSocket, channels: string[]): void {
-    const client = (ws as any).__cruxClient as WSClient | undefined;
+    const client = ws.__cruxClient;
     if (!client) return;
 
     for (const ch of channels) {
@@ -216,8 +220,8 @@ export class WSGateway {
   // ----------------------------------------------------------------
   // Messaging
   // ----------------------------------------------------------------
-  safeSend(ws: WebSocket, data: unknown): void {
-    if (ws.readyState !== 1) return; // OPEN
+  safeSend(ws: WebSocket, data: WSServerMessage | Record<string, unknown>): void {
+    if (!ws || ws.readyState !== 1) return; // OPEN only
 
     try {
       ws.send(JSON.stringify(data));
@@ -229,27 +233,26 @@ export class WSGateway {
   }
 
   // Send to all WS connections of a specific user (multi-tab)
-  sendToUser(userId: string, message: Record<string, unknown>): void {
-    const msg = {
-      ...message,
-      timestamp: (message as any).timestamp || Date.now(),
-    };
-
+  sendToUser(userId: string, message: WSServerMessage): void {
     const userSet = this.userSockets.get(userId);
     if (!userSet) return;
 
-    for (const ws of userSet) {
-      this.safeSend(ws, msg);
+    for (const ws of userSet.values()) {
+      this.safeSend(ws, message);
     }
   }
 
   // Send to a specific user + channel (only if subscribed)
-  sendToUserChannel(userId: string, channel: string, message: Record<string, unknown>): void {
+  sendToUserChannel(
+    userId: string,
+    channel: string,
+    message: Record<string, unknown>
+  ): void {
     for (const [, client] of this.clients) {
       if (client.userId === userId && client.channels.has(channel)) {
         const userSet = this.userSockets.get(userId);
         if (userSet) {
-          for (const ws of userSet) {
+          for (const ws of userSet.values()) {
             this.safeSend(ws, message);
           }
         }
@@ -258,10 +261,14 @@ export class WSGateway {
   }
 
   // Send message to all WS connections of a user except the sender
-  sendToOtherClientSockets(userId: string, senderWs: WebSocket, message: Record<string, unknown>): void {
+  sendToOtherClientSockets(
+    userId: string,
+    senderWs: WebSocket,
+    message: WSServerMessage
+  ): void {
     const userSet = this.userSockets.get(userId);
     if (!userSet) return;
-    for (const ws of userSet) {
+    for (const ws of userSet.values()) {
       if (ws !== senderWs) {
         this.safeSend(ws, message);
       }
@@ -269,8 +276,9 @@ export class WSGateway {
   }
 
   // Broadcast to ALL connected clients (admin/system events)
-  broadcast(message: Record<string, unknown>): void {    for (const [, userSet] of this.userSockets) {
-      for (const ws of userSet) {
+  broadcast(message: Record<string, unknown>): void {
+    for (const [, userSet] of this.userSockets) {
+      for (const ws of userSet.values()) {
         this.safeSend(ws, message);
       }
     }
@@ -397,14 +405,18 @@ export class WSGateway {
   // ----------------------------------------------------------------
   // Helper: get client metadata from a WebSocket
   getClient(ws: WebSocket): WSClient | null {
-    return (ws as any).__cruxClient as WSClient | null;
+    return ws.__cruxClient ?? null;
   }
 
   // Broadcast to all WS connections of the same user except one specific connection.
-  broadcastToOtherClientsOfUser(userId: string, excludeWs: WebSocket, message: Record<string, unknown>): void {
+  broadcastToOtherClientsOfUser(
+    userId: string,
+    excludeWs: WebSocket,
+    message: WSServerMessage
+  ): void {
     const userSet = this.userSockets.get(userId);
     if (!userSet) return;
-    for (const ws of userSet) {
+    for (const ws of userSet.values()) {
       if (ws !== excludeWs && ws.readyState === 1) {
         this.safeSend(ws, message);
       }
@@ -417,7 +429,7 @@ export class WSGateway {
       if (clientId === '*' || id === clientId) {
         const set = this.userSockets.get(client.userId);
         if (set) {
-          for (const ws of set) result.add(ws);
+          for (const ws of set.values()) result.add(ws);
         }
       }
     }

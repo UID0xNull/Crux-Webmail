@@ -6,10 +6,10 @@
 // ============================================================================
 
 import type { FastifyInstance } from 'fastify';
-import WebSocket from 'ws';
-import { getWSGateway, initWSGateway } from './ws-gateway';
+import type WebSocket from 'ws';
+import { getWSGateway, initWSGateway } from 'modules/ws/ws-gateway';
 import { auditLogger } from 'utils/audit-logger';
-import type { WSClientMessage, WSServerMessage, WSChannel } from 'shared/types';
+import type { WSClientMessage, WSServerMessage, WSChannel, WSFlagUpdatePayload } from 'shared/types';
 
 // ------------------------------------------------------------------
 // WebSocket upgrade handler — Fastify plugin
@@ -27,8 +27,8 @@ export async function registerWebSocketRoutes(fastify: FastifyInstance): Promise
     websocket: true,
     async handler(request: unknown, reply: { send(): void }) {
       const rawRequest = request as RawWSRequest & Record<string, unknown>;
-      const ws = (rawRequest.websocket) as WebSocket;
-      handleConnection(ws, rawRequest);
+      const ws = (rawRequest.websocket as WebSocket);
+      handleConnection(ws, fastify, rawRequest);
       return reply.send();
     },
   });
@@ -41,10 +41,16 @@ export async function registerWebSocketRoutes(fastify: FastifyInstance): Promise
 // ------------------------------------------------------------------
 
 interface RawWSRequest {
+  websocket: WebSocket | null;
   raw?: { url?: string; headers?: Record<string, string | string[]> };
 }
 
-async function handleConnection(ws: WebSocket, req: RawWSRequest): Promise<void> {  // Guard: prevent crashes from premature disconnect
+async function handleConnection(
+  ws: WebSocket,
+  fastifyInstance: FastifyInstance,
+  req: RawWSRequest
+): Promise<void> {
+  // Guard: prevent crashes from premature disconnect
   let connected = true;
   ws.once('close', () => { connected = false; });
 
@@ -64,8 +70,8 @@ async function handleConnection(ws: WebSocket, req: RawWSRequest): Promise<void>
         return;
       }
 
-      // ---- Step 2: Validate JWT ----
-      const payload = msg.payload as { token: string; sessionId: string };
+      // ---- Step 2: Validate JWT via session manager ----
+      const payload = msg.payload as { token?: string; sessionId?: string };
       if (!payload.token || !payload.sessionId) {
         ws.close(1008, 'Missing token or sessionId');
         return;
@@ -73,7 +79,7 @@ async function handleConnection(ws: WebSocket, req: RawWSRequest): Promise<void>
 
       let userId: string | null = null;
       try {
-        const sessionManager = (await import('../auth/session-manager')).getSessionManager();
+        const sessionManager = (await import('auth/session-manager')).getSessionManager();
         const result = await sessionManager.verifySession(payload.token);
 
         if (!result.valid || result.session_id !== payload.sessionId) {
@@ -90,8 +96,8 @@ async function handleConnection(ws: WebSocket, req: RawWSRequest): Promise<void>
         return;
       }
 
-      // ---- Step 3: Register client ----
-      const gateway = getWSGateway() || initWSGateway(fastify);
+      // ---- Step 3: Register client in gateway ----
+      const gateway = getWSGateway() ?? initWSGateway(fastifyInstance);
       const clientId = gateway.registerClient(ws, userId!, payload.sessionId, req);
 
       // ---- Step 4: Listen for further messages ----
@@ -141,18 +147,18 @@ function handleClientMessage(ws: WebSocket, raw: string, clientId: string): void
       type: 'ERROR',
       payload: { message: 'Invalid JSON' },
       timestamp: Date.now(),
-    } satisfies WSServerMessage);
+    });
     return;
   }
 
-  // Validate message type
-  const validTypes = ['PING', 'SUBSCRIBE', 'UNSUBSCRIBE', 'FLAG_UPDATE', 'FOLDER_SYNC'];
-  if (!validTypes.includes(msg.type)) {
+  // Validate message type (allow only known WS client event types)
+  const validTypes = ['PING', 'SUBSCRIBE', 'UNSUBSCRIBE', 'FLAG_UPDATE', 'FOLDER_SYNC'] as const;
+  if (!(validTypes as readonly string[]).includes(msg.type)) {
     gateway.safeSend(ws, {
       type: 'ERROR',
       payload: { message: `Unknown message type: ${msg.type}` },
       timestamp: Date.now(),
-    } satisfies WSServerMessage);
+    });
     return;
   }
 
@@ -163,26 +169,26 @@ function handleClientMessage(ws: WebSocket, raw: string, clientId: string): void
         type: 'PONG',
         payload: { timestamp: Date.now() },
         timestamp: Date.now(),
-      } satisfies WSServerMessage);
+      });
       break;
 
     case 'SUBSCRIBE': {
-      const channels = (msg.payload as { channels: WSChannel[] }).channels;
+      const channels = (msg.payload as { channels?: WSChannel[] }).channels;
       if (channels && Array.isArray(channels)) {
         gateway.subscribe(ws, channels);
 
-        // Confirm subscription
+        // Confirm subscription using WSServerMessage type-safe form
         gateway.safeSend(ws, {
           type: 'READY',
           payload: { subscribed: channels },
           timestamp: Date.now(),
-        } satisfies WSServerMessage);
+        });
       }
       break;
     }
 
     case 'UNSUBSCRIBE': {
-      const channels = (msg.payload as { channels: WSChannel[] }).channels;
+      const channels = (msg.payload as { channels?: WSChannel[] }).channels;
       if (channels && Array.isArray(channels)) {
         gateway.unsubscribe(ws, channels);
       }
@@ -193,35 +199,33 @@ function handleClientMessage(ws: WebSocket, raw: string, clientId: string): void
       const client = gateway.getClient(ws);
       if (!client) return;
 
-      const { messageId, flags, action, mailboxId } = (msg.payload || {}) as {
-        messageId: string;
-        flags: string[];
-        action: 'add' | 'remove';
+      const { messageId, flags, action, mailboxId } = (msg.payload as WSFlagUpdatePayload & {
         mailboxId?: string;
-      };
+      }) ?? {};
 
+      // Use shared broadcast method and typed message.
       gateway.broadcastToOtherClientsOfUser(client.userId, ws, {
         type: 'MESSAGE_FLAG_CHANGED',
         payload: {
           messageId,
           flags,
           action,
-          mailboxId: mailboxId ?? client.sessionId, // fallback only when missing in payload
+          mailboxId: mailboxId ?? client.sessionId,
         },
         timestamp: Date.now(),
-      } satisfies WSServerMessage);
+      });
       break;
     }
+
+    case 'FOLDER_SYNC':
+      // Intended for folder sync handshake/coordination (handled by dedicated service).
+      gateway.updatePing(clientId);
+      auditLogger.debug('[WS] FOLDER_SYNC handled', { metadata: { type: msg.type } });
+      break;
+
     default:
       auditLogger.debug('[WS] Ignored message type', {
         metadata: { type: msg.type },
       });
   }
-}
-
-// ------------------------------------------------------------------
-// Helper: no-op stub; multi-node bridging handled by Redis PubSub
-// ------------------------------------------------------------------
-function findWsForClient(_gateway: WSGateway, _client: WSClient): WebSocket | null {
-  return null;
 }

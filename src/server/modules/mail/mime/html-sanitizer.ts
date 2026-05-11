@@ -8,7 +8,6 @@
 
 import sanitizeHtml from 'sanitize-html';
 import { auditLogger } from 'utils/audit-logger';
-import { DEFAULT_MIME_CONFIG, MimePipelineConfig } from './types';
 
 // ------------------------------------------------------------------
 // Tracking sanitization results for security audit

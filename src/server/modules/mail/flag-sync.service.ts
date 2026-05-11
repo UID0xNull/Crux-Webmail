@@ -10,17 +10,15 @@
 // ============================================================================
 
 import { EventEmitter } from 'node:events';
-import { getMailService, MailService } from './mail-service';
-import type { WSMessage } from 'ws/ws-gateway';
+import type { IAccountConfig } from './contracts';
 import { auditLogger } from 'utils/audit-logger';
-import type {
-  IAccountConfig,
-  IFlags,
-} from './contracts';
+
+type MailService = ReturnType<typeof import('./mail-service').getMailService>;
 
 // ------------------------------------------------------------------
 // Types
 // ------------------------------------------------------------------
+
 export interface FlagState {
   uid: string;
   mailbox: string;
@@ -30,16 +28,9 @@ export interface FlagState {
   pending: boolean;
 }
 
-export interface NormalizedFlags {
-  seen: boolean;
-  answered: boolean;
-  flagged: boolean;
-  deleted: boolean;
-  draft: boolean;
-  recent: boolean;
-  custom: string[];
-}
+export type FlagAction = 'add' | 'remove';
 
+// Public-facing batch operations can support “set” conceptually.
 export interface FlagOperation {
   uid: string;
   action: 'add' | 'remove' | 'set';
@@ -53,15 +44,15 @@ export interface BatchFlagOperation {
   flags: string[];
 }
 
-// Standard IMAP system flags
-const SYSTEM_FLAGS = [
-  '\\Seen',
-  '\\Answered',
-  '\\Flagged',
-  '\\Deleted',
-  '\\Draft',
-  '\\Recent',
-];
+export interface NormalizedFlags {
+  seen: boolean;
+  answered: boolean;
+  flagged: boolean;
+  deleted: boolean;
+  draft: boolean;
+  recent: boolean;
+  custom: string[];
+}
 
 // ------------------------------------------------------------------
 // FlagSyncService
@@ -82,14 +73,6 @@ export class FlagSyncService extends EventEmitter {
     this.mailService = getMailService();
   }
 
-  // ----------------------------------------------------------------
-  // Public API
-  // ----------------------------------------------------------------
-
-  /**
-   * Set specific flags on a single message.
-   * Updates IMAP, local cache, and broadcasts via WS.
-   */
   async setFlags(
     userId: string,
     config: IAccountConfig,
@@ -103,43 +86,15 @@ export class FlagSyncService extends EventEmitter {
     this.recordDedup(dedupKey);
 
     try {
-      if (action === 'add') {
-        await this.mailService.addFlags(userId, config, mailbox, uid, flags);
-      } else if (action === 'remove') {
-        await this.mailService.removeFlags(userId, config, mailbox, uid, flags);
-      } else {
-        const current = this.getFlagState(userId, mailbox, uid);
-        const currentSet = new Set<string>(current?.flags ?? []);
-        const targetSet = new Set<string>(flags);
+      // Use internal union: add/remove/set → IMAP operations.
+      await this.applyFlagToImap(userId, config, mailbox, uid, flags, action);
 
-        const toAdd: string[] = [];
-        for (const f of flags) {
-          if (!currentSet.has(f)) toAdd.push(f);
-        }
-        const toRemove: string[] = [];
-        for (const c of currentSet) {
-          if (!targetSet.has(c)) toRemove.push(c);
-        }
+      // Normalize 'set' → 'add' for cache/broadcast (idempotent update).
+      const normalizedAction =
+        action === 'set' ? ('add' as const) : (action as 'add' | 'remove');
 
-        if (toAdd.length > 0) {
-          await this.mailService.addFlags(userId, config, mailbox, uid, toAdd);
-        }
-        if (toRemove.length > 0) {
-          await this.mailService.removeFlags(
-            userId,
-            config,
-            mailbox,
-            uid,
-            toRemove
-          );
-        }
-      }
-
-      // Update local cache
-      this.updateCacheEntry(userId, mailbox, uid, flags, action);
-
-      // Broadcast to connected clients of this user
-      this.broadcastFlagChange(userId, mailbox, uid, flags, action);
+      this.updateCacheEntry(userId, mailbox, uid, flags, normalizedAction);
+      this.broadcastFlagChange(userId, mailbox, uid, flags, normalizedAction);
 
       auditLogger.info('Flag updated', {
         actor_id: userId,
@@ -161,9 +116,7 @@ export class FlagSyncService extends EventEmitter {
     }
   }
 
-  /**
-   * Batch flag operation: apply same flag change to multiple messages.
-   */
+  // Batch flag operation: apply same change to multiple messages.
   async batchSetFlags(
     userId: string,
     config: IAccountConfig,
@@ -198,9 +151,6 @@ export class FlagSyncService extends EventEmitter {
     return { success, failed };
   }
 
-  /**
-   * Convenience: mark messages as read.
-   */
   async markRead(
     userId: string,
     config: IAccountConfig,
@@ -212,9 +162,6 @@ export class FlagSyncService extends EventEmitter {
     }
   }
 
-  /**
-   * Convenience: mark messages as unread.
-   */
   async markUnread(
     userId: string,
     config: IAccountConfig,
@@ -226,9 +173,6 @@ export class FlagSyncService extends EventEmitter {
     }
   }
 
-  /**
-   * Get cached flag state for a message.
-   */
   getFlagState(
     userId: string,
     mailbox: string,
@@ -237,18 +181,12 @@ export class FlagSyncService extends EventEmitter {
     return this.getNestedMap(this.flagCache, [userId, mailbox, uid]) ?? null;
   }
 
-  /**
-   * Get all flags for a mailbox.
-   */
   getMailboxFlags(userId: string, mailbox: string): Map<string, FlagState> {
     const userMap = this.flagCache.get(userId);
     if (!userMap) return new Map();
     return userMap.get(mailbox) || new Map();
   }
 
-  /**
-   * Invalidate cache for a mailbox (use after sync).
-   */
   invalidateMailboxCache(userId: string, mailbox: string): void {
     const userMap = this.flagCache.get(userId);
     if (userMap) {
@@ -256,16 +194,10 @@ export class FlagSyncService extends EventEmitter {
     }
   }
 
-  /**
-   * Invalidate all cache for a user.
-   */
   invalidateUserCache(userId: string): void {
     this.flagCache.delete(userId);
   }
 
-  /**
-   * Apply externally detected flag changes (from IMAP IDLE or sync).
-   */
   applyExternalChange(
     userId: string,
     mailbox: string,
@@ -275,12 +207,15 @@ export class FlagSyncService extends EventEmitter {
     const existing = this.getFlagState(userId, mailbox, uid);
 
     if (!existing) {
-      this.setCacheEntry(userId, mailbox, uid, {
+      const state: FlagState = {
+        uid,
+        mailbox,
         flags: newFlags,
         parsed: this.normalizeFlags(newFlags),
         lastSynced: Date.now(),
         pending: false,
-      });
+      };
+      this.setCacheEntry(userId, mailbox, uid, state);
     } else {
       existing.flags = newFlags;
       existing.parsed = this.normalizeFlags(newFlags);
@@ -288,15 +223,56 @@ export class FlagSyncService extends EventEmitter {
       existing.pending = false;
     }
 
-    // Broadcast the change
-    this.broadcastFlagChange(userId, mailbox, uid, newFlags, 'set');
+    // Broadcast as additive update for external changes (idempotent).
+    this.broadcastFlagChange(userId, mailbox, uid, newFlags, 'add');
   }
 
-  // ----------------------------------------------------------------
-  // Cache helpers
-  // ----------------------------------------------------------------
+  async applyFlagToImap(
+    userId: string,
+    config: IAccountConfig,
+    mailbox: string,
+    uid: string,
+    flags: string[],
+    action: 'add' | 'remove' | 'set',
+  ): Promise<void> {
+    if (action === 'add') {
+      await this.mailService.addFlags(userId, config, mailbox, uid, flags);
+      return;
+    }
+    if (action === 'remove') {
+      await this.mailService.removeFlags(userId, config, mailbox, uid, flags);
+      return;
+    }
 
-  private updateCacheEntry(
+    // For 'set', compute diff.
+    const current = this.getFlagState(userId, mailbox, uid);
+    const currentSet = new Set<string>(current?.flags ?? []);
+    const targetSet = new Set<string>(flags);
+
+    const toAdd: string[] = [];
+    for (const f of flags) {
+      if (!currentSet.has(f)) toAdd.push(f);
+    }
+    const toRemove: string[] = [];
+    for (const c of currentSet) {
+      if (!targetSet.has(c)) toRemove.push(c);
+    }
+
+    if (toAdd.length > 0) {
+      await this.mailService.addFlags(userId, config, mailbox, uid, toAdd);
+    }
+    if (toRemove.length > 0) {
+      await this.mailService.removeFlags(
+        userId,
+        config,
+        mailbox,
+        uid,
+        toRemove
+      );
+    }
+  }
+
+  updateCacheEntry(
     userId: string,
     mailbox: string,
     uid: string,
@@ -323,6 +299,8 @@ export class FlagSyncService extends EventEmitter {
     }
 
     this.setCacheEntry(userId, mailbox, uid, {
+      uid,
+      mailbox,
       flags: currentFlags,
       parsed: this.normalizeFlags(currentFlags),
       lastSynced: Date.now(),
@@ -351,37 +329,25 @@ export class FlagSyncService extends EventEmitter {
     mailboxMap.set(uid, state);
   }
 
-  // ----------------------------------------------------------------
-  // WebSocket broadcast
-  // ----------------------------------------------------------------
-
   private broadcastFlagChange(
     userId: string,
-    mailbox: string,
-    uid: string,
+    mailboxId: string,
+    messageId: string,
     flags: string[],
-    _action: 'add' | 'remove' | 'set',
+    action: 'add' | 'remove' | 'set',
   ): void {
-    try {
-      const msg: WSMessage = {
-        type: 'MESSAGE_FLAG_CHANGED',
-        payload: {
-          messageId: uid,
-          flags,
-          action: _action,
-          mailboxId: mailbox,
-        },
-        timestamp: Date.now(),
-      };
-      void this.emit('ws:broadcast', msg);
-    } catch {
-      // ignore broadcast failures
-    }
+    // Emit event consumed by ws-gateway/bridge.
+    this.emit('ws:broadcast', {
+      userId,
+      type: 'flagged' as const,
+      payload: {
+        messageId,
+        flags,
+        action,
+        mailboxId,
+      },
+    });
   }
-
-  // ----------------------------------------------------------------
-  // Dedup helpers
-  // ----------------------------------------------------------------
 
   private isDedupHit(key: string): boolean {
     const ts = this.recentEvents.get(key);
@@ -405,10 +371,6 @@ export class FlagSyncService extends EventEmitter {
       }
     }
   }
-
-  // ----------------------------------------------------------------
-  // Flag normalization
-  // ----------------------------------------------------------------
 
   private normalizeFlags(raw: string[]): NormalizedFlags {
     const parsed: NormalizedFlags = {
@@ -451,10 +413,6 @@ export class FlagSyncService extends EventEmitter {
     return parsed;
   }
 
-  // ----------------------------------------------------------------
-  // Utility: safe nested map access
-  // ----------------------------------------------------------------
-
   private getNestedMap<K1, K2, K3, V>(
     map: Map<K1, Map<K2, Map<K3, V>>>,
     keys: [K1, K2, K3],
@@ -466,10 +424,6 @@ export class FlagSyncService extends EventEmitter {
     return l2.get(keys[2]);
   }
 
-  // ----------------------------------------------------------------
-  // Cleanup
-  // ----------------------------------------------------------------
-
   destroy(): void {
     this.recentEvents.clear();
     this.flagCache.clear();
@@ -480,6 +434,8 @@ export class FlagSyncService extends EventEmitter {
 // ------------------------------------------------------------------
 // Singleton
 // ------------------------------------------------------------------
+import { getMailService } from './mail-service';
+
 let _flagSync: FlagSyncService | null = null;
 
 export function getFlagSyncService(): FlagSyncService {

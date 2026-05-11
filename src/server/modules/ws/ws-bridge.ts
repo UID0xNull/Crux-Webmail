@@ -4,7 +4,11 @@
 
 import { getWSGateway, WSGateway } from './ws-gateway';
 import { auditLogger } from 'utils/audit-logger';
-import { getWSGateway } from './ws-gateway';
+import { getRedis } from 'cache/redis-client';
+import type {
+  MailEventPayload,
+  WSServerMessage,
+} from 'shared/types';
 
 interface RateLimiterEntry { count: number; lastReset: number; }
 

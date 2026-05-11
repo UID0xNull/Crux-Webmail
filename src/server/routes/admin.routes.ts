@@ -227,9 +227,9 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(request, reply) {
+    async function handler(request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) {
       try {
-        const user = await getUserDetail((request as FastifyRequest<{ Params: { userId: string } }>));
+        const user = await getUserDetail(request.params.userId);
         if (!user) {
           sendError(reply, 404, 'USER_NOT_FOUND', 'User not found');
           return;

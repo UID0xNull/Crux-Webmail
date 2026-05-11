@@ -6,10 +6,8 @@
 // Soporta multipart/* (alternative, mixed, related, signed, encrypted).
 // ============================================================================
 
-import { Readable } from 'node:stream';
-import MailParser from 'mailparser/lib/mail-parser.js';
-import libmime from 'libmime';
-import type { IAttachment as LibMimeAttachment } from 'libmime';
+import MailParser from 'mailparser';
+import type { Readable } from 'node:stream';
 
 export interface ParsedMimeRaw {
   messageId: string;
@@ -41,7 +39,7 @@ export interface MimeRawAttachment {
   contentLength: number;
   content: Buffer;
   contentId?: string;
-  disposition: string;
+  disposition: 'inline' | 'attachment';
   related?: boolean;
 }
 
@@ -66,6 +64,13 @@ export const DEFAULT_MIME_CONFIG: MimePipelineConfig = {
   maxAttachmentSize: MAX_ATTACHMENT,
 };
 
+type MailParserDataEvent = { type?: string | 'html' | 'text'; html?: boolean; text?: string };
+type MailParserAttachEvent = Readable & {
+  filename?: string;
+  stream: Readable | Buffer | AsyncIterable<Buffer>;
+  headers?: Record<string, (string | number)[]> | Record<string, unknown>;
+};
+
 export class MimeParser {
   private config: MimePipelineConfig;
 
@@ -77,14 +82,12 @@ export class MimeParser {
     this.config = { ...this.config, ...partial };
   }
 
-  async parse(rawBuffer: Buffer, uid?: string): Promise<ParsedMimeRaw> {
+  async parse(rawBuffer: Buffer, _uid?: string): Promise<ParsedMimeRaw> {
     if (!rawBuffer || rawBuffer.length === 0) {
       throw new Error('Empty message buffer');
     }
 
-    const uidLabel = uid ?? 'unknown';
-
-    // Size check
+    // Size check.
     if (rawBuffer.length > this.config.maxMessageSize) {
       throw new Error(
         `Message size ${rawBuffer.length} exceeds max allowed ${this.config.maxMessageSize}`
@@ -92,27 +95,29 @@ export class MimeParser {
     }
 
     const parser = new MailParser({
-      streamAttachments: true, // we handle them manually
+      streamAttachments: true, // we handle them manually.
       // Use stable options; avoid deprecated flags.
     });
 
-    const parsed: ParsedMimeRaw = await this.processMailParser(parser, rawBuffer, uidLabel);
-    return parsed;
+    return this.processMailParser(parser, rawBuffer);
   }
 
   private processMailParser(
     parser: MailParser,
-    buf: Buffer,
-    uidLabel: string
+    buf: Buffer
   ): Promise<ParsedMimeRaw> {
     return new Promise((resolve, reject) => {
       const result: Partial<ParsedMimeRaw> = {};
       const attachments: MimeRawAttachment[] = [];
 
-      parser.on('headers', (headers: Record<string, any>) => {
-        // Keep reference to all headers for later
+      parser.on('headers', (headers: Record<string, unknown>) => {
         result.headers = this.buildHeadersMap(headers);
-        result.rawHeaders = JSON.stringify(headers);
+        try {
+          result.rawHeaders = JSON.stringify(headers);
+        } catch {
+          // Fallback for weird non-serializable headers.
+          result.rawHeaders = '';
+        }
       });
 
       parser.on('header', (name: string, value: unknown) => {
@@ -121,9 +126,9 @@ export class MimeParser {
         }
         const normalized = this.normalizeHeaderName(name);
 
-        // For specific fields we may reuse them later.
+        // Normalize to array of strings.
         const values = Array.isArray(value)
-          ? value.map(String).filter(Boolean)
+          ? (value as []).map(String).filter(Boolean)
           : value != null && String(value).trim() !== ''
               ? [String(value)]
               : [];
@@ -136,95 +141,116 @@ export class MimeParser {
         }
 
         // Direct mapping where useful:
-        switch (normalized.toLowerCase()) {
-          case 'message-id':
-            if (!result.messageId && values.length > 0) {
-              result.messageId = values[0]?.trim() || '';
-            }
-            break;
-          case 'in-reply-to':
-            if (!result.inReplyTo && values.length > 0) {
-              const rfcRef = this.extractMrfRefs(values.join(' ').trim());
-              result.inReplyTo = rfcRef[0] || values[0]?.trim() || undefined;
-            }
-            break;
-          case 'references':
-            if (!Array.isArray(result.references)) result.references = [];
-            for (const val of values) {
-              const refs = this.splitReferences(val.trim());
-              for (const ref of refs) {
-                result.references.push(ref);
-              }
-            }
-            break;
-        }
-
-        // rawHeaders can accumulate as plain string later; leave JSON-safe fallback.
-      });
-
-      parser.on('data', async (obj: any) => {
-        if (obj.type !== 'text' && obj.type !== 'html') return;
-
-        const text = typeof obj.text === 'string' ? obj.text : '';
-
-        if (obj.html) {
-          result.html = result.html || '';
-          result.html += text;
-        } else {
-          result.textPlain = result.textPlain || '';
-          result.textPlain += text;
-        }
-      });
-
-      parser.on('attachment', async (att: any) => {
-        try {
-          const attachment: Partial<MimeRawAttachment> = {};
-          if (!att.filename || !String(att.filename).trim()) {
-            attachment.filename = 'attachment';
-          } else {
-            // Decode filename with libmime helpers.
-            const rawName = String(att.filename);
-            try {
-              attachment.filename = libmime.decodeWords(rawName);
-            } catch {
-              attachment.filename = rawName;
+        const key = normalized.toLowerCase();
+        if (key === 'message-id') {
+          if (!result.messageId && values.length > 0) {
+            result.messageId = String(values[0]).trim() || '';
+          }
+        } else if (key === 'in-reply-to') {
+          if (!result.inReplyTo && values.length > 0) {
+            const refs = this.extractBracketedRefs(String(value));
+            result.inReplyTo = refs[0] ?? String(values[0]).trim() ?? undefined;
+          }
+        } else if (key === 'references') {
+          if (!Array.isArray(result.references)) result.references = [];
+          for (const val of values) {
+            const refs = this.splitReferences(val);
+            for (const ref of refs) {
+              result.references.push(ref);
             }
           }
+        }
+      });
 
-          attachment.contentType = att.headers && att.headers['content-type'] ? (att.headers['content-type'][0] || 'application/octet-stream') : 'application/octet-stream';
+      parser.on('data', async (obj: MailParserDataEvent | Record<string, unknown>) => {
+        if (!obj || typeof obj !== 'object') return;
+        const typed = obj as MailParserDataEvent;
 
-          // Ensure disposition default.
-          const dispHeader: string | undefined = att.headers?.['content-disposition']?.[0];
-          const dispParts: string[] = Array.isArray(dispHeader) ? [String(dispHeader)] : typeof dispHeader === 'string' ? [dispHeader] : [];
-          const disposition = dispHeader ? String(dispHeader) : 'attachment';
+        // Skip non-text content.
+        const t = typed.type ?? String((typed as any).text);
+        if ((t as string | undefined) !== 'text' && (t as boolean | string) !== true) {
+          if (!typed.html) return;
+        }
 
-          attachment.disposition = this.extractDispositionType(disposition);
+        const text = typeof typed.text === 'string' ? typed.text : '';
+        if (!text) return;
 
-          // Related detection: content-id suggests embedded.
-          if (att.headers && att.headers['content-id']) {
-            const cid: string | undefined = Array.isArray(att.headers['content-id']) ? String(att.headers['content-id'][0]) : typeof att.headers['content-id'] === 'string' ? att.headers['content-id'] : undefined;
+        // If html is set or type is html → HTML part.
+        if (typed.html || t === 'html') {
+          result.html = (result.html ?? '') + text;
+        } else {
+          result.textPlain = (result.textPlain ?? '') + text;
+        }
+      });
+
+      parser.on('attachment', async (att: MailParserAttachEvent | Record<string, unknown>) => {
+        try {
+          const attachment: Partial<MimeRawAttachment> = {};
+
+          // filename.
+          let rawName = '';
+          if (att.filename && String(att.filename).trim()) {
+            rawName = String(att.filename);
+          } else {
+            rawName = 'attachment';
+          }
+
+          try {
+            attachment.filename = this.decodeWord(rawName);
+          } catch {
+            attachment.filename = rawName;
+          }
+
+          // content-type.
+          const headers = att.headers as Record<string, (string | number)[]> | undefined ?? {};
+          const ctVals = headers['content-type'];
+          if (ctVals && ctVals[0]) {
+            attachment.contentType = String(ctVals[0]).trim() || 'application/octet-stream';
+          } else {
+            attachment.contentType = 'application/octet-stream';
+          }
+
+          // disposition.
+          const rawDisposition: unknown = headers?.['content-disposition']?.[0];
+          const dispositionStr = typeof rawDisposition === 'string' ? rawDisposition : '';
+          attachment.disposition = this.extractDispositionType(dispositionStr);
+
+          // Content-ID → related/embedded.
+          if (headers && headers['content-id']) {
+            const cidVal = headers['content-id'];
+            const cid: string | undefined = Array.isArray(cidVal)
+              ? String(cidVal[0])
+              : typeof cidVal === 'string'
+                ? cidVal
+                : undefined;
+
             if (cid) {
               attachment.contentId = cid;
               attachment.related = true;
             }
           }
 
+          // Read stream content.
           const buffer: Buffer = await this.readStream(att.stream);
 
-          // Check size.
+          // Size guard: mark as "quarantined" via a metadata flag on the attachment.
           if (buffer.length > this.config.maxAttachmentSize) {
-            // Truncate or store but mark for downstream handling.
-            att.quarantined = true;
-          } else {
-            attachment.contentLength = buffer.length;
+            (attachment as MimeRawAttachment & { quarantined?: boolean }).quarantined = true;
+            attachment.contentLength = 0;
+            attachment.content = Buffer.alloc(0);
+          } else {            attachment.contentLength = buffer.length;
             attachment.content = buffer;
           }
 
           attachments.push(attachment as MimeRawAttachment);
         } catch (err) {
-          const e = err instanceof Error ? err : new Error(String(err));
-          att.quarantined = true;
-          // Fallback safe entry.
+          // Fallback: quarantined safe entry.
+          const _e = err instanceof Error ? err : new Error(String(err));
+          void _e;
+          if ('quarantined' in att) {
+            (att as any).quarantined = true;
+          }
+
           attachments.push({
             filename: 'quarantined-attachment',
             contentType: 'application/octet-stream',
@@ -241,18 +267,30 @@ export class MimeParser {
       });
 
       parser.on('end', async () => {
-        // Now fill from structured fields.
-        result.from = this.normalizeAddresses(parser.getHeadersFromAddressField('from'));
-        result.to = this.normalizeAddresses(parser.getHeadersFromAddressField('to'));
-        result.cc = this.normalizeAddresses(parser.getHeadersFromAddressField('cc'));
-        const bccArr: any[] | undefined = parser.getHeadersFromAddressField?.('bcc') as any;
-        result.bcc = this.normalizeAddresses(bccArr || []);
+        // Use our headers map for addresses/subject/date where possible.
+        const allHeaders = result.headers?.all ?? {};
+
+        const addrHeader = (key: string): (string | undefined)[] => {
+          if (!allHeaders[key]) return [];
+          return allHeaders[key];
+        };
+
+        // from / to / cc / bcc via header values
+        result.from = this.parseAddressesFromHeader(addrHeader('from'));
+        result.to = this.parseAddressesFromHeader(addrHeader('to'));
+        result.cc = this.parseAddressesFromHeader(addrHeader('cc'));
+        const bccVals = addrHeader('bcc');
+        if (bccVals.length > 0) {
+          result.bcc = this.parseAddressesFromHeader(bccVals);
+        } else {
+          result.bcc = [];
+        }
 
         // reply-to.
         try {
-          const rtArr: any[] | undefined = (parser.getHeadersFromAddressField?.('reply-to') as any) ?? [];
-          if (rtArr && Array.isArray(rtArr)) {
-            result.replyTo = this.normalizeAddresses(rtArr);
+          const rtVals = addrHeader('reply-to');
+          if (rtVals.length > 0) {
+            result.replyTo = this.parseAddressesFromHeader(rtVals);
           } else {
             result.replyTo = [];
           }
@@ -260,34 +298,62 @@ export class MimeParser {
           result.replyTo = [];
         }
 
-        // date.
-        const d = parser.date;
-        if (d instanceof Date) {
-          result.date = d.toISOString();
-        } else if ((d as any)?.toJSON?.()) {
+        // Subject: from header or fallback.
+        const subjVals = addrHeader('subject');
+        if (subjVals && subjVals.length > 0) {
           try {
-            result.date = String((d as any).toJSON());
+            result.subject = this.decodeWord(String(subjVals[0]));
+          } catch {
+            result.subject = String(subjVals[0]);
+          }
+        } else {
+          result.subject = '';
+        }
+
+        // Date: prefer header; fallback to now.
+        const dateVals = addrHeader('date');
+        if (dateVals && dateVals.length > 0) {
+          try {
+            const parsedDate = new Date(String(dateVals[0]));
+            result.date = Number.isFinite(parsedDate.getTime())
+              ? parsedDate.toISOString()
+              : new Date().toISOString();
           } catch {
             result.date = new Date().toISOString();
           }
         } else {
+          // Fallback: now.
           result.date = new Date().toISOString();
         }
 
-        // body text/html.
-        if (!result.text && typeof (parser as any).text === 'string') {
-          result.text = (parser as any).text;
-        }
+        // Text/HTML: we already accumulate from 'data' events; no reliance on private properties.
+        const finalTextPlain: string = result.textPlain || '';
+        const finalHtml: string = result.html || '';
 
-        // Merge with what we built on data events:
-        const finalTextPlain = result.textPlain || '';
-        const finalHtml = result.html || '';
-
-        // Combine text: prefer unified 'text' then plain.
+        // Combine text: prefer unified parser text, else collected plain.
         result.text = result.text || finalTextPlain;
         result.html = finalHtml;
         result.attachments = attachments;
-        resolve(result as ParsedMimeRaw);
+
+        // Ensure all required fields are present (defensive).
+        resolve({
+          messageId: result.messageId ?? '',
+          subject: result.subject ?? '',
+          from: result.from ?? [],
+          to: result.to ?? [],
+          cc: result.cc ?? [],
+          bcc: result.bcc ?? [],
+          replyTo: result.replyTo,
+          date: result.date ?? new Date().toISOString(),
+          inReplyTo: result.inReplyTo,
+          references: Array.isArray(result.references) ? result.references : [],
+          text: result.text ?? '',
+          html: finalHtml,
+          textPlain: finalTextPlain,
+          attachments,
+          headers: result.headers ?? { all: {}, raw: '' },
+          rawHeaders: result.rawHeaders ?? '',
+        } satisfies ParsedMimeRaw);
       });
 
       // Pipe message into parser.
@@ -296,36 +362,54 @@ export class MimeParser {
     });
   }
 
-  private async readStream(stream: any): Promise<Buffer> {
+  private async readStream(stream: unknown): Promise<Buffer> {
     if (stream instanceof Buffer) return stream;
-    if (!stream || typeof stream[Symbol.asyncIterator] === 'undefined' && typeof stream.on !== 'function') {
+    if (!stream || (typeof (stream as any)[Symbol.asyncIterator] === 'undefined' && typeof (stream as any).on !== 'function')) {
       return Buffer.alloc(0);
     }
 
     const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
-      const b = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
-      chunks.push(b);
+
+    // Handle async iterator style.
+    const it = stream as AsyncIterable<Buffer>;
+    if ((it as any)[Symbol.asyncIterator]) {
+      for await (const chunk of it) {
+        const b = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
+        chunks.push(b);
+      }
+    } else {
+      // Stream-like with 'data'.
+      await new Promise<void>((resolve, reject) => {
+        (stream as Readable).on('data', (chunk: Buffer | Uint8Array) => {
+          chunks.push(chunk instanceof Buffer ? chunk : Buffer.from(chunk));
+        });
+        (stream as Readable).on('end', () => resolve());
+        (stream as Readable).on('error', reject);
+      });
     }
+
     return Buffer.concat(chunks);
   }
 
-  private buildHeadersMap(headers: Record<string, any>): MimeRawHeaders {
+  private buildHeadersMap(headers: Record<string, unknown>): MimeRawHeaders {
     const all: Record<string, string[]> = {};
-    for (const [key, value] of Object.entries(headers)) {
+
+    for (const [key, value] of Object.entries(headers ?? {})) {
       if (!value) continue;
       const normalizedKey = this.normalizeHeaderName(key);
-      const values: string[] = Array.isArray(value)
-        ? value.map(String).filter(Boolean)
-        : typeof value === 'string' && value.trim() !== ''
-          ? [value]
-          : [];
+      let values: string[] = [];
+
+      if (Array.isArray(value)) {
+        values = (value as any[]).map(String).filter(Boolean);
+      } else if (typeof value === 'string' && value.trim() !== '') {
+        values = [value];
+      }
 
       if (values.length > 0) {
-        all[normalizedKey] = all[normalizedKey] || [];
-        all[normalizedKey].push(...values);
+        all[normalizedKey] = [...(all[normalizedKey] ?? []), ...values];
       }
     }
+
     return { all, raw: '' };
   }
 
@@ -345,13 +429,15 @@ export class MimeParser {
     const v = value.toLowerCase().split(';')[0].trim();
     if (v === 'inline') return 'inline';
     if (v.includes('attach')) return 'attachment';
+    // default for unknown/empty to attachment.
     return 'attachment';
   }
 
-  private extractMrfRefs(v: string): string[] {
+  private extractBracketedRefs(v: string): string[] {
     const out: string[] = [];
     const matches = String(v).match(/<[^<>]+>/g);
-    for (const m of matches || []) {
+    if (!matches) return [];
+    for (const m of matches) {
       const inner = m.replace(/[<>]/g, '').trim();
       if (inner) out.push(inner);
     }
@@ -359,37 +445,87 @@ export class MimeParser {
   }
 
   private splitReferences(v: string): string[] {
-    if (!v || !String(v).trim()) return [];
-    return String(v)
+    const trimmed = String(v).trim();
+    if (!trimmed) return [];
+
+    // Split by commas/semicolons/spaces, then clean.
+    return trimmed
       .split(/[,;\s]+/)
       .map((ref) => ref.trim().replace(/[<>]/g, ''))
       .filter(Boolean);
   }
 
-  private normalizeAddresses(
-    arr: Array<any> | undefined
-  ): MimeAddressEntry[] {
+  private normalizeAddresses(arr: (any[] | undefined) | null): MimeAddressEntry[] {
     if (!arr || !Array.isArray(arr) || arr.length === 0) return [];
-    const out: MimeAddressEntry[] = [];
 
+    const out: MimeAddressEntry[] = [];
     for (const a of arr) {
       try {
-        const name = typeof a?.name === 'string' ? a.name : '';
-        let address = (a?.address ?? String(a)) as string;
+        let name = typeof a?.name === 'string' ? (a.name as string) : '';
+        if (name) name = this.decodeWord(name);
 
-        // Remove angle brackets wrapper if present.
+        let address = String(a?.address ?? a).trim();
+
+        // Remove angle brackets wrapper.
         if (address.startsWith('<') && address.endsWith('>')) {
           address = address.slice(1, -1);
         }
 
         out.push({
-          name: (name || '').trim(),
-          address: (address || '').trim(),
+          name: name.trim(),
+          address: address.trim(),
         });
       } catch {
         // skip broken entry.
       }
     }
     return out;
+  }
+
+  // Minimal decode helper to avoid importing libmime directly with wrong shape.
+  private decodeWord(s: string): string {
+    if (!s || typeof s !== 'string') return '';
+    try {
+      // Handle common RFC2047 encoded-words =?charset*encoding*encoded?=
+      const result = String(s).replace(
+        /=\?(.*?)\?(Q|B)\?(.*?)\?=/g,
+        (_match: string, charset: string, encoding: 'Q' | 'B', text: string) => {
+          try {
+            const cs = (charset || 'utf-8').trim().toLowerCase();
+            if (!text || !encoding) return _match;
+
+            if (encoding === 'B') {
+              // Base64.
+              return Buffer.from(text, 'base64').toString(cs);
+            } else {
+              // Quoted-printable-ish: spaces → '+', then decode.
+              const qText = text.replace(/_/g, ' ');
+              const bytes: number[] = [];
+              let i = 0;
+              while (i < qText.length) {
+                if (qText[i] === '=' && i + 2 <= qText.length) {
+                  const hex = qText.slice(i + 1, i + 3);
+                  if (/^[0-9A-Fa-f]{2}$/.test(hex)) {
+                    bytes.push(parseInt(hex, 16));
+                    i += 3;
+                    continue;
+                  }
+                }
+                bytes.push(qText.charCodeAt(i));
+                i++;
+              }
+              return Buffer.from(bytes).toString(cs);
+            }
+          } catch {
+            // Fallback to raw.
+            return _match;
+          }
+        }
+      );
+
+      return result ? result : s;
+    } catch {
+      return s;
+    }
   }
 }

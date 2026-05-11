@@ -239,24 +239,37 @@ export class MailboxSyncService extends EventEmitter {
 
       const idleEmitter = await imapAdapter.startIdle(config, mailbox);
 
-      idleEmitter.on('update', (data: any) => {
-        this.flagSync.applyExternalChange(userId, data.mailbox, data.uid, Object.keys(data.flags || {}));
-        this.broadcastSyncStatus(userId, 'syncing', 50, data.mailbox, 'Flag change detected');
+      idleEmitter.on('update', (data: unknown) => {
+        const d = data as Record<string, unknown>;
+        this.flagSync.applyExternalChange(
+          userId,
+          String(d.mailbox || ''),
+          Number(d.uid),
+          Object.keys((d.flags || {}) as Record<string, unknown>),
+        );
+        this.broadcastSyncStatus(userId, 'syncing', 50, String(d.mailbox), 'Flag change detected');
         setTimeout(async () => {
-          try { await this.incrementalSync(userId, config, data.mailbox); } catch {}
+          try { await this.incrementalSync(userId, config, String(d.mailbox)); } catch {}
         }, 1000);
       });
 
-      idleEmitter.on('expunge', (data: any) => {
-        this.flagSync.invalidateMailboxCache(userId, data.mailbox);
-        this.broadcastSyncStatus(userId, 'syncing', 75, data.mailbox, 'Message removed');
+      idleEmitter.on('expunge', (data: unknown) => {
+        const d = data as Record<string, unknown>;
+        this.flagSync.invalidateMailboxCache(userId, String(d.mailbox));
+        this.broadcastSyncStatus(userId, 'syncing', 75, String(d.mailbox), 'Message removed');
         setTimeout(async () => {
-          try { await this.incrementalSync(userId, config, data.mailbox); } catch {}
+          try { await this.incrementalSync(userId, config, String(d.mailbox)); } catch {}
         }, 1000);
       });
 
-      idleEmitter.on('flags', (data: any) => {
-        this.flagSync.applyExternalChange(userId, data.mailbox, data.uid, Object.keys(data.flags || {}));
+      idleEmitter.on('flags', (data: unknown) => {
+        const d = data as Record<string, unknown>;
+        this.flagSync.applyExternalChange(
+          userId,
+          String(d.mailbox || ''),
+          Number(d.uid),
+          Object.keys((d.flags || {}) as Record<string, unknown>),
+        );
       });
 
       auditLogger.info('IMAP IDLE listener started', { actor_id: userId, metadata: { mailbox } });
@@ -281,7 +294,6 @@ export class MailboxSyncService extends EventEmitter {
     this.mailboxStates.delete(userId);
     this.syncProgress.delete(userId);
     this.flagSync.invalidateUserCache(userId);
-    this.stopPolling(userId);
   }
 
   // ----------------------------------------------------------------
@@ -309,7 +321,7 @@ export class MailboxSyncService extends EventEmitter {
   ): void {
     const gateway = getWSGateway();
     if (!gateway) return;
-    gateway.sendToUserChannel(userId, 'sync:status' as any, {
+    gateway.sendToUser(userId, {
       type: 'SYNC_STATUS',
       payload: { status, progress, mailbox, message },
       timestamp: Date.now(),

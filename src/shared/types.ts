@@ -271,10 +271,22 @@ export interface WSSubscribePayload {
   channels: WSChannel[];
 }
 
+// Shared for client→server and server-side flag operations.
+export type WSFlagAction = 'add' | 'remove' | 'set';
+
 export interface WSFlagUpdatePayload {
   messageId: string;
   flags: string[];
-  action: 'add' | 'remove';
+  action: WSFlagAction;
+  mailboxId?: string;
+}
+
+// Server→client MESSAGE_FLAG_CHANGED payload (standardized).
+export interface WSFlagChangeBroadcastPayload {
+  messageId: string;
+  flags: string[];
+  action: WSFlagAction;
+  mailboxId: string;
 }
 
 // ------------------------------------------------------------------
@@ -358,6 +370,15 @@ export interface SyncStatusEvent {
 }
 
 // ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+// WebSocket bridge / event types
+// ------------------------------------------------------------------
+export interface MailEventPayload {
+  userId: string;
+  type: 'new' | 'flagged' | 'deleted' | 'synced' | 'moved';
+  data?: Record<string, unknown>;
+}
 
 export interface AmavisFilterResult {
   message_id: string;
