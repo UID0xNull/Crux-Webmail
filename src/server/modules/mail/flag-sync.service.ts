@@ -11,8 +11,8 @@
 
 import { EventEmitter } from 'node:events';
 import { getMailService, MailService } from './mail-service';
-import { getWSGateway } from 'ws/ws-gateway';
-import { auditLogger } from 'utils/audit-logger';
+import { getWSGateway } from '@modules/ws/ws-gateway';
+import { auditLogger } from '@utils/audit-logger';
 import type {
   IAccountConfig,
   IFlags,
@@ -96,7 +96,7 @@ export class FlagSyncService extends EventEmitter {
     mailbox: string,
     uid: string,
     flags: string[],
-    action: 'add' | 'remove' = 'add',
+    action: 'add' | 'remove' | 'set',
   ): Promise<void> {
     const dedupKey = `${userId}:${mailbox}:${uid}:${action}:${flags.join(',')}`;
     if (this.isDedupHit(dedupKey)) return;
@@ -105,8 +105,34 @@ export class FlagSyncService extends EventEmitter {
     try {
       if (action === 'add') {
         await this.mailService.addFlags(userId, config, mailbox, uid, flags);
-      } else {
+      } else if (action === 'remove') {
         await this.mailService.removeFlags(userId, config, mailbox, uid, flags);
+      } else {
+        const current = this.getFlagState(userId, mailbox, uid);
+        const currentSet = new Set<string>(current?.flags ?? []);
+        const targetSet = new Set<string>(flags);
+
+        const toAdd: string[] = [];
+        for (const f of flags) {
+          if (!currentSet.has(f)) toAdd.push(f);
+        }
+        const toRemove: string[] = [];
+        for (const c of currentSet) {
+          if (!targetSet.has(c)) toRemove.push(c);
+        }
+
+        if (toAdd.length > 0) {
+          await this.mailService.addFlags(userId, config, mailbox, uid, toAdd);
+        }
+        if (toRemove.length > 0) {
+          await this.mailService.removeFlags(
+            userId,
+            config,
+            mailbox,
+            uid,
+            toRemove
+          );
+        }
       }
 
       // Update local cache

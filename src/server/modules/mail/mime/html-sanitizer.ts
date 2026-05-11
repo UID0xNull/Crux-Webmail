@@ -127,33 +127,41 @@ export class HtmlSanitizer {
       },
       allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
 
-      // Transform <a> tags to enforce security
-      transformLinks: {
-        a: (transformedAttributes, _tagName, _originalAttributes) => {
-          const href = transformedAttributes.href || '';
-          if (this.isDangerousHref(href)) {
-            delete transformedAttributes.href;
-            report.removedProtocols.push('dangerous');
-          }
+            // Transform <a> tags to enforce security
+      transformLinks: (linkAttributes: Record<string, string>, _tagName: string) => {
+        const href = typeof linkAttributes.href === 'string' ? linkAttributes.href : '';
 
-          if (href.startsWith('http') || href.startsWith('//')) {
-            transformedAttributes.rel = 'noopener noreferrer';
-            transformedAttributes.target = '_blank';
-          }
+        if (!this.isDangerousHref(href)) {
+          // Non-dangerous; keep as is (unless restricted by domain rules).
+        } else {
+          delete linkAttributes.href;
+          report.removedProtocols.push('dangerous');
+        }
 
-          if (this.config.allowedDomains.length > 0) {
-            try {
-              const hostname = new URL(href).hostname;
-              if (!this.config.allowedDomains.includes(hostname)) {
-                delete transformedAttributes.href;
-              }
-            } catch {
-              delete transformedAttributes.href;
+        const httpHref = typeof href === 'string' && (href.startsWith('http') || href.startsWith('//'));
+        if (httpHref && linkAttributes.href) {
+          linkAttributes.rel = 'noopener noreferrer';
+          linkAttributes.target = '_blank';
+        }
+
+        if (
+          Array.isArray(this.config.allowedDomains) &&
+          this.config.allowedDomains.length > 0 &&
+          href.length > 3
+        ) {
+          try {
+            const url = new URL(href);
+            const host = typeof url.hostname === 'string' ? url.hostname : '';
+            if (host && !this.config.allowedDomains.includes(host)) {
+              delete linkAttributes.href;
             }
+          } catch {
+            // If parsing fails, drop href
+            delete linkAttributes.href;
           }
+        }
 
-          return transformedAttributes;
-        },
+        return linkAttributes;
       },
 
       allowedStyles: this.config.allowCss ? ALLOWED_CSS_PROPS : [],

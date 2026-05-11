@@ -7,9 +7,9 @@
 // ============================================================================
 
 import { EventEmitter } from 'node:events';
-import { auditLogger } from '../../utils/audit-logger';
-import { MimeParser } from './mime-parser';
-import { HtmlSanitizer } from './html-sanitizer';
+import { auditLogger } from 'utils/audit-logger';
+import { MimeParser, MimeRawAttachment } from './mime-parser';
+import { HtmlSanitizer, SanitizationReport } from './html-sanitizer';
 import { AttachmentValidator } from './attachment-validator';
 import { ClamavScanner } from './clamav-scanner';
 import {
@@ -326,7 +326,7 @@ export class MimePipeline extends EventEmitter {
   // ----------------------------------------------------------------
   private calculateSecurity(
     attachments: ParsedAttachment[],
-    sanitizationReport: any,
+    sanitizationReport: { threatsFound?: number; removedElements?: string[] },
     uid: string,
   ): ParsedEmail['security'] {
     const quarantined = attachments.filter(
@@ -339,8 +339,8 @@ export class MimePipeline extends EventEmitter {
 
     const xssThreats = sanitizationReport?.threatsFound || 0;
 
-    // Determine overall risk level
-    let overallRisk: ParsedEmail['security'] = 'low';
+    // Determine overall risk level as typed union, not as ParsedEmail['security'].
+    let overallRisk: 'low' | 'medium' | 'high' | 'critical' = 'low';
     if (infected > 0) {
       overallRisk = 'critical';
     } else if (quarantined > 2) {
@@ -352,19 +352,22 @@ export class MimePipeline extends EventEmitter {
     // Check if ClamAV scan is complete (all scanned or skipped)
     const clamavComplete = this.clamavScanner
       ? attachments.every(
-        (a) =>
-          a.virusScanStatus === 'clean' ||
-          a.virusScanStatus === 'skipped' ||
-          a.virusScanStatus === 'infected',
-      )
+          (a) =>
+            a.virusScanStatus === 'clean' ||
+            a.virusScanStatus === 'skipped' ||
+            a.virusScanStatus === 'infected',
+        )
       : true;
 
     return {
       xssThreatsFound: xssThreats,
-      sanitizedElements: sanitizationReport?.removedElements || [],
+      sanitizedElements:
+        (Array.isArray(sanitizationReport?.removedElements)
+          ? sanitizationReport.removedElements
+          : []) as string[],
       clamavScanComplete: clamavComplete,
       attachmentsQuarantined: quarantined,
-      overallRisk: overallRisk,
+      overallRisk,
     };
   }
 
