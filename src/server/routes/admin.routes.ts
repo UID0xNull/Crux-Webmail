@@ -176,7 +176,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'List all users with pagination and filters',
         tags: ['admin'],
         querystring: z.object({}).passthrough(),
-        response: { 200: { type: 'object', additionalProperties: true } },
+        response: { 200: z.record(z.any()) },
       },
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {

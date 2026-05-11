@@ -1,8 +1,10 @@
 // ============================================================================
 // Crux-Webmail — SMTP Service (Nodemailer)
 // ============================================================================
+import type { SendMailOptions } from 'nodemailer';
 import nodemailer from 'nodemailer';
-import * as openpgp from 'openpgp';
+import { createMessage, encrypt, readKey } from 'openpgp';
+
 export interface SMTPConfig {
   host: string;
   port: number;
@@ -67,16 +69,15 @@ export async function sendEmail(
     throw new Error('SMTP connection failed');
   }
 
-  const attachments
-    : Array<nodemailer.SendMailOptions['attachments'][number]> | undefined =
+  const attachments: SendMailOptions['attachments'] | undefined =
     options.attachments?.map((att) => ({
-        filename: att.filename,
-        content: att.content,
-        contentType: att.contentType ?? undefined,
-      })) ??
+      filename: att.filename,
+      content: att.content,
+      contentType: att.contentType ?? undefined,
+    })) ??
     undefined;
 
-  const mailOptions: nodemailer.SendMailOptions = {
+  const mailOptions: SendMailOptions = {
     from: options.from,
     to: options.to.join(', '),
     subject: options.subject,
@@ -114,10 +115,10 @@ export async function sendEncryptedEmail(
   recipientPublicKey: string
 ): Promise<{ messageId: string; status: 'sent' }> {
   try {
-    const message = await openpgp.createMessage({ text: options.text || '' });
-    const encryptionKeys = await openpgp.readKey({ armoredKey: recipientPublicKey });
+    const message = await createMessage({ text: options.text || '' });
+    const encryptionKeys = await readKey({ armoredKey: recipientPublicKey });
 
-    const encryptedText = await openpgp.encrypt({
+    const encryptedText = await encrypt({
       message,
       encryptionKeys,
     });
