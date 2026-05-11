@@ -523,9 +523,10 @@ export class SecureSessionManager {
     }
   }
 
-  private decryptSession(encrypted: Record<string, string>): SecureSession | null {
+  private decryptSession(encrypted: any): SecureSession | null {
     try {
-      const decrypted = this.aead!.decrypt(encrypted);
+      const params = encrypted as { iv: string; tag: string; ciphertext: string };
+      const decrypted = this.aead!.decrypt(params);
       return JSON.parse(decrypted);
     } catch {
       return null;

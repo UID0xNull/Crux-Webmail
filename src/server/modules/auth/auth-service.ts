@@ -440,7 +440,7 @@ export class AuthService {
         backup_code_hash: JSON.stringify(hashedBackups),
       });
 
-      await AuditLogModel.create({
+      await (AuditLogModel as any).create({
         event_id: generateSecureUuid(),
         timestamp: new Date().toISOString(),
         source: 'auth-service',
@@ -490,7 +490,7 @@ export class AuthService {
 
       await mfaSession.update({ status: 'verified' });
 
-      await AuditLogModel.create({
+      await (AuditLogModel as any).create({
         event_id: generateSecureUuid(),
         timestamp: new Date().toISOString(),
         source: 'auth-service',
@@ -548,7 +548,7 @@ export class AuthService {
         { where: { id: userId } }
       );
 
-      await AuditLogModel.create({
+      await (AuditLogModel as any).create({
         event_id: generateSecureUuid(),
         timestamp: new Date().toISOString(),
         source: 'auth-service',
@@ -595,13 +595,13 @@ export class AuthService {
   // ----------------------------------------------------------------
   // Internal helpers
   // ----------------------------------------------------------------
-  private async incrementFailedAttempts(user: UserModel): Promise<void> {
+      private async incrementFailedAttempts(user: UserModel): Promise<void> {
     const newAttempts = user.failed_attempts + 1;
     const lockUntil = newAttempts >= MAX_FAILED_ATTEMPTS 
       ? Date.now() + LOCKOUT_DURATION_MS 
       : null;
 
-    await UserModel.update(
+    await (UserModel as any).update(
       {
         failed_attempts: newAttempts,
         locked_until: lockUntil,

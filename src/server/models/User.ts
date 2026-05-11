@@ -7,8 +7,8 @@
 
 import { DataTypes, Model, Optional } from 'sequelize';
 import bcrypt from 'bcryptjs';
-import { generateSalt } from 'utils/crypto';
 import { z } from 'zod';
+import { generateSalt } from 'utils/crypto';
 
 // ------------------------------------------------------------------
 // Validation Schema
@@ -95,10 +95,10 @@ export function initUserModel(sequelize: any): typeof UserModel {
       type: DataTypes.STRING(256),
       allowNull: false,
       unique: true,
-      validate: {isEmail: { msg: 'Username must be a valid email' }},
+      validate: { isEmail: { msg: 'Username must be a valid email' } },
     },
     passwordHash: {
-      type: DataTypes.STRING(60),
+      type: DataTypes.STRING(256),
       allowNull: false,
       field: 'password_hash',
     },

@@ -162,8 +162,8 @@ export async function handleUploadAttachment(
     });
   }
 
-  // Parse multipart form data
-  const data = await request.file({
+  // Parse multipart form data (fastify-multipart used via any cast for now)
+  const data = await (request as any).file({
     limits: {
       fileSize: 25 * 1024 * 1024, // 25MB
     },
