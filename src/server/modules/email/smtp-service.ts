@@ -1,17 +1,10 @@
 // ============================================================================
 // Crux-Webmail — SMTP Service (Nodemailer)
 // ============================================================================
-// Envío de emails con OpenPGP encryption support, templates, retry logic.
-// ============================================================================
-
 import nodemailer from 'nodemailer';
-import { auditLogger } from '../../utils/audit-logger';
-import { openpgp } from 'openpgp';
+import * as openpgp from 'openpgp';
 
-// ------------------------------------------------------------------
-// Transporter Pool
-// ------------------------------------------------------------------
-interface SMTPConfig {
+export interface SMTPConfig {
   host: string;
   port: number;
   secure: boolean;
@@ -42,18 +35,10 @@ async function getTransporter(accountId: string, config: SMTPConfig): Promise<no
   transporters.set(accountId, transporter);
 
   await transporter.verify();
-  
-  auditLogger.info('SMTP transporter connected', {
-    actor_id: accountId,
-    metadata: { host: config.host },
-  });
 
   return transporter;
 }
 
-// ------------------------------------------------------------------
-// Send Email
-// ------------------------------------------------------------------
 export interface SendEmailOptions {
   from: string;
   to: string[];
@@ -76,14 +61,10 @@ export async function sendEmail(
   retryCount: number = 3
 ): Promise<{ messageId: string; status: 'sent' }> {
   let transporter: nodemailer.Transporter;
-  
+
   try {
     transporter = await getTransporter(accountId, smtpConfig);
   } catch (err) {
-    auditLogger.error('SMTP transporter creation failed', {
-      actor_id: accountId,
-      metadata: { error: (err as Error).message },
-    });
     throw new Error('SMTP connection failed');
   }
 
@@ -107,36 +88,17 @@ export async function sendEmail(
   try {
     const result = await transporter.sendMail(mailOptions);
 
-    auditLogger.info('Email sent successfully', {
-      actor_id: accountId,
-      metadata: {
-        message_id: result.messageId,
-        to: options.to,
-      },
-    });
-
     return { messageId: result.messageId, status: 'sent' };
   } catch (err) {
     if (retryCount > 0) {
-      auditLogger.warn(`Email send failed, retrying (${retryCount} left)`, {
-        actor_id: accountId,
-        metadata: { error: (err as Error).message },
-      });
       await new Promise(r => setTimeout(r, Math.pow(2, 3 - retryCount) * 1000));
       return sendEmail(accountId, smtpConfig, options, retryCount - 1);
     }
 
-    auditLogger.error('Email send failed after all retries', {
-      actor_id: accountId,
-      metadata: { error: (err as Error).message },
-    });
     throw err;
   }
 }
 
-// ------------------------------------------------------------------
-// Send PGP Encrypted Email
-// ------------------------------------------------------------------
 export async function sendEncryptedEmail(
   accountId: string,
   smtpConfig: SMTPConfig,
@@ -144,34 +106,26 @@ export async function sendEncryptedEmail(
   recipientPublicKey: string
 ): Promise<{ messageId: string; status: 'sent' }> {
   try {
-    // Encrypt the message body with recipient's PGP key
+    const message = await openpgp.createMessage({ text: options.text || '' });
+    const encryptionKeys = await openpgp.readKey({ armoredKey: recipientPublicKey });
+
     const encryptedText = await openpgp.encrypt({
-      message: openpgp.createMessage({
-        text: options.text || '',
-      }),
-      encryptionKeys: await openpgp.readKey({ armoredKey: recipientPublicKey }),
+      message,
+      encryptionKeys,
     });
 
-    // Replace body with encrypted content
     const encryptedOptions: SendEmailOptions = {
       ...options,
       text: typeof encryptedText === 'string' ? encryptedText : encryptedText.toString(),
-      html: undefined, // No HTML for encrypted messages
+      html: undefined,
     };
 
     return sendEmail(accountId, smtpConfig, encryptedOptions);
   } catch (err) {
-    auditLogger.error('PGP encryption failed', {
-      actor_id: accountId,
-      metadata: { error: (err as Error).message },
-    });
     throw new Error('PGP_ENCRYPTION_ERROR');
   }
 }
 
-// ------------------------------------------------------------------
-// Send Template Email
-// ------------------------------------------------------------------
 export interface TemplateVars {
   name: string;
   value: string;
@@ -180,7 +134,7 @@ export interface TemplateVars {
 function renderTemplate(template: string, vars: TemplateVars[]): string {
   let rendered = template;
   for (const { name, value } of vars) {
-    rendered = rendered.replace(new RegExp(`\{${name}\}`, 'g'), value);
+    rendered = rendered.replace(new RegExp(`\\{${name}\\}`, 'g'), value);
   }
   return rendered;
 }
@@ -203,20 +157,16 @@ export async function sendTemplateEmail(
   const result = await sendEmail(accountId, smtpConfig, {
     from: smtpConfig.username,
     to: [to],
-    subject: `Crux-Webmail Notification`,
+    subject: 'Crux-Webmail Notification',
     text: content,
   });
 
   return { messageId: result.messageId };
 }
 
-// ------------------------------------------------------------------
-// Close all transporters
-// ------------------------------------------------------------------
 export async function closeAllTransporters(): Promise<void> {
-  for (const [id, transporter] of transporters) {
+  for (const [, transporter] of transporters) {
     await transporter.close();
   }
   transporters.clear();
-  auditLogger.info('All SMTP transporters closed');
 }

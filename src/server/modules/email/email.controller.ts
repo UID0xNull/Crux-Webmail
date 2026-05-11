@@ -360,7 +360,7 @@ export async function queueEmailSend(
   const smtpConfig = buildSmtpConfig(userId, user);
 
   const options: SendEmailOptions = {
-    from: user.username,
+    from: String(user.username),
     to: req.to,
     cc: req.cc,
     bcc: req.bcc,
@@ -371,13 +371,14 @@ export async function queueEmailSend(
 
   try {
     const job = await addEmailSendJob(userId, smtpConfig, options);
+    const jobId = (typeof job?.id === 'string') ? job.id : String(job?.id ?? '');
 
     auditLogger.info('Email queued for sending', {
       actor_id: userId,
-      metadata: { job_id: job.id, to: req.to },
+      metadata: { job_id: jobId, to: req.to },
     });
 
-    return { jobId: job.id, status: 'queued' };
+    return { jobId, status: 'queued' };
   } catch (err) {
     auditLogger.error('Failed to queue email', {
       actor_id: userId,

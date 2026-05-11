@@ -1,18 +1,10 @@
-// ============================================================================
-// Crux-Webmail — IMAP Service (Simple-IMAP)
-// ============================================================================
-// Conecta a servidores IMAP, maneja auth, list folder, fetch emails.
-// Implementa connection pooling, circuit breaker, retry con backoff.
-// Zero-Trust: cada operación auditable + timeout estricto.
-// ============================================================================
+// Crux-Webmail — IMAP Service (simple-imap)
 
-import SimpleIMAP from 'simple-imap';
-import { auditLogger } from '../../utils/audit-logger';
-import { CruxError } from '../../errors/handler';
+import simpleImapModule from 'simple-imap';
+import { auditLogger } from 'utils/audit-logger';
+import type { CruxError } from 'errors/handler';
 
-// ------------------------------------------------------------------
-// Types
-// ------------------------------------------------------------------
+const SimpleImap: any = (simpleImapModule as any).SimpleImap || (simpleImapModule as any).default;
 
 export interface IMAPAccount {
   id: string;
@@ -23,19 +15,14 @@ export interface IMAPAccount {
   tls: boolean;
 }
 
-export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
-
-interface ConnectionEntry {
-  connection: SimpleIMAP;
-  status: ConnectionStatus;
-  lastActivity: number;
-}
+type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
 export interface EmailMessage {
   uid: number;
   subject: string;
   from: { address: string; name?: string }[];
-  to: { address: string; name?: string }[];
+  to:   { address: string; name?: string }[];
+  cc:   { address: string; name?: string }[];
   date: string;
   text?: string;
   html?: string;
@@ -55,121 +42,66 @@ export interface SearchQuery {
   hasAttachments?: boolean;
 }
 
-export interface PaginatedEmails {
-  items: EmailMessage[];
-  total: number;
-  nextCursor: string | null;
-  prevCursor: string | null;
-}
-
-// ------------------------------------------------------------------
-// Circuit Breaker State
-// ------------------------------------------------------------------
-
-const CIRCUIT_STATES = new Map<string, {
+interface CircuitState {
   state: 'closed' | 'open' | 'half-open';
   failures: number;
   lastFailure: number;
-  threshold: number;
   resetTimeout: number;
-}>();
+  threshold: number;
+}
 
+const CIRCUIT_STATES = new Map<string, CircuitState>();
 const MAX_FAILURES = 5;
 const RESET_TIMEOUT_MS = 30_000;
 
-function getCircuitState(accountId: string) {
-  let circuit = CIRCUIT_STATES.get(accountId);
-  if (!circuit) {
-    circuit = {
-      state: 'closed',
-      failures: 0,
-      lastFailure: 0,
-      threshold: MAX_FAILURES,
-      resetTimeout: RESET_TIMEOUT_MS,
-    };
-    CIRCUIT_STATES.set(accountId, circuit);
+function getCircuit(id: string): CircuitState {
+  let c = CIRCUIT_STATES.get(id);
+  if (!c) {
+    c = { state: 'closed', failures: 0, lastFailure: 0, threshold: MAX_FAILURES, resetTimeout: RESET_TIMEOUT_MS };
+    CIRCUIT_STATES.set(id, c);
   }
-  return circuit;
+  return c;
 }
 
-function circuitAllow(accountId: string): boolean {
-  const circuit = getCircuitState(accountId);
-
-  if (circuit.state === 'open') {
-    if (Date.now() - circuit.lastFailure > circuit.resetTimeout) {
-      circuit.state = 'half-open';
-      auditLogger.info('Circuit breaker half-open', {
-        actor_id: accountId,
-        metadata: { host: 'IMAP' },
-      });
-      return true;
-    }
-    return false;
-  }
+function circuitAllow(id: string): boolean {
+  const cs = getCircuit(id);
+  if (cs.state === 'open' && Date.now() - cs.lastFailure < cs.resetTimeout) return false;
+  if (cs.state === 'open') cs.state = 'half-open';
   return true;
 }
 
-function circuitRecordSuccess(accountId: string) {
-  const circuit = getCircuitState(accountId);
-  circuit.failures = 0;
-  circuit.state = 'closed';
-}
-
-function circuitRecordFailure(accountId: string) {
-  const circuit = getCircuitState(accountId);
-  circuit.failures += 1;
-  circuit.lastFailure = Date.now();
-
-  if (circuit.failures >= circuit.threshold) {
-    circuit.state = 'open';
-    auditLogger.warn('Circuit breaker OPEN', {
-      actor_id: accountId,
-      metadata: { failures: circuit.failures },
-    });
+function circuitRecordSuccess(id: string) { const c = getCircuit(id); c.failures = 0; c.state = 'closed'; }
+function circuitRecordFailure(id: string) {
+  const c = getCircuit(id); c.lastFailure = Date.now(); c.failures++;
+  if (c.failures >= c.threshold && c.state !== 'open') {
+    c.state = 'open';
+    auditLogger.warn('Circuit breaker OPEN', { actor_id: id, failures: c.failures });
   }
 }
 
-// ------------------------------------------------------------------
-// Connection Pool (in-memory)
-// ------------------------------------------------------------------
+const connectionPool = new Map<string, { conn: any; status: ConnectionStatus; lastActivity: number }>();
 
-const connectionPool = new Map<string, ConnectionEntry>();
-
-// ------------------------------------------------------------------
-// Connect to IMAP server
-// ------------------------------------------------------------------
-
-async function connectIMAP(account: IMAPAccount): Promise<SimpleIMAP> {
+export async function connectIMAP(account: IMAPAccount): Promise<any> {
   return new Promise((resolve, reject) => {
-    const conn = new SimpleIMAP({
+    const conn = new SimpleImap({
       user: account.username,
       password: account.password,
       host: account.host,
       port: account.port,
       tls: account.tls,
       authTimeout: 20_000,
-      connTimeout: 10_000,
+      connTimeout: 15_000,
     });
 
     conn.once('ready', () => {
-      auditLogger.info('IMAP connected', {
-        actor_id: account.id,
-        metadata: { host: account.host },
-      });
-      connectionPool.set(account.id, {
-        connection: conn,
-        status: 'connected',
-        lastActivity: Date.now(),
-      });
+      auditLogger.info('IMAP connected', { actor_id: account.id, host: account.host });
+      connectionPool.set(account.id, { conn, status: 'connected', lastActivity: Date.now() });
       circuitRecordSuccess(account.id);
       resolve(conn);
     });
 
-    conn.once('error', (err: Error) => {
-      auditLogger.error('IMAP connection error', {
-        actor_id: account.id,
-        metadata: { host: account.host, error: err.message },
-      });
+    conn.once('error', (err: any) => {
+      auditLogger.error('IMAP connection error', { actor_id: account.id, host: account.host, error: err?.message || err });
       connectionPool.delete(account.id);
       circuitRecordFailure(account.id);
       reject(err);
@@ -179,419 +111,234 @@ async function connectIMAP(account: IMAPAccount): Promise<SimpleIMAP> {
   });
 }
 
-// ------------------------------------------------------------------
-// Get or create connection (with circuit breaker + retry)
-// ------------------------------------------------------------------
-
-async function getIMAPConnection(account: IMAPAccount): Promise<SimpleIMAP> {
+async function getIMAPConnection(account: IMAPAccount): Promise<any> {
   if (!circuitAllow(account.id)) {
-    throw new CruxError(
-      'IMAP_CIRCUIT_OPEN',
-      'IMAP service temporarily unavailable (circuit breaker open)',
-    );
+    throw new (CruxError || Error)('IMAP_CIRCUIT_OPEN', 'IMAP service temporarily unavailable');
   }
 
-  const existing = connectionPool.get(account.id);
-  if (existing && existing.status === 'connected') {
-    existing.lastActivity = Date.now();
-    return existing.connection;
+  const entry = connectionPool.get(account.id);
+  if (entry && entry.status === 'connected') {
+    entry.lastActivity = Date.now();
+    return entry.conn;
   }
 
-  // Retry logic with exponential backoff
   for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      return await connectIMAP(account);
-    } catch (err) {
+    try { return await connectIMAP(account); } catch (err: any) {
       circuitRecordFailure(account.id);
-      auditLogger.warn(`IMAP reconnect attempt ${attempt} failed`, {
-        actor_id: account.id,
-        metadata: { error: (err as Error).message },
-      });
       if (attempt === 3) throw err;
-      await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1000));
+      await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
     }
   }
+
   throw new Error('IMAP connection failed after retries');
 }
 
-// ------------------------------------------------------------------
-// List folders
-// ------------------------------------------------------------------
-
-export async function listFolders(userId: string, account: IMAPAccount): Promise<any[]> {
+export async function listFolders(_userId: string, account: IMAPAccount): Promise<any[]> {
   const conn = await getIMAPConnection(account);
   return new Promise((resolve, reject) => {
-    conn.listFolders((err: Error | null, folders: any[]) => {
-      if (err) reject(err);
-      else resolve(folders);
-    });
+    conn.listFolders((err: any, folders: any[]) => (err ? reject(err) : resolve(folders)));
   });
 }
 
-// ------------------------------------------------------------------
-// Fetch emails from folder
-// ------------------------------------------------------------------
+function parseAddr(a: any): { address: string; name?: string } | null {
+  if (!a || typeof a === 'string') return a ? { address: a.trim(), name: undefined } : null;
+  const addr = (typeof a.address === 'string' && a.address !== '') ? a.address.trim() : undefined;
+  if (!addr) return null;
+  const name = typeof a.name === 'string' && a.name?.trim() ? a.name.trim() : undefined;
+  return { address: addr, name };
+}
+
+function normalizeMsg(msg: any): EmailMessage {
+  const attrs = msg.attributes || {};
+  const parts = Array.isArray(msg.parts) ? msg.parts : [];
+
+  const textPart = parts.find((p: any) => p.which === 'text');
+  const htmlPart = parts.find((p: any) => p.which === 'html');
+
+  return {
+    uid: attrs.uid || 0,
+    subject: attrs.subject || '(No Subject)',
+    from: (attrs.from || []).map(parseAddr).filter(Boolean) as Array<{ address: string; name?: string }>,
+    to:   (attrs.to || []).map(parseAddr).filter(Boolean) as Array<{ address: string; name?: string }>,
+    cc:   (attrs.cc || []).map(parseAddr).filter(Boolean) as Array<{ address: string; name?: string }>,
+    date: attrs.date instanceof Date ? attrs.date.toISOString() : new Date().toISOString(),
+    text: typeof textPart?.source === 'string' ? textPart.source : undefined,
+    html: typeof htmlPart?.source === 'string' ? htmlPart.source : undefined,
+    hasAttachments: Array.isArray(attrs.attachments) && attrs.attachments.length > 0,
+    flags: Array.isArray(attrs.flags) ? attrs.flags : [],
+  };
+}
 
 export async function fetchEmails(
-  userId: string,
+  _userId: string,
   account: IMAPAccount,
-  folder: string = 'INBOX',
-  search: { since?: string; unread?: boolean } = {},
+  folder = 'INBOX',
+  search?: { since?: string; unread?: boolean }
 ): Promise<EmailMessage[]> {
   const conn = await getIMAPConnection(account);
 
-  const searchQuery: any[] = [];
-  if (search.unread) searchQuery.push('UNSEEN');
-  if (search.since) searchQuery.push(`SINCE ${search.since}`);
-  if (searchQuery.length === 0) searchQuery.push('ALL');
+  const query: any[] = [];
+  if (search?.unread) query.push('UNSEEN'); else query.push('ALL');
+  if (search?.since) query.push(`SINCE ${search.since}`);
 
   return new Promise((resolve, reject) => {
-    conn.fetch({
-      box: folder,
-      search: searchQuery,
-      markSeen: false,
-    }, {
-      body: true,
-      b: {
-        from: true,
-        to: true,
-        subject: true,
-        date: true,
-        cc: true,
-        flags: true,
-        attachments: true,
-      },
-    }, (err: Error | null, email: any) => {
-      if (err) {
-        auditLogger.error('IMAP fetch error', {
-          actor_id: userId,
-          metadata: { folder, error: err.message },
-        });
-        reject(err);
-        return;
-      }
-
-      const messages: EmailMessage[] = [];
-      const emails = Array.isArray(email) ? email : [email];
-
-      for (const msg of emails) {
-        messages.push({
-          uid: msg.attributes?.uid || 0,
-          subject: msg.attributes?.subject || '(No Subject)',
-          from: msg.attributes?.from || [],
-          to: msg.attributes?.to || [],
-          date: msg.attributes?.date?.toISOString() || new Date().toISOString(),
-          text: msg.parts?.find((p: any) => p.which === 'text')?.source || '',
-          html: msg.parts?.find((p: any) => p.which === 'html')?.source || '',
-          hasAttachments: msg.attributes?.attachments?.length > 0 || false,
-          flags: msg.attributes?.flags || [],
-        });
-      }
-
-      resolve(messages);
+    conn.fetch({ box: folder || 'INBOX', search: query }, { body: true, b: { from: true, to: true, cc: true, subject: true, date: true, flags: true, attachments: true } }, (err: any, msgOrMsgs: any) => {
+      if (err) return reject(err);
+      const msgs = Array.isArray(msgOrMsgs) ? msgOrMsgs : [msgOrMsgs];
+      resolve(msgs.map(normalizeMsg));
     });
   });
 }
 
-// ------------------------------------------------------------------
-// Fetch single email by UID
-// ------------------------------------------------------------------
-
-export async function fetchEmailByUID(
-  userId: string,
-  account: IMAPAccount,
-  folder: string,
-  uid: number,
-): Promise<EmailMessage | null> {
+export async function fetchEmailByUID(_userId: string, account: IMAPAccount, folder: string, uid: number): Promise<EmailMessage | null> {
   const conn = await getIMAPConnection(account);
 
   return new Promise((resolve, reject) => {
-    conn.fetch({
-      box: folder,
-      uid: uid,
-    }, {
-      body: true,
-      b: {
-        from: true,
-        to: true,
-        subject: true,
-        date: true,
-        cc: true,
-        flags: true,
-        attachments: true,
-      },
-    }, (err: Error | null, email: any) => {
-      if (err) {
-        auditLogger.error('IMAP fetch by UID error', {
-          actor_id: userId,
-          metadata: { uid, folder, error: err.message },
-        });
-        reject(err);
-        return;
-      }
-
-      resolve({
-        uid: email.attributes?.uid || uid,
-        subject: email.attributes?.subject || '(No Subject)',
-        from: email.attributes?.from || [],
-        to: email.attributes?.to || [],
-        date: email.attributes?.date?.toISOString() || new Date().toISOString(),
-        text: email.parts?.find((p: any) => p.which === 'text')?.source || '',
-        html: email.parts?.find((p: any) => p.which === 'html')?.source || '',
-        hasAttachments: email.attributes?.attachments?.length > 0 || false,
-        flags: email.attributes?.flags || [],
-      });
+    conn.fetch({ box: folder || 'INBOX', uid }, { body: true, b: { from: true, to: true, cc: true, subject: true, date: true, flags: true, attachments: true } }, (err: any, msgOrMsgs: any) => {
+      if (err) return reject(err);
+      const msgs = Array.isArray(msgOrMsgs) ? msgOrMsgs : [msgOrMsgs];
+      const first = msgs[0];
+      if (!first || !first.attributes || !first.attributes.uid) return resolve(null);
+      resolve(normalizeMsg(first));
     });
   });
 }
 
-// ------------------------------------------------------------------
-// Search with pagination (UID-based cursor)
-// ------------------------------------------------------------------
-
 export async function searchEmailsWithPagination(
-  userId: string,
+  _userId: string,
   account: IMAPAccount,
   query: SearchQuery,
   cursor?: string,
-  limit: number = 20,
-): Promise<PaginatedEmails> {
+  limit = 20
+): Promise<{ items: EmailMessage[]; total: number; nextCursor: string | null; prevCursor: string | null }> {
   const conn = await getIMAPConnection(account);
   const folder = query.folder || 'INBOX';
 
-  const searchParams: any[] = [];
-  if (query.unread) searchParams.push('UNSEEN');
-  else searchParams.push('ALL');
-  if (query.flagged) searchParams.push('FLAGGED');
-  if (query.since) searchParams.push(`SINCE ${query.since}`);
-  if (query.until) searchParams.push(`BEFORE ${query.until}`);
-  if (query.from) searchParams.push(`FROM ${query.from}`);
-  if (query.to) searchParams.push(`TO ${query.to}`);
-  if (query.subject) searchParams.push(`SUBJECT ${query.subject}`);
+  const params: any[] = [];
+  if (query.unread) params.push('UNSEEN'); else params.push('ALL');
+  if (query.flagged) params.push('FLAGGED');
+  if (query.since) params.push(`SINCE ${query.since}`);
+  if (query.until) params.push(`BEFORE ${query.until}`);
+  if (query.from)  params.push(`FROM ${query.from}`);
+  if (query.to)    params.push(`TO ${query.to}`);
+  if (query.subject) params.push(`SUBJECT ${query.subject}`);
 
-  // Determine UIDs to fetch based on cursor
-  let uidFilter: string[] | undefined;
   if (cursor) {
     const direction = cursor.startsWith('-') ? 'prev' : 'next';
     const baseUid = parseInt(cursor.replace(/^-/, ''), 10);
-    uidFilter = direction === 'next'
-      ? [`UID ${baseUid + 1}:*`]
-      : [`UID 1:${baseUid - 1}`];
+    const filter = direction === 'next'
+      ? `UID ${baseUid + 1}:*`
+      : `UID 1:${Math.max(baseUid - 1, 1)}`;
+    params.push(filter);
   }
 
-  const fullQuery = [...searchParams, ...(uidFilter || [])];
-
   return new Promise((resolve, reject) => {
-    conn.fetch({
-      box: folder,
-      search: fullQuery,
-      markSeen: false,
-    }, {
-      body: true,
-      b: {
-        from: true,
-        to: true,
-        subject: true,
-        date: true,
-        cc: true,
-        flags: true,
-        attachments: true,
-      },
-    }, (err: Error | null, email: any) => {
-      if (err) {
-        auditLogger.error('IMAP search failed', {
-          actor_id: userId,
-          metadata: { folder, error: err.message },
-        });
-        reject(err);
-        return;
+    conn.fetch({ box: folder || 'INBOX', search: params }, { body: true, b: { from: true, to: true, cc: true, subject: true, date: true, flags: true, attachments: true } }, (err: any, msgOrMsgs: any) => {
+      if (err) return reject(err);
+      const msgs = Array.isArray(msgOrMsgs) ? msgOrMsgs : [msgOrMsgs];
+      const itemsAll = msgs.map(normalizeMsg).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      if (!itemsAll.length) {
+        return resolve({ items: [], total: 0, nextCursor: null, prevCursor: null });
       }
 
-      const emails = Array.isArray(email) ? email : [email];
-      const messages: EmailMessage[] = emails.map((msg) => ({
-        uid: msg.attributes?.uid || 0,
-        subject: msg.attributes?.subject || '(No Subject)',
-        from: msg.attributes?.from || [],
-        to: msg.attributes?.to || [],
-        date: msg.attributes?.date?.toISOString() || new Date().toISOString(),
-        text: '', // Headers only for list
-        html: '',
-        hasAttachments: msg.attributes?.attachments?.length > 0 || false,
-        flags: msg.attributes?.flags || [],
-      }));
-
-      // Sort by date descending
-      messages.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-      const paginated = messages.slice(0, limit);
-      const firstUid = paginated.length > 0 ? paginated[0].uid : 0;
-      const lastUid = paginated.length > 0 ? paginated[paginated.length - 1].uid : 0;
+      const paginated = itemsAll.slice(0, limit);
+      const firstUid = paginated[0]?.uid ?? null;
+      const lastUid = paginated[paginated.length - 1]?.uid ?? null;
 
       resolve({
         items: paginated,
-        total: messages.length,
-        nextCursor: messages.length > limit ? String(firstUid) : null,
-        prevCursor: lastUid > 1 ? `-${lastUid}` : null,
+        total: itemsAll.length,
+        nextCursor: itemsAll.length > limit ? String(firstUid) : null,
+        prevCursor: lastUid != null && lastUid > 1 ? `-${lastUid}` : null,
       });
     });
   });
 }
-
-// ------------------------------------------------------------------
-// Mark email as read/unread/flagged
-// ------------------------------------------------------------------
 
 export async function markEmailFlag(
-  userId: string,
+  _userId: string,
   account: IMAPAccount,
   folder: string,
   uid: number,
-  flag: 'SEEN' | 'UNSEEN' | 'FLAGGED' | 'UNFLAGGED' | 'DELETED',
+  flag: 'SEEN' | 'UNSEEN' | 'FLAGGED' | 'UNFLAGGED' | 'DELETED'
 ): Promise<void> {
   const conn = await getIMAPConnection(account);
 
   return new Promise((resolve, reject) => {
-    const mode = (flag === 'UNSEEN' || flag === 'UNFLAGGED') ? '-' : '+';
-    const imapFlag = flag === 'UNSEEN' ? '' : flag === 'UNFLAGGED' ? '' : flag === 'DELETED' ? '' : flag;
+    let mode = '+';
+    let flagValue: string | null = flag;
 
-    conn.updateFlags({
-      box: folder,
-      uid: uid,
-    }, {
-      [mode + 'Flags']: [imapFlag],
-    }, (err: Error | null) => {
-      if (err) {
-        auditLogger.error('Failed to update email flag', {
-          actor_id: userId,
-          metadata: { uid, flag, folder, error: err.message },
-        });
-        reject(err);
-        return;
-      }
-      auditLogger.info('Email flag updated', {
-        actor_id: userId,
-        metadata: { uid, flag, folder },
-      });
-      resolve();
-    });
+    if (flag === 'UNSEEN')      { mode = '-';   flagValue = '\\Seen'; }
+    if (flag === 'UNFLAGGED')   { mode = '-';   flagValue = '\\Flagged'; }
+    if (flag === 'DELETED')     { mode = '+';   flagValue = '\\Deleted'; }
+
+    conn.updateFlags(
+      { box: folder || 'INBOX', uid },
+      { [mode + 'Flags']: [flagValue] as any[] },
+      (err: any) => { if (err) reject(err); else resolve(); }
+    );
   });
 }
 
-// ------------------------------------------------------------------
-// Delete email (permanent)
-// ------------------------------------------------------------------
-
-export async function deleteEmail(
-  userId: string,
-  account: IMAPAccount,
-  folder: string,
-  uid: number,
-): Promise<void> {
+export async function deleteEmail(_userId: string, account: IMAPAccount, folder: string, uid: number): Promise<void> {
   const conn = await getIMAPConnection(account);
-
   return new Promise((resolve, reject) => {
-    conn.deleteEmail({
-      box: folder,
-      uid: uid,
-    }, (err: Error | null) => {
-      if (err) {
-        auditLogger.error('Failed to delete email', {
-          actor_id: userId,
-          metadata: { uid, folder, error: err.message },
-        });
-        reject(err);
-        return;
-      }
-      auditLogger.info('Email deleted', {
-        actor_id: userId,
-        metadata: { uid, folder },
-      });
-      resolve();
-    });
+    // Mark as deleted; many servers handle expunge on logout.
+    conn.updateFlags(
+      { box: folder || 'INBOX', uid },
+      { '+FLAGS': ['\\Deleted'] },
+      (err: any) => { if (err) return reject(err); resolve(); }
+    );
   });
 }
 
-// ------------------------------------------------------------------
-// Move email to another folder
-// ------------------------------------------------------------------
-
-export async function moveEmail(
-  userId: string,
-  account: IMAPAccount,
-  fromFolder: string,
-  toFolder: string,
-  uid: number,
-): Promise<void> {
+export async function moveEmail(_userId: string, account: IMAPAccount, fromFolder: string, toFolder: string, uid: number): Promise<void> {
   const conn = await getIMAPConnection(account);
-
-  return new Promise((resolve, reject) => {
-    conn.move({
-      box: fromFolder,
-      uid: uid,
-      to: toFolder,
-    }, (err: Error | null) => {
-      if (err) {
-        auditLogger.error('Failed to move email', {
-          actor_id: userId,
-          metadata: { uid, from: fromFolder, to: toFolder, error: err.message },
-        });
-        reject(err);
-        return;
-      }
-      auditLogger.info('Email moved', {
-        actor_id: userId,
-        metadata: { uid, from: fromFolder, to: toFolder },
-      });
-      resolve();
+  // Fallback: copy then delete if no move.
+  try {
+    return await new Promise((resolve, reject) => {
+      (conn as any).move(
+        { box: fromFolder || 'INBOX', uid },
+        { to: toFolder },
+        (err: any) => { if (!err) return resolve(); reject(err); }
+      );
     });
-  });
+  } catch (_) {
+    // Manual fallback.
+    await new Promise<void>((rs, rj) => {
+      conn.copy(
+        { box: fromFolder || 'INBOX', uid },
+        toFolder || 'INBOX',
+        (err: any) => { if (err) return rj(err); rs(); }
+      );
+    });
+    await deleteEmail(_userId, account, fromFolder || 'INBOX', uid);
+  }
 }
-
-// ------------------------------------------------------------------
-// Disconnect / close connection
-// ------------------------------------------------------------------
 
 export async function disconnectIMAP(userId: string): Promise<void> {
   const entry = connectionPool.get(userId);
   if (entry) {
-    entry.connection.end();
+    try { (entry.conn as any).end?.(); } catch {/*ignore*/}
     connectionPool.delete(userId);
-    auditLogger.info('IMAP disconnected', {
-      actor_id: userId,
-    });
+    auditLogger.info('IMAP disconnected', { actor_id: userId });
   }
 }
 
-// ------------------------------------------------------------------
-// Get connection status
-// ------------------------------------------------------------------
-
 export function getIMAPStatus(userId: string): ConnectionStatus {
-  const entry = connectionPool.get(userId);
-  return entry?.status || 'idle';
+  const e = connectionPool.get(userId);
+  return e ? e.status : 'idle';
 }
 
-// ------------------------------------------------------------------
-// Cleanup idle connections (single global interval)
-// ------------------------------------------------------------------
-
-const IDLE_TIMEOUT_MS = 600_000; // 10 min
-const CLEANUP_INTERVAL_MS = 300_000; // 5 min
-
-export function startIdleCleanup(): NodeJS.Timeout {
-  return setInterval(() => {
-    const now = Date.now();
-    for (const [id, entry] of connectionPool) {
-      if (now - entry.lastActivity > IDLE_TIMEOUT_MS) {
-        entry.connection.end();
-        connectionPool.delete(id);
-        auditLogger.info('IMAP idle connection cleaned', {
-          actor_id: id,
-        });
-      }
+const IDLE_TIMEOUT_MS = 600_000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of connectionPool.entries()) {
+    if (now - entry.lastActivity > IDLE_TIMEOUT_MS) {
+      try { (entry.conn as any).end?.(); } catch {/*ignore*/}
+      connectionPool.delete(id);
+      auditLogger.info('IMAP idle cleanup', { actor_id: id });
     }
-  }, CLEANUP_INTERVAL_MS);
-}
-
-// Start cleanup on module load
-startIdleCleanup();
+  }
+}, 300_000);

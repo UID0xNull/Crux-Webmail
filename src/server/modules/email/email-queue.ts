@@ -222,7 +222,7 @@ export async function getQueueStats(queueName: string): Promise<any> {
   return {
     name: queueName,
     waiting: await queue.getWaitingCount(),
-    active: await queue.getProcessingCount(),
+    active: await queue.getActiveCount?.() ?? 0,
     completed: await queue.getCompletedCount(),
     failed: await queue.getFailedCount(),
     delayed: await queue.getDelayedCount(),
