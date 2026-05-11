@@ -6,10 +6,16 @@
 // todo upgrade requiere validación de token antes de autorizar la conexión.
 // ============================================================================
 
-import { FastifyInstance } from 'fastify';
-import { auditLogger } from '../../utils/audit-logger';
-import { CruxError } from '../../errors/handler';
-import { getRedis, CacheTTL } from '../../cache/redis-client';
+import type WebSocket from 'ws';
+import type { FastifyInstance } from 'fastify';
+import { auditLogger } from 'utils/audit-logger';
+import { getRedis } from 'cache/redis-client';
+
+export interface WSMessage {
+  type: string;
+  payload?: Record<string, unknown>;
+  timestamp?: number;
+}
 
 // ------------------------------------------------------------------
 // Client metadata tracking
@@ -81,8 +87,14 @@ export class WSGateway {
     ws: WebSocket,
     userId: string,
     sessionId: string,
-    req: { raw?: { url?: string; headers?: Record<string, string> } }
+    _req?: { raw?: { url?: string; headers?: Record<string, string | string[]> } }
   ): string {
+    const toStr = (v: unknown) =>
+      Array.isArray(v)
+        ? String(v[0] ?? '')
+          : typeof v === 'string'
+              ? v
+              : '';
     const clientId = `${userId}:${sessionId}:${Date.now()}`;
 
     const client: WSClient = {
@@ -92,8 +104,10 @@ export class WSGateway {
       channels: new Set(),
       connectedAt: Date.now(),
       lastPing: Date.now(),
-      remoteAddress: req.raw?.headers?.['x-forwarded-for'] || 'unknown',
-      userAgent: req.raw?.headers?.['user-agent'] || 'unknown',
+      remoteAddress:
+        toStr(_req?.raw?.headers?.['x-forwarded-for']) || 'unknown',
+      userAgent:
+        toStr(_req?.raw?.headers?.['user-agent']) || 'unknown',
     };
 
     // Store WebSocket ref in per-user set (multi-tab support)
@@ -148,35 +162,16 @@ export class WSGateway {
         this.userSockets.delete(client.userId);
       }
     }
-
     // Unsubscribe from Redis
     this.unregisterFromRedis(client.userId);
 
-    // Clean up client record
-    this.clients.delete(client.id);
-
-    // Invalidate idle pool connections (optional cleanup)
+    // Invalidate idle pool connections (optional cleanup) [non-critical]
     try {
-      const connMgr = (await import('../../mail/connection-manager')).getMailConnectionManager();
-      await connMgr.disconnectAll();
-    } catch {
-      // Non-critical — pool cleanup can happen lazily
-    }
-    const client = (ws as any).__cruxClient as WSClient | undefined;
-    if (!client) return;
-
-    // Unsubscribe from Redis
-    this.unregisterFromRedis(client.userId);
-
-    // Clean up
-    this.clients.delete(client.id);
-
-    // Invalidate idle pool connections — try to disconnect all accounts for this user
-    try {
-      const connMgr = (await import('../../mail/connection-manager')).getMailConnectionManager();
-      // The pool key format is mail:userId:accountId — we disconnect by iterating known accounts
-      // Since we don't track accountId here, disconnect by userId with wildcard
-      await connMgr.disconnectAll();
+      const { getMailConnectionManager } = await import('modules/mail/connection-manager');
+      const connMgr: any = getMailConnectionManager();
+      if (connMgr?.disconnectAll) {
+        await connMgr.disconnectAll();
+      }
     } catch {
       // Non-critical — pool cleanup can happen lazily
     }
@@ -262,9 +257,19 @@ export class WSGateway {
     }
   }
 
+  // Send message to all WS connections of a user except the sender
+  sendToOtherClientSockets(userId: string, senderWs: WebSocket, message: Record<string, unknown>): void {
+    const userSet = this.userSockets.get(userId);
+    if (!userSet) return;
+    for (const ws of userSet) {
+      if (ws !== senderWs) {
+        this.safeSend(ws, message);
+      }
+    }
+  }
+
   // Broadcast to ALL connected clients (admin/system events)
-  broadcast(message: Record<string, unknown>): void {
-    for (const [, userSet] of this.userSockets) {
+  broadcast(message: Record<string, unknown>): void {    for (const [, userSet] of this.userSockets) {
       for (const ws of userSet) {
         this.safeSend(ws, message);
       }
@@ -389,10 +394,34 @@ export class WSGateway {
     }
   }
 
+  // ----------------------------------------------------------------
+  // Helper: get client metadata from a WebSocket
+  getClient(ws: WebSocket): WSClient | null {
+    return (ws as any).__cruxClient as WSClient | null;
+  }
+
+  // Broadcast to all WS connections of the same user except one specific connection.
+  broadcastToOtherClientsOfUser(userId: string, excludeWs: WebSocket, message: Record<string, unknown>): void {
+    const userSet = this.userSockets.get(userId);
+    if (!userSet) return;
+    for (const ws of userSet) {
+      if (ws !== excludeWs && ws.readyState === 1) {
+        this.safeSend(ws, message);
+      }
+    }
+  }
+
   private getClientWebSocket(clientId: string): Set<WebSocket> | null {
-    // In multi-instance setups, WS objects are per-process.
-    // This returns local connections only.
-    return null; // Placeholder — actual WS refs stored per-connection
+    const result = new Set<WebSocket>();
+    for (const [id, client] of this.clients) {
+      if (clientId === '*' || id === clientId) {
+        const set = this.userSockets.get(client.userId);
+        if (set) {
+          for (const ws of set) result.add(ws);
+        }
+      }
+    }
+    return result.size > 0 ? result : null;
   }
 }
 

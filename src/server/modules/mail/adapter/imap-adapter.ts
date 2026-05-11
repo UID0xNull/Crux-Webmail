@@ -83,27 +83,49 @@ function parseAddress(raw: string): IMailAddress {
   return { name: raw, email: raw };
 }
 
-function parseAddresses(raw: any): IMailAddress[] {
-  if (!raw) return [];
-  const items = Array.isArray(raw) ? raw : [raw];
-  return items.map((item) => {
+function parseAddresses(raw: unknown): IMailAddress[] {
+  if (raw == null) return [];
+  const items = Array.isArray(raw)
+    ? raw
+    : [String(raw)];
+
+  return (items as unknown[]).map((item) => {
     if (typeof item === 'string') return parseAddress(item);
+    if (!item || typeof item !== 'object') {
+      return { name: '', email: '' };
+    }
+    const obj = item as Record<string, string>;
     return {
-      name: item.name || item.address || '',
-      email: item.address || item.email || item.name || '',
+      name: obj.name || obj.address || String(obj),
+      email:
+        obj.address ||
+        obj.email ||
+        (typeof obj.name === 'string' ? obj.name : '') ||
+        '',
     };
   });
 }
 
-function parseHeader(headers: any, name: string): string {
+function parseHeader(headers: Record<string, unknown>, name: string): string {
   if (!headers) return '';
+
   const val = headers[name];
-  if (typeof val === 'string') return val;
-  if (val && typeof val === 'object') {
-    if (val.value) return val.value;
-    if (val.data) return val.data;
+
+  if (typeof val === 'string') {
+    return val;
   }
-  return String(val || '');
+
+  if (val != null && typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    if ('value' in obj && obj.value !== undefined) {
+      return String(obj.value);
+    }
+    if ('data' in obj && obj.data !== undefined) {
+      return String(obj.data);
+    }
+  }
+
+  return val != null ? String(val) : '';
 }
 
 function uidToString(uid: number | string | undefined): string {
@@ -128,11 +150,11 @@ export class ImapAdapter implements IImapAdapter {
   // ----------------------------------------------------------------
   // Lifecycle
   // ----------------------------------------------------------------
-  async connect(config: IAccountConfig, options?: { retry?: number; backoffMs?: number }): Promise<void> {
+  async connect(config: IAccountConfig): Promise<void> {
     this.currentConfig = config;
 
-    const maxRetries = options?.retry ?? 3;
-    const baseBackoff = options?.backoffMs ?? 1000;
+    const maxRetries: number = 3;
+    const baseBackoff: number = 1000;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {

@@ -115,14 +115,19 @@ export class MimeParser {
         result.rawHeaders = JSON.stringify(headers);
       });
 
-      parser.on('header', (name: string, value: string | Array<any>) => {
+      parser.on('header', (name: string, value: unknown) => {
         if (!result.headers) {
           result.headers = { all: {}, raw: '' };
         }
         const normalized = this.normalizeHeaderName(name);
 
         // For specific fields we may reuse them later.
-        const values = Array.isArray(value) ? value.map(String).filter(Boolean) : [String(value)];
+        const values = Array.isArray(value)
+          ? value.map(String).filter(Boolean)
+          : value != null && String(value).trim() !== ''
+              ? [String(value)]
+              : [];
+
         if (!result.headers.all[normalized]) {
           result.headers.all[normalized] = [];
         }
@@ -133,15 +138,23 @@ export class MimeParser {
         // Direct mapping where useful:
         switch (normalized.toLowerCase()) {
           case 'message-id':
-            result.messageId = v.trim();
+            if (!result.messageId && values.length > 0) {
+              result.messageId = values[0]?.trim() || '';
+            }
             break;
           case 'in-reply-to':
-            result.inReplyTo = v.trim() || undefined;
+            if (!result.inReplyTo && values.length > 0) {
+              const rfcRef = this.extractMrfRefs(values.join(' ').trim());
+              result.inReplyTo = rfcRef[0] || values[0]?.trim() || undefined;
+            }
             break;
           case 'references':
             if (!Array.isArray(result.references)) result.references = [];
-            for (const ref of this.splitReferences(v)) {
-              result.references.push(ref);
+            for (const val of values) {
+              const refs = this.splitReferences(val.trim());
+              for (const ref of refs) {
+                result.references.push(ref);
+              }
             }
             break;
         }
@@ -333,6 +346,16 @@ export class MimeParser {
     if (v === 'inline') return 'inline';
     if (v.includes('attach')) return 'attachment';
     return 'attachment';
+  }
+
+  private extractMrfRefs(v: string): string[] {
+    const out: string[] = [];
+    const matches = String(v).match(/<[^<>]+>/g);
+    for (const m of matches || []) {
+      const inner = m.replace(/[<>]/g, '').trim();
+      if (inner) out.push(inner);
+    }
+    return out;
   }
 
   private splitReferences(v: string): string[] {

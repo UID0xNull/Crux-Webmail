@@ -5,25 +5,32 @@
 // mensaje relay. Integrado con @fastify/websocket.
 // ============================================================================
 
-import { FastifyInstance } from 'fastify';
-import { WebSocket } from 'ws';
-import { getWSGateway, initWSGateway, WSClient } from './ws-gateway';
-import { CruxError } from '../../errors/handler';
-import { auditLogger } from '../../utils/audit-logger';
-import type { WSClientMessage, WSServerMessage, WSChannel } from '../../types/ws.types';
+import type { FastifyInstance } from 'fastify';
+import WebSocket from 'ws';
+import { getWSGateway, initWSGateway } from './ws-gateway';
+import { auditLogger } from 'utils/audit-logger';
+import type { WSClientMessage, WSServerMessage, WSChannel } from 'shared/types';
 
 // ------------------------------------------------------------------
 // WebSocket upgrade handler — Fastify plugin
 // ------------------------------------------------------------------
 export async function registerWebSocketRoutes(fastify: FastifyInstance): Promise<void> {
-  // Register @fastify/websocket plugin
   await fastify.register(import('@fastify/websocket') as any);
 
   // Route: /ws
-  fastify.register(async (instance) => {
-    instance.get('/ws', { websocket: true }, async (connection: { raw: WebSocket }, req: FastifyInstance) => {
-      handleConnection(connection.raw, req);
-    });
+  fastify.route<{
+    Querystring: never;
+    Params: never;
+  }>({
+    method: 'GET',
+    url: '/ws',
+    websocket: true,
+    async handler(request: unknown, reply: { send(): void }) {
+      const rawRequest = request as RawWSRequest & Record<string, unknown>;
+      const ws = (rawRequest.websocket) as WebSocket;
+      handleConnection(ws, rawRequest);
+      return reply.send();
+    },
   });
 
   auditLogger.info('[WS] Routes registered');
@@ -32,8 +39,12 @@ export async function registerWebSocketRoutes(fastify: FastifyInstance): Promise
 // ------------------------------------------------------------------
 // Connection lifecycle
 // ------------------------------------------------------------------
-async function handleConnection(ws: WebSocket, req: any): Promise<void> {
-  // Guard: prevent crashes from premature disconnect
+
+interface RawWSRequest {
+  raw?: { url?: string; headers?: Record<string, string | string[]> };
+}
+
+async function handleConnection(ws: WebSocket, req: RawWSRequest): Promise<void> {  // Guard: prevent crashes from premature disconnect
   let connected = true;
   ws.once('close', () => { connected = false; });
 
@@ -179,34 +190,28 @@ function handleClientMessage(ws: WebSocket, raw: string, clientId: string): void
     }
 
     case 'FLAG_UPDATE': {
-      // Relay flag update to other clients of same user
-      const client = (ws as any).__cruxClient as WSClient | undefined;
-      if (client) {
-        const { messageId, flags, action } = msg.payload as {
-          messageId: string;
-          flags: string[];
-          action: 'add' | 'remove';
-        };
+      const client = gateway.getClient(ws);
+      if (!client) return;
 
-        // Broadcast to OTHER connections of same user (not the sender)
-        for (const [, other] of (gateway as any).clients) {
-          if (other.userId === client.userId && other.id !== client.id) {
-            (gateway as any).safeSend((other as any)._ws || findWsForClient(gateway, other), {
-              type: 'MESSAGE_FLAG_CHANGED',
-              payload: {
-                messageId,
-                flags,
-                action,
-                mailboxId: client.sessionId, // Proxy — should be in payload
-              },
-              timestamp: Date.now(),
-            } satisfies WSServerMessage);
-          }
-        }
-      }
+      const { messageId, flags, action, mailboxId } = (msg.payload || {}) as {
+        messageId: string;
+        flags: string[];
+        action: 'add' | 'remove';
+        mailboxId?: string;
+      };
+
+      gateway.broadcastToOtherClientsOfUser(client.userId, ws, {
+        type: 'MESSAGE_FLAG_CHANGED',
+        payload: {
+          messageId,
+          flags,
+          action,
+          mailboxId: mailboxId ?? client.sessionId, // fallback only when missing in payload
+        },
+        timestamp: Date.now(),
+      } satisfies WSServerMessage);
       break;
     }
-
     default:
       auditLogger.debug('[WS] Ignored message type', {
         metadata: { type: msg.type },
@@ -215,10 +220,8 @@ function handleClientMessage(ws: WebSocket, raw: string, clientId: string): void
 }
 
 // ------------------------------------------------------------------
-// Helper: find WebSocket for a client (fallback)
+// Helper: no-op stub; multi-node bridging handled by Redis PubSub
 // ------------------------------------------------------------------
-function findWsForClient(_gateway: any, _client: WSClient): WebSocket | null {
-  // In single-instance mode, WS refs are tracked per client.
-  // In multi-instance, Redis PubSub bridges across nodes.
+function findWsForClient(_gateway: WSGateway, _client: WSClient): WebSocket | null {
   return null;
 }

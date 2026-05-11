@@ -7,7 +7,7 @@
 // ============================================================================
 
 import sanitizeHtml from 'sanitize-html';
-import { auditLogger } from '../../utils/audit-logger';
+import { auditLogger } from 'utils/audit-logger';
 import { DEFAULT_MIME_CONFIG, MimePipelineConfig } from './types';
 
 // ------------------------------------------------------------------
@@ -61,12 +61,12 @@ const ALLOWED_TAGS = [
 // White-listed attributes
 // ------------------------------------------------------------------
 const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
-  'a': ['href', 'title', 'rel', 'target'],
-  'img': ['src', 'alt', 'width', 'height', 'style'],
-  'blockquote': ['cite'],
-  'del': ['cite'],
-  'ins': ['cite'],
-  'q': ['cite'],
+  a: ['href', 'title', 'rel', 'target'],
+  img: ['src', 'alt', 'width', 'height', 'style'],
+  blockquote: ['cite'],
+  del: ['cite'],
+  ins: ['cite'],
+  q: ['cite'],
   '*': ['class', 'style', 'lang', 'dir', 'title'],
 };
 
@@ -106,7 +106,10 @@ export class HtmlSanitizer {
   // ----------------------------------------------------------------
   // Main sanitize method
   // ----------------------------------------------------------------
-  sanitize(html: string, uid?: string): { cleanHtml: string; report: SanitizationReport } {
+  sanitize(
+    html: string,
+    uid?: string
+  ): { cleanHtml: string; report: SanitizationReport } {
     if (!html || !this.config.sanitizeHtml) {
       return { cleanHtml: html || '', report: this.emptyReport() };
     }
@@ -117,18 +120,29 @@ export class HtmlSanitizer {
     // 1. Pre-scan: count XSS-like patterns
     const xssCount = this.detectThreats(html, report);
 
+    // Build allowed schemes from config for transformLinks safety.
+    const baseAllowedProtocols =
+      Array.isArray(this.config.allowedProtocols) && this.config.allowedProtocols.length > 0
+        ? this.config.allowedProtocols.map((p) => (typeof p === 'string' ? String(p) : String(p)))
+        : ['http:', 'https:', 'mailto:'];
+
     // 2. Sanitize with whitelist
     const cleanHtml = sanitizeHtml(html, {
-      allowedTags: this.config.sanitizeHtml ? ALLOWED_TAGS : [],
+      allowedTags: ALLOWED_TAGS,
       allowedAttributes: this.config.sanitizeHtml ? ALLOWED_ATTRIBUTES : {},
-      allowedSchemes: this.config.allowedProtocols,
+      allowedSchemes: baseAllowedProtocols,
       allowedSchemesByTag: {
-        img: this.config.allowImages ? ['http', 'https', 'data', 'cid'] : ['http', 'https'],
+        img: this.config.allowImages
+          ? ['http:', 'https:', 'data:', 'cid:']
+          : ['http:', 'https:'],
       },
       allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
 
-            // Transform <a> tags to enforce security
-      transformLinks: (linkAttributes: Record<string, string>, _tagName: string) => {
+      // Transform <a> tags to enforce security.
+      transformLinks: (
+        linkAttributes: sanitizeHtml.IAttribute,
+        _tagName: string
+      ): sanitizeHtml.IAttribute => {
         const href = typeof linkAttributes.href === 'string' ? linkAttributes.href : '';
 
         if (!this.isDangerousHref(href)) {
@@ -151,7 +165,7 @@ export class HtmlSanitizer {
         ) {
           try {
             const url = new URL(href);
-            const host = typeof url.hostname === 'string' ? url.hostname : '';
+            const host: string = typeof url.hostname === 'string' ? url.hostname : '';
             if (host && !this.config.allowedDomains.includes(host)) {
               delete linkAttributes.href;
             }
@@ -198,7 +212,10 @@ export class HtmlSanitizer {
   // ----------------------------------------------------------------
   // Sanitize a batch of HTML strings
   // ----------------------------------------------------------------
-  sanitizeBatch(htmls: string[], uids?: string[]): Array<{ cleanHtml: string; report: SanitizationReport }> {
+  sanitizeBatch(
+    htmls: string[],
+    uids?: string[]
+  ): Array<{ cleanHtml: string; report: SanitizationReport }> {
     return htmls.map((html, i) => {
       const uid = uids?.[i] ?? `batch-${i}`;
       return this.sanitize(html, uid);

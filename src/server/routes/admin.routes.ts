@@ -83,11 +83,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/dashboard',
     {
-      description: 'Get admin dashboard overview',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Get admin dashboard overview',
+        tags: ['admin'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
+    async function handler(_request, reply) {
       try {
         const [health, userStats, auditSummary, recent] = await Promise.all([
           getSystemHealth(),
@@ -112,11 +114,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/health',
     {
-      description: 'Get detailed system health',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Get detailed system health',
+        tags: ['admin'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
+    async function handler(_request, reply) {
       try {
         const health = await getSystemHealth();
         sendSuccess(reply, health);
@@ -131,11 +135,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/mail-system',
     {
-      description: 'Get mail subsystem status (Postfix, Dovecot, Amavis, ClamAV, MinIO)',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Get mail subsystem status (Postfix, Dovecot, Amavis, ClamAV, MinIO)',
+        tags: ['admin'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
+    async function handler(_request, reply) {
       try {
         const stats = await getMailSystemStats();
         sendSuccess(reply, stats);
@@ -150,11 +156,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/settings',
     {
-      description: 'Get current application settings',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Get current application settings',
+        tags: ['admin'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
+    async function handler(_request, reply) {
       const settings = getAppSettings();
       sendSuccess(reply, settings);
     },
@@ -164,13 +172,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/users',
     {
-      description: 'List all users with pagination and filters',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'List all users with pagination and filters',
+        tags: ['admin'],
+        querystring: z.object({}).passthrough(),
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (request: FastifyRequest<{ Querystring: Record<string, string> }>, reply: FastifyReply) => {
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
       try {
-        const params = UserListSchema.parse(request.query);
+        const params = UserListSchema.parse((request.query as Record<string, string>));
         const result = await listUsers(params);
         sendSuccess(reply, result);
       } catch (err) {
@@ -189,11 +200,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/users/stats',
     {
-      description: 'Get user statistics',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Get user statistics',
+        tags: ['admin'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
+    async function handler(_request, reply) {
       try {
         const stats = await getUserStats();
         sendSuccess(reply, stats);
@@ -207,13 +220,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/users/:userId',
     {
-      description: 'Get user details',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Get user details',
+        tags: ['admin'],
+        params: z.object({ userId: z.string().uuid() }),
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) => {
+    async function handler(request, reply) {
       try {
-        const user = await getUserDetail(request.params.userId);
+        const user = await getUserDetail((request as FastifyRequest<{ Params: { userId: string } }>));
         if (!user) {
           sendError(reply, 404, 'USER_NOT_FOUND', 'User not found');
           return;
@@ -230,13 +246,20 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.post(
     '/users',
     {
-      description: 'Create a new user',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Create a new user',
+        tags: ['admin'],
+        body: CreateUserSchema.omit({ roles: true }).extend({
+          roles: z.array(z.string()).optional(),
+        }),
+        response: { 201: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (request: FastifyRequest<{ Body: { username: string; password: string; display_name?: string; roles?: string[] } }>, reply: FastifyReply) => {
+    async function handler(request, reply) {
       try {
-        const body = CreateUserSchema.parse(request.body);
+        const body = CreateUserSchema.parse(
+          (request as FastifyRequest<{ Body: { username: string; password: string; display_name?: string; roles?: string[] } }>),
+        );
         const user = await createUserUser(body.username, body.password, body.display_name, body.roles);
         auditLogger.info('New user created via admin panel', {
           actor_id: (request as any).admin?.user_id,
@@ -259,13 +282,18 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.patch(
     '/users/:userId/roles',
     {
-      description: 'Update user roles',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Update user roles',
+        tags: ['admin'],
+        body: UpdateRoleSchema,
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (request: FastifyRequest<{ Params: { userId: string }; Body: { roles: string[] } }>, reply: FastifyReply) => {
+    async function handler(request, reply) {
       try {
-        const body = UpdateRoleSchema.parse(request.body);
+        const body = UpdateRoleSchema.parse(
+          (request as FastifyRequest<{ Params: { userId: string }; Body: { roles: string[] } }>),
+        );
         const adminId = (request as any).admin?.user_id;
         auditLogger.info('User roles updated', {
           actor_id: adminId,
@@ -293,13 +321,18 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.patch(
     '/users/:userId/status',
     {
-      description: 'Activate/deactivate a user',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Activate/deactivate a user',
+        tags: ['admin'],
+        body: ToggleStatusSchema,
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (request: FastifyRequest<{ Params: { userId: string }; Body: { isActive: boolean } }>, reply: FastifyReply) => {
+    async function handler(request, reply) {
       try {
-        const body = ToggleStatusSchema.parse(request.body);
+        const body = ToggleStatusSchema.parse(
+          (request as FastifyRequest<{ Params: { userId: string }; Body: { isActive: boolean } }>),
+        );
         const adminId = (request as any).admin?.user_id;
         auditLogger.info('User status toggled', {
           actor_id: adminId,
@@ -327,11 +360,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.post(
     '/users/:userId/unlock',
     {
-      description: 'Unlock a locked user account',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Unlock a locked user account',
+        tags: ['admin'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) => {
+    async function handler(request, reply) {
       try {
         const adminId = (request as any).admin?.user_id;
         auditLogger.info('User unlocked', {
@@ -355,13 +390,18 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/audit/logs',
     {
-      description: 'List audit log entries with filters',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'List audit log entries with filters',
+        tags: ['admin'],
+        querystring: z.object({}).passthrough(),
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (request: FastifyRequest<{ Querystring: Record<string, string> }>, reply: FastifyReply) => {
+    async function handler(request, reply) {
       try {
-        const params = AuditLogSchema.parse(request.query);
+        const params = AuditLogSchema.parse(
+          (request as FastifyRequest<{ Querystring: Record<string, string> }>),
+        );
         const result = await getAuditLogs(params);
         sendSuccess(reply, result);
       } catch (err) {
@@ -380,11 +420,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/audit/summary',
     {
-      description: 'Get audit log summary statistics',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'Get audit log summary statistics',
+        tags: ['admin'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
+    async function handler(_request, reply) {
       try {
         const summary = await getAuditLogSummary();
         sendSuccess(reply, summary);
@@ -399,11 +441,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/sessions',
     {
-      description: 'List all active sessions',
-      tags: ['admin'],
-      schema: {},
+      schema: {
+        description: 'List all active sessions',
+        tags: ['admin'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
     },
-    async (_request: FastifyRequest, reply: FastifyReply) => {
+    async function handler(_request, reply) {
       try {
         const sessions = await getActiveSessions();
         sendSuccess(reply, { sessions, total: sessions.length });
@@ -415,7 +459,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   // ---- Admin Actions Audit ----
-  fastify.addHook('onResponse', async (request: FastifyRequest, _reply: FastifyReply) => {
+  fastify.addHook('onResponse', async function handler(request, _reply) {
     if (request.method !== 'GET') {
       auditLogger.info('Admin panel action', {
         actor_id: (request as any).admin?.user_id,

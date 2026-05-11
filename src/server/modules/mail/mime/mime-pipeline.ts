@@ -221,7 +221,10 @@ export class MimePipeline extends EventEmitter {
   // ----------------------------------------------------------------
   // Internal: sanitize HTML
   // ----------------------------------------------------------------
-  private sanitizeHtmlBody(html: string, uid: string): { cleanHtml: string; report: any } {
+  private sanitizeHtmlBody(
+    html: string,
+    uid: string
+  ): { cleanHtml: string; report: SanitizationReport } {
     return this.sanitizer.sanitize(html || '', uid);
   }
 
@@ -326,10 +329,9 @@ export class MimePipeline extends EventEmitter {
   // ----------------------------------------------------------------
   private calculateSecurity(
     attachments: ParsedAttachment[],
-    sanitizationReport: { threatsFound?: number; removedElements?: string[] },
-    uid: string,
-  ): ParsedEmail['security'] {
-    const quarantined = attachments.filter(
+    sanitizationReport: SanitizationReport,
+    uid: string
+  ): ParsedEmail['security'] {    const quarantined = attachments.filter(
       (a) => a.securityStatus === 'quarantined',
     ).length;
 

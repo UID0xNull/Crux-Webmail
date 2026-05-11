@@ -11,8 +11,8 @@
 
 import { EventEmitter } from 'node:events';
 import { getMailService, MailService } from './mail-service';
-import { getWSGateway } from '@modules/ws/ws-gateway';
-import { auditLogger } from '@utils/audit-logger';
+import type { WSMessage } from 'ws/ws-gateway';
+import { auditLogger } from 'utils/audit-logger';
 import type {
   IAccountConfig,
   IFlags,
@@ -360,21 +360,23 @@ export class FlagSyncService extends EventEmitter {
     mailbox: string,
     uid: string,
     flags: string[],
-    action: 'add' | 'remove' | 'set',
+    _action: 'add' | 'remove' | 'set',
   ): void {
-    const gateway = getWSGateway();
-    if (!gateway) return;
-
-    gateway.sendToUserChannel(userId, 'mail:flags' as any, {
-      type: 'MESSAGE_FLAG_CHANGED',
-      payload: {
-        messageId: uid,
-        flags,
-        action,
-        mailboxId: mailbox,
-      },
-      timestamp: Date.now(),
-    });
+    try {
+      const msg: WSMessage = {
+        type: 'MESSAGE_FLAG_CHANGED',
+        payload: {
+          messageId: uid,
+          flags,
+          action: _action,
+          mailboxId: mailbox,
+        },
+        timestamp: Date.now(),
+      };
+      void this.emit('ws:broadcast', msg);
+    } catch {
+      // ignore broadcast failures
+    }
   }
 
   // ----------------------------------------------------------------

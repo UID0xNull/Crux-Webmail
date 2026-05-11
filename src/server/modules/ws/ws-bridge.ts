@@ -2,10 +2,9 @@
 // Crux-Webmail — WebSocket Bridge (Mail Events → WS Relay)
 // ============================================================================
 
+import { getWSGateway, WSGateway } from './ws-gateway';
+import { auditLogger } from 'utils/audit-logger';
 import { getWSGateway } from './ws-gateway';
-import { auditLogger } from '../../utils/audit-logger';
-import { getRedis } from '../../cache/redis-client';
-import type { MailEventPayload, WSServerMessage } from '../../types/ws.types';
 
 interface RateLimiterEntry { count: number; lastReset: number; }
 
@@ -47,7 +46,7 @@ export class WSBridge {
     await this.cacheForReconnect(event);
   }
 
-  private dispatchToLocal(gateway: any, event: MailEventPayload): void {
+  private dispatchToLocal(gateway: WSGateway, event: MailEventPayload): void {
     const ts = Date.now();
 
     const makeMessage = (type: string, payload = event.data): WSServerMessage => ({
@@ -118,7 +117,7 @@ export class WSBridge {
     } catch { /* non-critical */ }
   }
 
-  private sendToUser(gateway: any, userId: string, msg: WSServerMessage): void {
+  private sendToUser(gateway: WSGateway, userId: string, msg: WSServerMessage): void {
     gateway.sendToUser?.(userId, msg);
   }
 }
