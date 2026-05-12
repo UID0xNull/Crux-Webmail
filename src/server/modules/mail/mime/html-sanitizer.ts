@@ -6,8 +6,15 @@
 // Política: lista blanca estricta + eliminación recursiva.
 // ============================================================================
 
-import sanitizeHtml from 'sanitize-html';
-import { auditLogger } from 'utils/audit-logger';
+import sanitizeHtmlLib from 'sanitize-html';
+type SanitizeHtmlFn = (html: string, options: unknown) => string;
+const sanitizeHtml: SanitizeHtmlFn =
+  typeof (sanitizeHtmlLib as any).default === 'function'
+    ? ((sanitizeHtmlLib as any).default as SanitizeHtmlFn)
+    : (sanitizeHtmlLib as SanitizeHtmlFn);
+import type { MimePipelineConfig } from './types';
+import { DEFAULT_MIME_CONFIG } from './types';
+import { auditLogger } from '@utils/audit-logger';
 
 // ------------------------------------------------------------------
 // Tracking sanitization results for security audit
@@ -137,24 +144,21 @@ export class HtmlSanitizer {
       },
       allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
 
-      // Transform <a> tags to enforce security.
-      transformLinks: (
-        linkAttributes: sanitizeHtml.IAttribute,
-        _tagName: string
-      ): sanitizeHtml.IAttribute => {
-        const href = typeof linkAttributes.href === 'string' ? linkAttributes.href : '';
+      transformLinks: (linkAttrs) => {
+        const attrs = linkAttrs as Record<string, unknown>;
+        const href = typeof attrs.href === 'string' ? attrs.href : '';
 
         if (!this.isDangerousHref(href)) {
           // Non-dangerous; keep as is (unless restricted by domain rules).
         } else {
-          delete linkAttributes.href;
+          delete attrs.href;
           report.removedProtocols.push('dangerous');
         }
 
         const httpHref = typeof href === 'string' && (href.startsWith('http') || href.startsWith('//'));
-        if (httpHref && linkAttributes.href) {
-          linkAttributes.rel = 'noopener noreferrer';
-          linkAttributes.target = '_blank';
+        if (httpHref && attrs.href) {
+          attrs.rel = 'noopener noreferrer';
+          attrs.target = '_blank';
         }
 
         if (
@@ -164,17 +168,17 @@ export class HtmlSanitizer {
         ) {
           try {
             const url = new URL(href);
-            const host: string = typeof url.hostname === 'string' ? url.hostname : '';
+            const host = typeof url.hostname === 'string' ? url.hostname : '';
             if (host && !this.config.allowedDomains.includes(host)) {
-              delete linkAttributes.href;
+              delete attrs.href;
             }
           } catch {
             // If parsing fails, drop href
-            delete linkAttributes.href;
+            delete attrs.href;
           }
         }
 
-        return linkAttributes;
+        return attrs as Record<string, string>;
       },
 
       allowedStyles: this.config.allowCss ? ALLOWED_CSS_PROPS : [],

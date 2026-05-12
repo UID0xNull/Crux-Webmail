@@ -9,7 +9,7 @@
 import { Readable } from 'node:stream';
 import type { Readable as ReadableStream } from 'node:stream';
 import { fileTypeFromBuffer } from 'file-type';
-import { auditLogger } from '../../utils/audit-logger';
+import { auditLogger } from '@utils/audit-logger';
 import { ClamavScanner } from './clamav-scanner';
 import {
   DANGEROUS_EXTENSIONS,

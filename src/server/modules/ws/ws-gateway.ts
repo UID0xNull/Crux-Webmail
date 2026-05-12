@@ -8,15 +8,8 @@
 
 import type WebSocket from 'ws';
 import type { FastifyInstance } from 'fastify';
-import { auditLogger } from 'utils/audit-logger';
-import { getRedis } from 'cache/redis-client';
-
-// ws-gateway reuses shared WSServerMessage instead of its own WSMessage.
-import type { WSServerMessage } from 'shared/types';
-
-// ------------------------------------------------------------------
-// Client metadata tracking
-// ------------------------------------------------------------------
+import { auditLogger } from '@utils/audit-logger';
+import type { WSServerMessage, WSChannel } from 'types/ws.types';
 export interface WSClient {
   id: string;
   userId: string;
@@ -192,7 +185,7 @@ export class WSGateway {
   // ----------------------------------------------------------------
   // Subscribe / Unsubscribe to channels
   // ----------------------------------------------------------------
-  subscribe(ws: WebSocket, channels: string[]): void {
+  subscribe(ws: WebSocket, channels: WSChannel[]): void {
     const client = ws.__cruxClient;
     if (!client) return;
 
@@ -207,7 +200,7 @@ export class WSGateway {
     });
   }
 
-  unsubscribe(ws: WebSocket, channels: string[]): void {
+  unsubscribe(ws: WebSocket, channels: WSChannel[]): void {
     const client = ws.__cruxClient;
     if (!client) return;
 

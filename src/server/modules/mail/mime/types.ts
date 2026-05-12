@@ -79,6 +79,7 @@ export interface ParsedEmail {
   // Identificación
   uid: string;
   messageId: string;
+  subject: string;
 
   // Cabeceras normalizadas
   headers: MimeHeaders;

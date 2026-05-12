@@ -7,7 +7,9 @@
 // ============================================================================
 
 import MailParser from 'mailparser';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
+
+import type { MimePipelineConfig } from './types';
 
 export interface ParsedMimeRaw {
   messageId: string;
@@ -49,17 +51,15 @@ export interface MimeRawHeaders {
 }
 
 // ------------------------------------------------------------------
-// MimeParser — singleton-style class
+// MimeParser — singleton-style class (uses shared MimePipelineConfig)
 // ------------------------------------------------------------------
 const MAX_ATTACHMENT = 10 * 1024 * 1024; // 10MB default
 export const MAX_MESSAGE_SIZE = 25 * 1024 * 1024; // 25MB default
 
-export interface MimePipelineConfig {
-  maxMessageSize: number;
-  maxAttachmentSize: number;
-}
+// Local view aligned to the shared MimePipelineConfig (from ./types).
+type MimeParserLocalCfg = Pick<MimePipelineConfig, 'maxMessageSize' | 'maxAttachmentSize'>;
 
-export const DEFAULT_MIME_CONFIG: MimePipelineConfig = {
+export const DEFAULT_MIME_PARSER_CONFIG: MimeParserLocalCfg = {
   maxMessageSize: MAX_MESSAGE_SIZE,
   maxAttachmentSize: MAX_ATTACHMENT,
 };
@@ -72,13 +72,13 @@ type MailParserAttachEvent = Readable & {
 };
 
 export class MimeParser {
-  private config: MimePipelineConfig;
+  private config: MimeParserLocalCfg;
 
-  constructor(config?: Partial<MimePipelineConfig>) {
-    this.config = { ...DEFAULT_MIME_CONFIG, ...config };
+  constructor(config?: Partial<MimeParserLocalCfg>) {
+    this.config = { ...DEFAULT_MIME_PARSER_CONFIG, ...config };
   }
 
-  updateConfig(partial: Partial<MimePipelineConfig>): void {
+  updateConfig(partial: Partial<MimeParserLocalCfg>): void {
     this.config = { ...this.config, ...partial };
   }
 
@@ -480,6 +480,86 @@ export class MimeParser {
       }
     }
     return out;
+  }
+
+  private parseAddressesFromHeader(values: (string | undefined)[]): MimeAddressEntry[] {
+    if (!values || values.length === 0) return [];
+
+    const out: MimeAddressEntry[] = [];
+
+    // Simple RFC 5322 style splitter by comma.
+    for (const raw of values.map(String)) {
+      // Split on commas not inside angle brackets.
+      const tokens = this.splitOnCommasOutsideBrackets(raw);
+      for (let token of tokens) {
+        token = token.trim();
+        if (!token) continue;
+
+        let name: string = '';
+        let address: string = '';
+
+        // Extract email from angle brackets if present.
+        const mAngle = token.match(/<([^>]+)>/);
+        if (mAngle && mAngle[1]) {
+          address = mAngle[1].trim();
+        } else {
+          // Assume entire token is the email.
+          address = this.stripDisplayParts(token).trim();
+        }
+
+        // Extract display name (part before angle brackets) if exists.
+        const beforeAngles = token.split('<')[0];
+        let displayNameCandidate: string | undefined;
+
+        // Handle "Name <email>" style.
+        if (beforeAngles.trim().startsWith('"')) {
+          const end = beforeAngles.indexOf('"', 1);
+          if (end > 0) {
+            displayNameCandidate = beforeAngles.slice(1, end).trim();
+          }
+        } else if (beforeAngles && beforeAngles.trim()) {
+          displayNameCandidate = this.stripDisplayParts(beforeAngles).trim();
+        }
+
+        // Don't use email as name.
+        const finalName = displayNameCandidate !== address ? this.decodeWord(displayNameCandidate || '') : '';
+
+        if (!address) continue;
+
+        out.push({
+          name: finalName,
+          address,
+        });
+      }
+    }
+
+    return out;
+  }
+
+  private stripDisplayParts(s: string): string {
+    // Remove angle-bracketed emails, colons.
+    return s.replace(/<[^>]+>/g, '').replace(/^\s*:\s*/, '').trim();
+  }
+
+  private splitOnCommasOutsideBrackets(raw: string): string[] {
+    const parts: string[] = [];
+    let current = '';
+    let insideAngle = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      if (ch === '<') { insideAngle = true; current += ch; }
+      else if (ch === '>') { insideAngle = false; current += ch; }
+      else if (ch === ',' && !insideAngle) {
+        parts.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+
+    if (current.trim()) parts.push(current);
+    return parts;
   }
 
   // Minimal decode helper to avoid importing libmime directly with wrong shape.

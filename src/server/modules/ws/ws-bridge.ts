@@ -3,12 +3,13 @@
 // ============================================================================
 
 import { getWSGateway, WSGateway } from './ws-gateway';
-import { auditLogger } from 'utils/audit-logger';
+import { auditLogger } from '@utils/audit-logger';
 import { getRedis } from 'cache/redis-client';
+// Use central WS types (canonical source), bridge uses MailEventPayload + WSServerMessage.
 import type {
   MailEventPayload,
   WSServerMessage,
-} from 'shared/types';
+} from 'types/ws.types';
 
 interface RateLimiterEntry { count: number; lastReset: number; }
 

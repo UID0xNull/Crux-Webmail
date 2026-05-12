@@ -8,7 +8,7 @@
 
 import { Socket } from 'node:net';
 import { EventEmitter } from 'node:events';
-import { auditLogger } from '../../utils/audit-logger';
+import { auditLogger } from '@utils/audit-logger';
 import { DEFAULT_MIME_CONFIG, MimePipelineConfig } from './types';
 
 export interface ClamavScanResult {

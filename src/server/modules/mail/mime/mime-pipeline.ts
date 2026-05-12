@@ -7,8 +7,8 @@
 // ============================================================================
 
 import { EventEmitter } from 'node:events';
-import { auditLogger } from 'utils/audit-logger';
-import { MimeParser, MimeRawAttachment } from './mime-parser';
+import { auditLogger } from '@utils/audit-logger';
+import { MimeParser, MimeRawAttachment, ParsedMimeRaw } from './mime-parser';
 import { HtmlSanitizer, SanitizationReport } from './html-sanitizer';
 import { AttachmentValidator } from './attachment-validator';
 import { ClamavScanner } from './clamav-scanner';
@@ -21,7 +21,6 @@ import {
   DEFAULT_MIME_CONFIG,
   AttachmentSecurityStatus,
   VirusScanStatus,
-  MimePipelineEvents,
 } from './types';
 
 // ------------------------------------------------------------------
@@ -118,6 +117,7 @@ export class MimePipeline extends EventEmitter {
       const parsedEmail: ParsedEmail = {
         uid,
         messageId: parsed.messageId,
+        subject: parsed.subject ?? '',
         headers: this.buildHeaders(parsed),
         bodyText: parsed.text,
         bodyHtml: sanitizedHtml.cleanHtml,
@@ -232,7 +232,7 @@ export class MimePipeline extends EventEmitter {
   // Internal: validate attachments and enrich with metadata
   // ----------------------------------------------------------------
   private async validateAttachments(
-    attachments: any[],
+    attachments: MimeRawAttachment[],
     uid: string,
   ): Promise<ParsedAttachment[]> {
     const validated: ParsedAttachment[] = [];
@@ -246,7 +246,7 @@ export class MimePipeline extends EventEmitter {
         batch.map(async (att) => {
           const parsedAttachment: ParsedAttachment = {
             filename: att.filename || 'unnamed',
-            mimeType: att.contentType || att.mimeType || 'application/octet-stream',
+            mimeType: att.contentType || 'application/octet-stream',
             size: att.contentLength || att.content?.length || 0,
             content: att.content || Buffer.from(''),
             contentId: att.contentId,
@@ -292,35 +292,28 @@ export class MimePipeline extends EventEmitter {
   // ----------------------------------------------------------------
   // Internal: build normalized headers
   // ----------------------------------------------------------------
-  private buildHeaders(parsed: any): MimeHeaders {
-    const normalizeAddr = (addr: any): MimeAddress[] => {
-      if (!addr) return [];
-      if (Array.isArray(addr)) return addr.map(normalizeSingle);
-      return [normalizeSingle(addr)];
-    };
-
-    const normalizeSingle = (addr: any): MimeAddress => {
-      if (!addr) return { name: '', address: '' };
-      if (typeof addr === 'string') return { name: '', address: addr };
-      return {
-        name: addr.name || '',
-        address: addr.address || addr.email || '',
-      };
+  private buildHeaders(parsed: ParsedMimeRaw): MimeHeaders {
+    const normalizeAddr = (addr: MimeAddress[] | undefined): MimeAddress[] => {
+      if (!addr || addr.length === 0) return [];
+      return addr.map(a => ({
+        name: a.name ?? '',
+        address: a.address ?? '',
+      }));
     };
 
     return {
-      from: normalizeAddr(parsed.from),
-      to: normalizeAddr(parsed.to),
-      cc: normalizeAddr(parsed.cc),
-      bcc: normalizeAddr(parsed.bcc),
+      from: normalizeAddr(parsed.from as MimeAddress[]),
+      to: normalizeAddr(parsed.to as MimeAddress[]),
+      cc: normalizeAddr(parsed.cc as MimeAddress[]),
+      bcc: normalizeAddr(parsed.bcc as MimeAddress[]),
       subject: parsed.subject || '(No Subject)',
       date: parsed.date || new Date().toISOString(),
       messageId: parsed.messageId || '',
       inReplyTo: parsed.inReplyTo,
-      references: parsed.references || [],
-      replyTo: normalizeAddr(parsed.replyTo),
+      references: Array.isArray(parsed.references) ? parsed.references : [],
+      replyTo: normalizeAddr(parsed.replyTo as MimeAddress[]),
       headers: parsed.headers?.all || {},
-      rawHeaders: parsed.headers?.raw || parsed.rawHeaders || '',
+      rawHeaders: parsed.rawHeaders || parsed.headers?.raw ?? '',
     };
   }
 
@@ -330,8 +323,9 @@ export class MimePipeline extends EventEmitter {
   private calculateSecurity(
     attachments: ParsedAttachment[],
     sanitizationReport: SanitizationReport,
-    uid: string
-  ): ParsedEmail['security'] {    const quarantined = attachments.filter(
+    _uid: string,
+  ): NonNullable<ParsedEmail['security']> {
+    const quarantined = attachments.filter(
       (a) => a.securityStatus === 'quarantined',
     ).length;
 
@@ -366,7 +360,7 @@ export class MimePipeline extends EventEmitter {
       sanitizedElements:
         (Array.isArray(sanitizationReport?.removedElements)
           ? sanitizationReport.removedElements
-          : []) as string[],
+          : []),
       clamavScanComplete: clamavComplete,
       attachmentsQuarantined: quarantined,
       overallRisk,
