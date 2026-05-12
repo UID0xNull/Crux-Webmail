@@ -8,8 +8,10 @@
 
 import { EventEmitter } from 'node:events';
 import { Buffer } from 'node:buffer';
-import { SimpleImap } from 'simple-imap';
-import type { SearchBox, FetchResults } from 'simple-imap';
+// simple-imap uses a default class; we treat its types via any wrappers
+const SimpleImap: new (opts: Record<string, unknown>) => { on: Function; once: Function; removeAllListeners: Function; getMailboxes: Function; openBox: Function; addMailbox: Function; delMailbox: Function; renameMailbox: Function; search: Function; fetch: Function; updateFlags: Function; deleteEmail: Function; move: Function; copy: Function; idle: Function; end: Function; capabilities?: string[] } = require('simple-imap');
+type SearchBox = unknown[];
+type FetchResults = any;
 
 import {
   IImapAdapter,

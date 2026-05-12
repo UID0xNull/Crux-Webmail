@@ -110,7 +110,7 @@ async function handleConnection(
 
       // Step 2: Register client in gateway using canonical WS type
       const gateway = getWSGateway() ?? initWSGateway(fastifyInstance);
-      const clientId = gateway.registerClient(ws, userId!, payload.sessionId, rawRequest as any);
+      const clientId = gateway.registerClient(ws, userId!, payload.sessionId, req as any);
 
       // Step 3: Listen for further messages
       ws.on('message', (data) => {
