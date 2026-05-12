@@ -236,8 +236,8 @@ export class WSGateway {
   // Send to a specific user + channel (only if subscribed)
   sendToUserChannel(
     userId: string,
-    channel: string,
-    message: Record<string, unknown>
+    channel: WSChannel,
+    message: WSServerMessage
   ): void {
     for (const [, client] of this.clients) {
       if (client.userId === userId && client.channels.has(channel)) {
@@ -266,8 +266,8 @@ export class WSGateway {
     }
   }
 
-  // Broadcast to ALL connected clients (admin/system events)
-  broadcast(message: Record<string, unknown>): void {
+  // Broadcast to ALL connected clients (admin/system events) — typed via WSServerMessage
+  broadcast(message: WSServerMessage): void {
     for (const [, userSet] of this.userSockets) {
       for (const ws of userSet.values()) {
         this.safeSend(ws, message);

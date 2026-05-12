@@ -16,7 +16,9 @@ import {
 } from 'types/ws.types';
 
 // Fastify/WebSocket-specific shape for the upgrade handler.
-type WSFastifyRequest = {
+type WSFastifyRequest = RawWSRequest;
+
+type RawWSRequest = {
   id: string;
   socket: { remoteAddress?: string; localAddress?: string };
   url: string;

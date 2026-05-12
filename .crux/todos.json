@@ -4,11 +4,11 @@
       "1",
       {
         "id": "1",
-        "content": "Fix html-sanitizer/mime-pipeline/type mismatches (ParsedEmail, MimePipeline)",
+        "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
         "status": "completed",
         "children": [],
         "createdAt": 1778443201602,
-        "updatedAt": 1778559398722,
+        "updatedAt": 1778565288826,
         "completedAt": 1778513072991,
         "metadata": {}
       }
@@ -17,11 +17,11 @@
       "2",
       {
         "id": "2",
-        "content": "Rewrite mailparser usage in mime-parser.ts; fix types",
-        "status": "completed",
+        "content": "Fix smtp-service.ts openpgp import + nodemailer Attachment issues",
+        "status": "in_progress",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778559398722,
+        "updatedAt": 1778565288826,
         "completedAt": 1778559398722,
         "metadata": {}
       }
@@ -30,11 +30,11 @@
       "3",
       {
         "id": "3",
-        "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
-        "status": "in_progress",
+        "content": "Clean up IMAP adapter types (accountId, object.value/data)",
+        "status": "pending",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778559398722,
+        "updatedAt": 1778565288826,
         "completedAt": 1778510221002,
         "metadata": {}
       }
@@ -43,11 +43,11 @@
       "4",
       {
         "id": "4",
-        "content": "Fix smtp-service.ts openpgp import + nodemailer Attachment issues",
-        "status": "in_progress",
+        "content": "Rewrite mailparser usage in mime-parser.ts; fix types",
+        "status": "pending",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778559398723,
+        "updatedAt": 1778565288826,
         "completedAt": 1778505383142,
         "metadata": {}
       }
@@ -260,41 +260,41 @@
         "items": [
           {
             "id": "1",
-            "content": "Fix html-sanitizer/mime-pipeline/type mismatches (ParsedEmail, MimePipeline)",
+            "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
             "status": "completed",
             "children": [],
             "createdAt": 1778443201602,
-            "updatedAt": 1778559398722,
+            "updatedAt": 1778565288826,
             "completedAt": 1778513072991,
             "metadata": {}
           },
           {
             "id": "2",
-            "content": "Rewrite mailparser usage in mime-parser.ts; fix types",
-            "status": "completed",
+            "content": "Fix smtp-service.ts openpgp import + nodemailer Attachment issues",
+            "status": "in_progress",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778559398722,
+            "updatedAt": 1778565288826,
             "completedAt": 1778559398722,
             "metadata": {}
           },
           {
             "id": "3",
-            "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
-            "status": "in_progress",
+            "content": "Clean up IMAP adapter types (accountId, object.value/data)",
+            "status": "pending",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778559398722,
+            "updatedAt": 1778565288826,
             "completedAt": 1778510221002,
             "metadata": {}
           },
           {
             "id": "4",
-            "content": "Fix smtp-service.ts openpgp import + nodemailer Attachment issues",
-            "status": "in_progress",
+            "content": "Rewrite mailparser usage in mime-parser.ts; fix types",
+            "status": "pending",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778559398723,
+            "updatedAt": 1778565288826,
             "completedAt": 1778505383142,
             "metadata": {}
           },
@@ -450,7 +450,7 @@
           }
         ],
         "createdAt": 1778441896917,
-        "updatedAt": 1778559398722
+        "updatedAt": 1778565288826
       }
     ]
   ],

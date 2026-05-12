@@ -73,10 +73,16 @@ export class WSBridge {
           createServerMessage('FOLDER_COUNTS_UPDATED'));
         break;
 
-      case 'synced':
+      case 'synced': {
+        const data = (event.data || {}) as Record<string, unknown>;
         this.sendToUser(gateway, event.userId,
-          createServerMessage('SYNC_STATUS', event.data as Record<string, unknown>));
+          createServerMessage('SYNC_STATUS', {
+            status: typeof data.status === 'string' ? data.status : 'idle',
+            progress: typeof data.progress === 'number' ? data.progress : undefined,
+            mailbox: typeof data.mailbox === 'string' ? data.mailbox : undefined,
+          }));
         break;
+      }
 
       case 'moved':
         this.sendToUser(gateway, event.userId,

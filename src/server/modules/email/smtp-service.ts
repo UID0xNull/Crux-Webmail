@@ -3,15 +3,8 @@
 // ============================================================================
 import type { SendMailOptions } from 'nodemailer';
 import nodemailer from 'nodemailer';
-// openpgp v5+ exposes a default namespace; use it to avoid export issues.
-import * as openpgp from 'openpgp';
-
-// Ensure Nodemailer Attachment typing compatibility.
-interface CruxAttachment {
-  filename: string;
-  content: Buffer | string;
-  contentType?: string;
-}
+// openpgp v5+: import as default to align with ESM-style usage.
+import openpgp from 'openpgp';
 
 export interface SMTPConfig {
   host: string;
@@ -123,10 +116,10 @@ export async function sendEncryptedEmail(
   recipientPublicKey: string
 ): Promise<{ messageId: string; status: 'sent' }> {
   try {
-    const message = await createMessage({ text: options.text || '' });
-    const encryptionKeys = await readKey({ armoredKey: recipientPublicKey });
+    const message = await openpgp.createMessage({ text: options.text || '' });
+    const encryptionKeys = await openpgp.readKey({ armoredKey: recipientPublicKey });
 
-    const encryptedText = await encrypt({
+    const encryptedText = await openpgp.encrypt({
       message,
       encryptionKeys,
     });
