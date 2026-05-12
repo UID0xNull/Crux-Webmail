@@ -5,11 +5,11 @@
 import { getWSGateway, WSGateway } from './ws-gateway';
 import { auditLogger } from '@utils/audit-logger';
 import { getRedis } from 'cache/redis-client';
-// Use central WS types (canonical source), bridge uses MailEventPayload + WSServerMessage.
-import type {
-  MailEventPayload,
-  WSServerEventType,
-  WSServerMessage,
+// Central WS types: all events must use createServerMessage and canonical union types.
+import {
+  type MailEventPayload,
+  type WSServerEventType,
+  createServerMessage,
 } from 'types/ws.types';
 
 interface RateLimiterEntry { count: number; lastReset: number; }
@@ -52,38 +52,39 @@ export class WSBridge {
   }
 
   private dispatchToLocal(gateway: WSGateway, event: MailEventPayload): void {
-    const ts = Date.now();
-
-    const makeMessage = (
-      type: WSServerEventType,
-      payload: Record<string, unknown> = event.data,
-    ): WSServerMessage => ({
-      type,
-      payload,
-      timestamp: ts,
-    });
-
     switch (event.type) {
       case 'new':
-        this.sendToUser(gateway, event.userId, makeMessage('NEW_MESSAGE'));
-        this.sendToUser(gateway, event.userId, makeMessage('FOLDER_COUNTS_UPDATED'));
+        this.sendToUser(gateway, event.userId,
+          createServerMessage('NEW_MESSAGE', event.data));
+        this.sendToUser(gateway, event.userId,
+          createServerMessage('FOLDER_COUNTS_UPDATED'));
         break;
+
       case 'flagged':
-        this.sendToUser(gateway, event.userId, makeMessage('MESSAGE_FLAG_CHANGED'));
+        this.sendToUser(gateway, event.userId,
+          createServerMessage('MESSAGE_FLAG_CHANGED', event.data));
         break;
+
       case 'deleted':
-        this.sendToUser(gateway, event.userId, makeMessage('MESSAGE_DELETED'));
-        this.sendToUser(gateway, event.userId, makeMessage('FOLDER_COUNTS_UPDATED'));
+        this.sendToUser(gateway, event.userId,
+          createServerMessage('MESSAGE_DELETED', event.data));
+        this.sendToUser(gateway, event.userId,
+          createServerMessage('FOLDER_COUNTS_UPDATED'));
         break;
+
       case 'synced':
-        this.sendToUser(gateway, event.userId, makeMessage('SYNC_STATUS'));
+        this.sendToUser(gateway, event.userId,
+          createServerMessage('SYNC_STATUS', event.data as Record<string, unknown>));
         break;
+
       case 'moved':
-        this.sendToUser(gateway, event.userId, makeMessage('MESSAGE_FLAG_CHANGED', {
-          ...event.data,
-          eventType: 'move',
-        }));
-        this.sendToUser(gateway, event.userId, makeMessage('FOLDER_COUNTS_UPDATED'));
+        this.sendToUser(gateway, event.userId,
+          createServerMessage('MESSAGE_FLAG_CHANGED', {
+            ...event.data,
+            eventType: 'move',
+          }));
+        this.sendToUser(gateway, event.userId,
+          createServerMessage('FOLDER_COUNTS_UPDATED'));
         break;
     }
   }

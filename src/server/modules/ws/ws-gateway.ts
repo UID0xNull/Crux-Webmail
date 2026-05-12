@@ -132,16 +132,12 @@ export class WSGateway {
     });
 
     // Send READY confirmation
-    this.safeSend(ws, {
-      type: 'READY',
-      payload: {
-        clientId,
-        userId,
-        channels: [],
-        heartbeatMs: this.heartbeatMs,
-      },
-      timestamp: Date.now(),
-    });
+    this.safeSend(ws, createServerMessage('READY', {
+      clientId,
+      userId,
+      channels: [],
+      heartbeatMs: this.heartbeatMs,
+    }));
 
     return clientId;
   }
@@ -284,17 +280,16 @@ export class WSGateway {
   // ----------------------------------------------------------------
   checkStaleConnections(): void {
     const now = Date.now();
-    for (const [clientId, client] of this.clients) {
+    for (const [, client] of this.clients) {
       if (now - client.lastPing > this.maxIdleMs) {
         // Warn before disconnect
-        this.sendToUser(client.userId, {
-          type: 'CONNECTION_WARNING',
-          payload: {
+        this.sendToUser(
+          client.userId,
+          createServerMessage('CONNECTION_WARNING', {
             message: 'Connection idle — please keep alive with ping.',
             disconnectIn: 15_000,
-          },
-          timestamp: now,
-        });
+          })
+        );
       }
     }
   }

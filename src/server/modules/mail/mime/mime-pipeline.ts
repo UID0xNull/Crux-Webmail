@@ -293,7 +293,7 @@ export class MimePipeline extends EventEmitter {
   // Internal: build normalized headers
   // ----------------------------------------------------------------
   private buildHeaders(parsed: ParsedMimeRaw): MimeHeaders {
-    const normalizeAddr = (addr: any[]) => {
+    const normalizeAddr = (addr: MimeAddress[] | undefined) => {
       if (!Array.isArray(addr) || addr.length === 0) return [];
       return addr.map((a) => ({
         name: a?.name ?? '',

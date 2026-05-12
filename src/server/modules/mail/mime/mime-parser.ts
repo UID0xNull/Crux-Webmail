@@ -330,16 +330,24 @@ export class MimeParser {
           } else {
             // Fallback: now.
             result.date = new Date().toISOString();
+// If we collected references set, turn into array (no duplicates). // If we collected references set, turn into array (no duplicates).
+          let refs: string[] | undefined;
+
+          if (result.refsSet && typeof (result.refsSet as any)['size'] === 'number') {
+            try {
+              refs = [...(result.refsSet as Set<string>)];
+            } catch {
+              refs = Array.isArray(result.references) ? result.references.filter(Boolean) : [];
+            }
           }
 
-          // If we collected references set, turn into array (no duplicates).
-          const refs = Array.isArray(result.refsSet?.['size'] !== 'undefined' ? [...(result.refsSet as any)] : undefined);
-          if (!refs && result.references) {
-            result.references = Array.isArray(result.references) ? result.references.filter(Boolean) : [];
-          } else if (refs) {
+          if (refs && refs.length > 0) {
             result.references = refs;
+          } else if (result.references && Array.isArray(result.references)) {
+            result.references = result.references.filter(Boolean);
           } else {
             result.references = [];
+          }
           }
 
           // Text/HTML: finalize from accumulated parts.

@@ -9,7 +9,11 @@ import type { FastifyInstance } from 'fastify';
 import type WebSocket from 'ws';
 import { getWSGateway, initWSGateway, WSGateway } from './ws-gateway';
 import { auditLogger } from '@utils/audit-logger';
-import type { WSClientMessage, WSServerMessage, WSChannel } from 'types/ws.types';
+import {
+  WSClientMessage,
+  WSChannel,
+  createServerMessage,
+} from 'types/ws.types';
 
 // Fastify/WebSocket-specific shape for the upgrade handler.
 type RawWSRequest = {
@@ -168,15 +172,13 @@ function handleClientMessage(
   try {
     msg = JSON.parse(raw);
   } catch {
-    gateway.safeSend(ws, {
-      type: 'ERROR',
-      payload: { message: 'Invalid JSON' },
-      timestamp: Date.now(),
-    } as WSServerMessage);
+    gateway.safeSend(ws,
+      createServerMessage('ERROR', { message: 'Invalid JSON' })
+    );
     return;
   }
 
-  const allowed = new Set<WSClientMessage['type']>([
+  const allowedTypes: Set<WSClientMessage['type']> = new Set([
     'PING',
     'SUBSCRIBE',
     'UNSUBSCRIBE',
@@ -184,34 +186,28 @@ function handleClientMessage(
     'FOLDER_SYNC',
   ]);
 
-  if (!allowed.has(msg.type)) {
-    gateway.safeSend(ws, {
-      type: 'ERROR',
-      payload: { message: `Unknown message type: ${msg.type}` },
-      timestamp: Date.now(),
-    } as WSServerMessage);
+  if (!allowedTypes.has(msg.type)) {
+    gateway.safeSend(ws,
+      createServerMessage('ERROR', { message: `Unknown message type: ${msg.type}` })
+    );
     return;
   }
 
   switch (msg.type) {
     case 'PING':
       gateway.updatePing(clientId);
-      gateway.safeSend(ws, {
-        type: 'PONG',
-        payload: { timestamp: Date.now() },
-        timestamp: Date.now(),
-      } as WSServerMessage);
+      gateway.safeSend(ws,
+        createServerMessage('PONG', { timestamp: Date.now() })
+      );
       break;
 
     case 'SUBSCRIBE': {
       const channels = (msg.payload as { channels?: WSChannel[] }).channels;
       if (channels && Array.isArray(channels)) {
         gateway.subscribe(ws, channels);
-        gateway.safeSend(ws, {
-          type: 'READY',
-          payload: { subscribed: channels },
-          timestamp: Date.now(),
-        } as WSServerMessage);
+        gateway.safeSend(ws,
+          createServerMessage('READY', { subscribed: channels })
+        );
       }
       break;
     }
@@ -237,16 +233,12 @@ function handleClientMessage(
       gateway.broadcastToOtherClientsOfUser(
         client.userId,
         ws,
-        {
-          type: 'MESSAGE_FLAG_CHANGED',
-          payload: {
-            messageId,
-            flags,
-            action,
-            mailboxId,
-          },
-          timestamp: Date.now(),
-        } as WSServerMessage,
+        createServerMessage('MESSAGE_FLAG_CHANGED', {
+          messageId,
+          flags,
+          action,
+          mailboxId,
+        }),
       );
       break;
     }
@@ -257,6 +249,6 @@ function handleClientMessage(
       break;
 
     default:
-      // Should not happen due to allowed set.
+      // Should not happen due to allowedTypes check.
   }
 }
