@@ -9,11 +9,8 @@ import type { FastifyInstance } from 'fastify';
 import type WebSocket from 'ws';
 import { getWSGateway, initWSGateway, WSGateway } from './ws-gateway';
 import { auditLogger } from '@utils/audit-logger';
-import {
-  WSClientMessage,
-  WSChannel,
-  createServerMessage,
-} from 'types/ws.types';
+import type { WSClientMessage, WSChannel } from 'types/ws.types';
+import { createServerMessage } from 'types/ws.types';
 
 // Fastify/WebSocket-specific shape for the upgrade handler.
 type WSFastifyRequest = RawWSRequest;

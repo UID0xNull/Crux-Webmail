@@ -289,8 +289,8 @@ export class HtmlSanitizer {
 
   private emptyReport(): SanitizationReport {
     return {
-      threatsFound: 0,
-      removedElements: [],
+      xssThreatsFound: 0,
+      sanitizedElements: [],
       removedAttributes: [],
       removedProtocols: [],
       cleanedCss: 0,

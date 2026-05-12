@@ -13,7 +13,7 @@ const SimpleImap: new (opts: Record<string, unknown>) => { on: Function; once: F
 type SearchBox = unknown[];
 type FetchResults = any;
 
-import {
+import type {
   IImapAdapter,
   IMailMessage,
   IMailbox,
@@ -25,10 +25,10 @@ import {
   ISearchQuery,
   IAccountConfig,
   MailboxRole,
-} from 'contracts';
-import { CruxError } from 'errors/handler';
-import { auditLogger } from 'utils/audit-logger';
-import { generateSecureUuid } from 'utils/crypto';
+} from 'types/contracts';
+import { CruxError } from '@errors/handler';
+import { auditLogger } from '@utils/audit-logger';
+import { generateSecureUuid } from '@utils/crypto';
 
 // ------------------------------------------------------------------
 // Internal state tracking
@@ -47,6 +47,18 @@ function nowIso(): string {
 // ------------------------------------------------------------------
 // Normalization helpers
 // ------------------------------------------------------------------
+function extractStringValue(val: unknown): string {
+  if (typeof val === 'string') return val;
+  if (val != null && typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    for (const k of ['value', 'data', 'text', 'raw', 'name', 'address']) {
+      const candidate = obj[k];
+      if (candidate != null) return String(candidate).trim();
+    }
+  }
+  return val != null ? String(val).trim() : '';
+}
+
 function normalizeFlags(raw: string[] = []): IFlags {
   return {
     seen: raw.some((f: string) => f === '\Seen'),
@@ -96,14 +108,20 @@ function parseAddresses(raw: unknown): IMailAddress[] {
     if (!item || typeof item !== 'object') {
       return { name: '', email: '' };
     }
-    const obj = item as Record<string, string>;
+    const obj = item as Record<string, unknown>;
+
+    const maybeStr = (v: unknown): string | undefined =>
+      v != null && typeof v === 'string' ? String(v).trim() : undefined;
+
     return {
-      name: obj.name || obj.address || String(obj),
-      email:
-        obj.address ||
-        obj.email ||
-        (typeof obj.name === 'string' ? obj.name : '') ||
+      name:
+        maybeStr(obj.name) ||
+        maybeStr(obj.address) ||
         '',
+      email:
+        maybeStr(obj.email) ||
+        maybeStr(obj.address) ||
+        (maybeStr(obj.name)?.includes('@') ? maybeStr(obj.name)! : ''),
     };
   });
 }
@@ -147,7 +165,7 @@ function uidToString(uid: number | string | undefined): string {
 // ImapAdapter — concrete implementation
 // ------------------------------------------------------------------
 export class ImapAdapter implements IImapAdapter {
-  private conn: SimpleImap | null = null;
+  private conn: any | null = null;
   private currentConfig: IAccountConfig | null = null;
   private currentMailbox: string | null = null;
   private state: ConnectionState = {
@@ -228,6 +246,7 @@ export class ImapAdapter implements IImapAdapter {
 
   async disconnect(): Promise<void> {
     if (this.conn) {
+      const accountId = this.currentConfig?.accountId || 'unknown';
       try {
         this.conn.end();
       } catch {
@@ -239,7 +258,7 @@ export class ImapAdapter implements IImapAdapter {
       this.state.phase = 'disconnected';
       this.state.lastActivity = nowIso();
       auditLogger.info('IMAP adapter disconnected', {
-        actor_id: this.currentConfig?.accountId || 'unknown',
+        actor_id: accountId,
       });
     }
   }
@@ -904,7 +923,8 @@ export class ImapAdapter implements IImapAdapter {
       } else if (Array.isArray(value)) {
         result[key] = value;
       } else if (value && typeof value === 'object') {
-        result[key] = [String(value.value || value.data || '')];
+        const obj = value as Record<string, unknown>;
+        result[key] = [String(obj.value || obj.data || '')];
       }
     }
     return result;

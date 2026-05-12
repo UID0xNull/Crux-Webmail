@@ -56,6 +56,7 @@
     "fastify-metrics": "^13.2.0",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
+    "mailparser": "^3.9.8",
     "next": "^15.1.0",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.16",

@@ -305,7 +305,8 @@ export class MimePipeline extends EventEmitter {
       from: normalizeAddr(parsed.from),
       to: normalizeAddr(parsed.to),
       cc: normalizeAddr(parsed.cc),
-      bcc: normalizeAddr(parsed.bcc),      subject: parsed.subject || '(No Subject)',
+      bcc: normalizeAddr(parsed.bcc),
+      subject: parsed.subject || '(No Subject)',
       date: parsed.date || new Date().toISOString(),
       messageId: parsed.messageId || '',
       inReplyTo: parsed.inReplyTo,
@@ -358,8 +359,8 @@ export class MimePipeline extends EventEmitter {
     return {
       xssThreatsFound: xssThreats,
       sanitizedElements:
-        (Array.isArray(sanitizationReport?.removedElements)
-          ? sanitizationReport.removedElements
+        (Array.isArray(sanitizationReport?.sanitizedElements)
+          ? sanitizationReport.sanitizedElements
           : []),
       clamavScanComplete: clamavComplete,
       attachmentsQuarantined: quarantined,

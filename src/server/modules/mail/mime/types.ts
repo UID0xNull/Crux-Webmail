@@ -196,11 +196,11 @@ export const DANGEROUS_MIME_PATTERNS = [
 // Events for streaming results
 // ------------------------------------------------------------------
 export interface MimePipelineEvents {
-  parsing: { uid: string };
-  sanitizing: { uid: string };
-  validating: { uid: string; attachmentCount: number };
-  scanning: { uid: string; attachmentId: string };
-  scanned: { uid: string; attachmentId: string; status: VirusScanStatus };
-  complete: { uid: string; parsed: ParsedEmail };
-  error: { uid: string; error: Error };
+  'mime:parse': { uid: string };
+  'mime:sanitize': { uid: string };
+  'mime:validate': { uid: string; attachmentCount: number };
+  'mime:scan': { uid: string; attachmentId: string };
+  'mime:scan_complete': { uid: string; attachmentId: string; status: VirusScanStatus };
+  'mime:complete': { uid: string; parsed: ParsedEmail };
+  'mime:error': { uid: string; error: Error };
 }
