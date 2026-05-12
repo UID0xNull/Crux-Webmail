@@ -5,7 +5,7 @@
 // y fallbacks seguros ante servidores que no soportan features opcionales.
 // ============================================================================
 
-import { auditLogger } from '../../utils/audit-logger';
+import { auditLogger } from 'utils/audit-logger';
 
 // ------------------------------------------------------------------
 // Capability constants

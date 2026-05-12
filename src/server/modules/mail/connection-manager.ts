@@ -14,7 +14,7 @@ import type {
   IAccountConfig,
   IConnectionInfo,
   ConnectionPhase,
-} from '../contracts';
+} from './contracts/types';
 import { ImapAdapter } from './adapter/imap-adapter';
 import { SmtpAdapter } from './adapter/smtp-adapter';
 import { CruxError } from '../../errors/handler';
@@ -108,7 +108,7 @@ export class MailConnectionManager extends EventEmitter {
         actor_id: userId,
         metadata: { accountId: accountConfig.accountId },
       });
-      entry = null;
+      entry = undefined;
     }
 
     if (!entry || this.isConnectionStale(entry)) {
@@ -127,7 +127,7 @@ export class MailConnectionManager extends EventEmitter {
     let entry = this.pool.get(key);
 
     if (entry && this.isCircuitOpen(entry)) {
-      entry = null;
+      entry = undefined;
     }
 
     if (!entry || this.isConnectionStale(entry)) {
@@ -192,7 +192,7 @@ export class MailConnectionManager extends EventEmitter {
         connectedAt: entry.connectedAt,
         lastActivity: entry.lastActivity,
         idle: isIdle,
-        imapPhase: entry.imap.getConnectionInfo().phase,
+        imapPhase: entry.imap.getConnectionInfo().phase as ConnectionPhase,
         smtpReady: entry.smtp.isReady(),
         circuitOpen: this.isCircuitOpen(entry),
         failureCount: entry.failureCount,

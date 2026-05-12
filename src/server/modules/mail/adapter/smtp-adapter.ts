@@ -14,10 +14,10 @@ import type {
   IMailAddress,
   IAttachment,
 } from '../contracts';
-import { CruxError } from '../../errors/handler';
-import { auditLogger } from '../../utils/audit-logger';
-import { generateSecureUuid } from '../../utils/crypto';
-import { config } from '../../config/app.config';
+import { CruxError } from 'errors/handler';
+import { auditLogger } from 'utils/audit-logger';
+import { generateSecureUuid } from 'utils/crypto';
+import { config } from 'config/app.config';
 
 // ------------------------------------------------------------------
 // SmtpAdapter — concrete implementation
@@ -193,16 +193,16 @@ export class SmtpAdapter implements ISmtpAdapter {
     return addr.email;
   }
 
-  private mapAttachments(attachments: Partial<IAttachment>[]): nodemailer.Attachment[] {
+  private mapAttachments(attachments: Partial<IAttachment>[]): Array<Record<string, unknown>> {
     return attachments
-      .filter((a) => a.content) // only valid attachments
+      .filter((a) => a.content)
       .map((a) => ({
         filename: a.filename || 'attachment',
         contentType: a.mimeType,
         content: a.content as Buffer,
         disposition: a.disposition || 'attachment',
         contentId: a.contentId,
-      })) as nodemailer.Attachment[];
+      }));
   }
 
   private ensureReady(): void {

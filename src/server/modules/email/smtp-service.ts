@@ -3,7 +3,7 @@
 // ============================================================================
 import nodemailer from 'nodemailer';
 import type { SendMailOptions } from 'nodemailer';
-import openpgp from 'openpgp';
+import * as openpgp from 'openpgp';
 
 export interface SMTPConfig {
   host: string;
