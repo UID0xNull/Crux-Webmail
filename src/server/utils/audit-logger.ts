@@ -7,7 +7,7 @@ import { generateSecureUuid } from './crypto';
 // ------------------------------------------------------------------
 // AuditLogger — append-only, checksum por bloque, Loki-compatible
 // ------------------------------------------------------------------
-export type AuditLevel = 'info' | 'warn' | 'error' | 'critical' | 'fatal';
+export type AuditLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical' | 'fatal';
 
 export class AuditLogger {
   private events: AuditEvent[] = [];
@@ -22,6 +22,10 @@ export class AuditLogger {
   // ----------------------------------------------------------------
   // MÃ©todos de log por nivel
   // ----------------------------------------------------------------
+  debug(message: string, metadata: Partial<AuditEvent> = {}): AuditEvent {
+    return this.write('info', message, metadata);
+  }
+
   info(message: string, metadata: Partial<AuditEvent> = {}): AuditEvent {
     return this.write('info', message, metadata);
   }

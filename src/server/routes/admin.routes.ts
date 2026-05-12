@@ -89,7 +89,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(_request, reply) {
+    async function handler(_request: FastifyRequest, reply: FastifyReply) {
       try {
         const [health, userStats, auditSummary, recent] = await Promise.all([
           getSystemHealth(),

@@ -6,7 +6,7 @@
 // todo upgrade requiere validación de token antes de autorizar la conexión.
 // ============================================================================
 
-import type WebSocket from 'ws';
+import WebSocket from 'ws';
 import type { FastifyInstance } from 'fastify';
 import { auditLogger } from '@utils/audit-logger';
 import { getRedis } from 'cache/redis-client';
@@ -24,7 +24,7 @@ export interface WSClient {
   userAgent: string;
 }
 
-declare global {
+declare module 'ws' {
   // Attach internal client metadata to the WS object.
   interface WebSocket {
     __cruxClient?: WSClient;

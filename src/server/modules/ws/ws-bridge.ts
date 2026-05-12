@@ -58,7 +58,7 @@ export class WSBridge {
         this.sendToUser(gateway, event.userId,
           createServerMessage('NEW_MESSAGE', event.data));
         this.sendToUser(gateway, event.userId,
-          createServerMessage('FOLDER_COUNTS_UPDATED'));
+          createServerMessage('FOLDER_COUNTS_UPDATED', {}));
         break;
 
       case 'flagged':
@@ -70,7 +70,7 @@ export class WSBridge {
         this.sendToUser(gateway, event.userId,
           createServerMessage('MESSAGE_DELETED', event.data));
         this.sendToUser(gateway, event.userId,
-          createServerMessage('FOLDER_COUNTS_UPDATED'));
+          createServerMessage('FOLDER_COUNTS_UPDATED', {}));
         break;
 
       case 'synced': {
@@ -91,7 +91,7 @@ export class WSBridge {
             eventType: 'move',
           }));
         this.sendToUser(gateway, event.userId,
-          createServerMessage('FOLDER_COUNTS_UPDATED'));
+          createServerMessage('FOLDER_COUNTS_UPDATED', {}));
         break;
     }
   }

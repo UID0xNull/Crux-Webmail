@@ -156,7 +156,7 @@ export class MimeParser {
         if (Array.isArray(value)) {
           values = value as (string | number)[];
         } else if (value != null && String(value).trim() !== '') {
-          values = [value];
+          values = [value as (string | number)];
         } else {
           return;
         }
@@ -173,16 +173,16 @@ export class MimeParser {
         const key = normalized.toLowerCase();
         if (key === 'message-id') {
           if (!result.messageId && strValues.length > 0) {
-            result.messageId = this.bracketTrim(strValues[0]) || '';
+            result.messageId = this.bracketTrim(strValues[0] as string) || '';
           }
         } else if (key === 'in-reply-to') {
           if (!result.inReplyTo && strValues.length > 0) {
-            const refs = this.extractBracketedRefs(strValues.join(' '));
-            result.inReplyTo = refs[0] ?? null;
+            const refs = this.extractBracketedRefs(String(strValues[0]));
+            result.inReplyTo = refs[0] ?? undefined;
           }
         } else if (key === 'references') {
           for (const val of strValues) {
-            const refs = this.splitReferences(val);
+            const refs = this.splitReferences(String(val));
             if (!result.refsSet) result.refsSet = new Set<string>();
             for (const ref of refs) result.refsSet.add(ref);
           }
@@ -211,65 +211,69 @@ export class MimeParser {
         }
       }) as (cb: (obj: unknown) => void) => void);
 
-      // Handle attachment events.
-      parser.on('attachment' as string, async ((att: AttachmentEventPayload | Record<string, unknown>) => {
-        try {
-          const a = att as AttachmentEventPayload;
+      // Handle attachment events — wrap in IIFE so parser.on receives a regular callback.
+      parser.on('attachment' as string, ((att: AttachmentEventPayload | Record<string, unknown>) => {
+        (async () => {
+          try {
+            const a = att as AttachmentEventPayload;
 
-          let filename: string | undefined =
-            typeof (a as any).filename === 'string' && String((a as any).filename || '').trim()
-              ? (a as any).filename :
-                // Some mailparser versions expose name.
+            let filename: string | undefined =
+              typeof (a as any).filename === 'string' && String((a as any).filename || '').trim()
+                ? (a as any).filename
+                : // Some mailparser versions expose name.
                   typeof (a as any).name === 'string' && String((a as any).name || '').trim()
                     ? (a as any).name
                     : undefined;
 
-          filename = filename ? this.decodeWord(filename) : null;
-          if (!filename || !filename.trim()) {
-            filename = 'attachment';
-          }
+            filename = filename ? this.decodeWord(filename) : '';
+            if (!filename || !filename.trim()) {
+              filename = 'attachment';
+            }
 
-          // Determine content-type.
-          let contentType: string | undefined = typeof a.contentType === 'string'
+            // Determine content-type.
+            let contentType: string = typeof a.contentType === 'string'
               ? (a as any).contentType?.toString().trim() || ''
               : '';
-          if (!contentType) {
-            contentType = 'application/octet-stream';
+            if (!contentType) {
+              contentType = 'application/octet-stream';
+            }
+
+            const streamCandidate = (att as AttachmentEventPayload).stream ?? (a as any).stream;
+            const buffer = await this.readStream(streamCandidate);
+
+            const contentLength =
+              buffer.length > 0 && buffer.length <= this.config.maxAttachmentSize
+                ? buffer.length
+                : 0;
+
+            // If too large, still record it but with zeroed content to avoid OOM.
+            const safeContent: Buffer =
+              buffer.length <= this.config.maxAttachmentSize ? buffer : Buffer.alloc(0);
+
+            attachments.push({
+              filename: filename ?? 'attachment',
+              contentType,
+              contentLength,
+              content: safeContent,
+              contentId: typeof a.contentId === 'string' && String(a.contentId || '').trim()
+                ? (a as any).contentId?.toString().trim() ?? undefined
+                : undefined,
+              disposition: this.extractDispositionType(String((a as any).disposition ?? '')),
+            });
+          } catch {
+            // Fallback quarantined-safe attachment.
+            attachments.push({
+              filename: 'quarantined-attachment',
+              contentType: 'application/octet-stream',
+              contentLength: 0,
+              content: Buffer.alloc(0),
+              disposition: 'attachment',
+            });
           }
-
-          const streamCandidate = (att as AttachmentEventPayload).stream ?? (a as any).stream;
-          const buffer = await this.readStream(streamCandidate);
-
-          const contentLength =
-            buffer.length > 0 && buffer.length <= this.config.maxAttachmentSize
-              ? buffer.length
-              : 0;
-
-          // If too large, still record it but with zeroed content to avoid OOM.
-          const safeContent: Buffer =
-            buffer.length <= this.config.maxAttachmentSize ? buffer : Buffer.alloc(0);
-
-          attachments.push({
-            filename: filename ?? 'attachment',
-            contentType,
-            contentLength,
-            content: safeContent,
-            contentId: typeof a.contentId === 'string' && String(a.contentId || '').trim()
-              ? (a as any).contentId?.toString().trim() ?? undefined
-              : undefined,
-            disposition: this.extractDispositionType(String((a as any).disposition ?? '')),
-          });
-        } catch {
-          // Fallback quarantined-safe attachment.
-          attachments.push({
-            filename: 'quarantined-attachment',
-            contentType: 'application/octet-stream',
-            contentLength: 0,
-            content: Buffer.alloc(0),
-            disposition: 'attachment',
-          });
-        }
-      }) as (cb: (att: unknown) => void | Promise<void>) => void);
+        })().catch(() => {
+          // Silently handle uncaught errors in attachment processing.
+        });
+      }) as (cb: (att: unknown) => void) => void);
 
       parser.on('error' as string, (err: any) => reject(err));
 
@@ -333,7 +337,7 @@ export class MimeParser {
 
           // references: turn collected set or existing list into a clean array.
           let refs: string[] | undefined;
-          if (result.refsSet && typeof (result.refsSet as Set<string>)[Symbol.toStringTag] === 'Set') {
+          if (result.refsSet && result.refsSet instanceof Set) {
             try {
               const s = result.refsSet as Set<string>;
               refs = [...s.values()];
@@ -438,7 +442,7 @@ export class MimeParser {
 
       let values: (string | number)[];
       if (Array.isArray(value)) {
-        values = value;
+        values = value as (string | number)[];
       } else if (typeof value === 'string' && value.trim() !== '') {
         values = [value];
       } else {
@@ -611,7 +615,7 @@ export class MimeParser {
             if (!text || !encoding) return _match;
 
             if (encoding === 'B') {
-              return Buffer.from(text, 'base64').toString(cs);
+              return Buffer.from(text, 'base64').toString(cs as BufferEncoding);
             } else {
               const qText = text.replace(/_/g, ' ');
               const bytes: number[] = [];
@@ -628,7 +632,7 @@ export class MimeParser {
                 bytes.push(qText.charCodeAt(i));
                 i++;
               }
-              return Buffer.from(bytes).toString(cs);
+              return Buffer.from(bytes).toString(cs as BufferEncoding);
             }
           } catch {
             return _match;

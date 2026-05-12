@@ -35,16 +35,14 @@ export async function registerWebSocketRoutes(fastify: FastifyInstance): Promise
   const plugin = wsPlugin.default || wsPlugin;
   await fastify.register(plugin);
 
-  fastify.route<{
-    Querystring: never;
-    Params: never;
-  }>({
+  fastify.route({
     method: 'GET',
     url: '/ws',
     websocket: true,
-    async handler(this: unknown, request: WSFastifyRequest) {
-      const ws = (request.websocket as WebSocket);
-      handleConnection(ws, fastify, request);
+    handler: async (request) => {
+      const req = request as unknown as WSFastifyRequest;
+      const ws = req.websocket as WebSocket;
+      handleConnection(ws, fastify, req);
     },
   });
 
@@ -94,7 +92,7 @@ async function handleConnection(
           return;
         }
 
-        userId = result.user_id;
+        userId = result.user_id ?? null;
       } catch (err) {
         auditLogger.warn('[WS] Auth verification failed', {
           error: (err as Error).message,
