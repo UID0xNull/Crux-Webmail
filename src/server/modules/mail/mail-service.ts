@@ -21,8 +21,8 @@ import type {
 import { MailConnectionManager, getMailConnectionManager, PoolInfo } from './connection-manager';
 import { getImapExtensionsManager, ImapExtensionsManager, ServerProfile, ExtensionLevel } from './extensions/extensions-manager';
 import { MimePipeline, ParsedEmail, MimePipelineConfig } from './mime';
-import { CruxError } from '../errors/handler';
-import { auditLogger } from '../utils/audit-logger';
+import { CruxError } from 'errors/handler';
+import { auditLogger } from 'utils/audit-logger';
 
 // ------------------------------------------------------------------
 // MailService — unified mail operations
@@ -383,7 +383,7 @@ export class MailService {
   }
 
   getServerProfile(accountId: string) {
-    return this.extensionsManager.profiles?.get?.(accountId);
+    return this.extensionsManager.getProfile(accountId);
   }
 }
 

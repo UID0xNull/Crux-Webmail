@@ -25,10 +25,7 @@ const mailPlugin: FastifyPluginAsync = async (fastify, _opts) => {
 
   fastify.addHook("onReady", async () => {
     manager.start();
-    fastify.log.info("[MailPlugin] MailConnectionManager started", {
-      maxPoolSize: 50,
-      idleTimeoutMs: 600000,
-    });
+    fastify.log.info({ maxPoolSize: 50, idleTimeoutMs: 600000 }, "[MailPlugin] MailConnectionManager started");
   });
 
   fastify.addHook("onClose", async () => {
@@ -61,9 +58,7 @@ const mailPlugin: FastifyPluginAsync = async (fastify, _opts) => {
           timestamp: new Date().toISOString(),
         };
       } catch (err) {
-        fastify.log.error("[MailPlugin] Pool status failed", {
-          error: (err as Error).message,
-        });
+        fastify.log.error({ error: (err as Error).message }, "[MailPlugin] Pool status failed");
         return reply.code(503).send({ error: "Mail pool unavailable" });
       }
     },
