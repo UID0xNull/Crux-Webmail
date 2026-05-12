@@ -50,6 +50,10 @@ const ChangePasswordSchema = z.object({
   new_password: z.string().min(8).max(128),
 });
 
+const MFASetupSchema = z.object({
+  clientIp: z.string().optional(),
+});
+
 const MFAVerifySchema = z.object({
   mfa_session_id: z.string().uuid(),
   code: z.string().length(6),
@@ -63,25 +67,26 @@ const MFAEnableSchema = z.object({
 // ------------------------------------------------------------------
 // Shared middleware (declared before use)
 // ------------------------------------------------------------------
-async function verifyAuthMiddleware(request: FastifyRequest, reply: FastifyReply) {
+async function verifyAuthMiddleware(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const sessionManager = await getSessionManager();
   const authHeader = request.headers.authorization as string | undefined;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    sendError(reply, 401, 'MISSING_AUTH_TOKEN', 'Missing authentication token');
-    return reply.send(null);
+    void sendError(reply, 401, 'MISSING_AUTH_TOKEN', 'Missing authentication token');
+    return;
   }
 
   const token = authHeader.slice(7);
   const result = await sessionManager.verifySession(token);
 
   if (!result.valid || !result.user_id) {
-    sendError(reply, 401, 'INVALID_SESSION', 'Invalid session');
-    return reply.send(null);
+    void sendError(reply, 401, 'INVALID_SESSION', 'Invalid session');
+    return;
   }
 
-  (request as any).user_id = result.user_id;
+  (request as any).userId = result.user_id;
   (request as any).session_id = result.session_id;
+  return;
 }
 
 // ------------------------------------------------------------------
@@ -103,12 +108,12 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
       try {
-        const userId = (request as any).user_id;
+        const userId = (request as any).userId;
         const profile = await authService.getProfile(userId);
         return sendSuccess(reply, profile);
       } catch (_err) {
         auditLogger.error('Profile fetch failed', {
-          actor_id: (request as any).user_id,
+          actor_id: (request as any).userId,
           metadata: { error: (_err as Error)?.message ?? String(_err) },
         });
         return sendError(reply, 500, 'INTERNAL_ERROR', 'Internal Server Error');
@@ -124,13 +129,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       schema: {
         description: 'Register a new user',
         tags: ['auth'],
-        body: RegisterSchema,
+        body: RegisterSchema.shape,
         response: { 201: { type: 'object', additionalProperties: true } },
       },
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
       const typedReq = request as FastifyRequest<{ Body: z.infer<typeof RegisterSchema> }>;
-      const body = typedReq.body;
+      const body = RegisterSchema.parse(typedReq.body);
 
       const result = await authService.register({
         username: body.username,
@@ -139,7 +144,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       });
 
       if (!result.success) {
-        return sendError(reply, 400, (result.error ?? 'REGISTRATION_FAILED') as string, result.message ?? 'Registration failed');
+        return sendError(reply, 400, result.error ?? 'REGISTRATION_FAILED', 'Registration failed');
       }
 
       return sendSuccess(reply, result, 201);
@@ -154,11 +159,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       schema: {
         description: 'Login user',
         tags: ['auth'],
-        body: LoginSchema,
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(request, reply) {
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
       const typedRequest = request as FastifyRequest<{ Body: z.infer<typeof LoginSchema> }>;
       const body = LoginSchema.parse(typedRequest.body);
 
@@ -166,26 +170,28 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
 
       const result = await authService.login({
         username: body.username,
-        password: body.password
+        password: body.password,
+        device_fingerprint: body.device_fingerprint,
+        clientIp: clientIp,
+        mtlsSerial: 'none',
       });
 
       if (!result.success) {
         auditLogger.warn('Login failed', { actor_id: body.username, metadata: { ip: clientIp } });
-        return sendError(reply, 401, 'AUTH_FAILED', result.message ?? 'Authentication failed');
+        return sendError(reply, 401, result.error ?? 'AUTH_FAILED', result.message ?? 'Authentication failed');
       }
 
       return sendSuccess(reply, result);
     }
   );
 
-  // POST /api/auth/refresh (requires auth via middleware or tokens from body)
+  // POST /api/auth/refresh
   fastify.post(
     '/refresh',
     {
       schema: {
         description: 'Refresh access token using refresh_token + session_id',
         tags: ['auth'],
-        body: RefreshSchema,
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
@@ -194,13 +200,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       const body = typedReq.body;
 
       try {
-        const result = await authService.refreshTokens({
-          refresh_token: body.refresh_token,
-          session_id: body.session_id,
-        });
+        const result = await authService.refreshTokens(
+          body.session_id,
+          body.refresh_token
+        );
 
         if (!result.success) {
-          return sendError(reply, 401, 'REFRESH_FAILED', result.message ?? 'Token refresh failed');
+          return sendError(reply, 401, String(result.error ?? 'REFRESH_FAILED'), 'Token refresh failed');
         }
 
         return sendSuccess(reply, result);
@@ -219,12 +225,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       schema: {
         description: 'Logout current session',
         tags: ['auth'],
-        body: LogoutSchema,
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
-      const userId = (request as any).user_id;
+      const userId = (request as any).userId;
 
       try {
         await authService.logout({ userId });
@@ -244,12 +249,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       schema: {
         description: 'Change password for current user',
         tags: ['auth'],
-        body: ChangePasswordSchema,
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
-      const userId = (request as any).user_id;
+      const userId = (request as any).userId;
       const typedReq = request as FastifyRequest<{ Body: z.infer<typeof ChangePasswordSchema> }>;
       const body = typedReq.body;
 
@@ -273,6 +277,31 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     }
   );
 
+  // POST /api/auth/mfa/setup
+  fastify.post(
+    '/mfa/setup',
+    {
+      preHandler: [verifyAuthMiddleware],
+      schema: {
+        description: 'Setup MFA for current user',
+        tags: ['auth'],
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
+    },
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
+      const userId = (request as any).userId;
+      const clientIp = request.ip;
+
+      try {
+        const result = await authService.setupMFA(userId, clientIp);
+        return sendSuccess(reply, result);
+      } catch (_err) {
+        auditLogger.error('MFA setup error', { actor_id: userId, metadata: { error: String(_err) } });
+        return sendError(reply, 500, 'MFA_SETUP_ERROR', 'Failed to setup MFA');
+      }
+    }
+  );
+
   // POST /api/auth/mfa/verify
   fastify.post(
     '/mfa/verify',
@@ -280,7 +309,6 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       schema: {
         description: 'Verify MFA code',
         tags: ['auth'],
-        body: MFAVerifySchema,
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
@@ -315,12 +343,11 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       schema: {
         description: 'Enable MFA for user',
         tags: ['auth'],
-        body: MFAEnableSchema,
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
-      const userId = (request as any).user_id;
+      const userId = (request as any).userId;
       const typedReq = request as FastifyRequest<{ Body: z.infer<typeof MFAEnableSchema> }>;
       const body = typedReq.body;
 

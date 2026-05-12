@@ -4,14 +4,13 @@
 // Valida que el usuario tenga rol "admin". Reutiliza el session-manager.
 // ============================================================================
 
-import type { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { getSessionManager } from 'modules/auth/session-manager';
 import { UserModel } from 'models/User';
 
 export async function adminAuthPreHandler(
   request: FastifyRequest,
   reply: FastifyReply,
-  done: HookHandlerDoneFunction
 ): Promise<void> {
   try {
     const authHeader = request.headers.authorization;
@@ -60,11 +59,8 @@ export async function adminAuthPreHandler(
       session_id: result.session_id!,
       username: user.username,
     };
-
-    done();
   } catch {
     reply.code(401);
-    done();
   }
 }
 

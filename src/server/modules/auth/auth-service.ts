@@ -71,11 +71,13 @@ export interface AuthResult {
   success: boolean;
   requiresMFA?: boolean;
   mfaSessionId?: string;
+  user_id?: string;
   token?: string;
   refreshToken?: string;
   session_id?: string;
   fingerprint?: string;
   error?: string;
+  message?: string;
 }
 
 // ------------------------------------------------------------------
@@ -508,43 +510,44 @@ export class AuthService {
   }
 
   // ----------------------------------------------------------------
-  // CHANGE PASSWORD
+  // CHANGE PASSWORD — internal implementation
   // ----------------------------------------------------------------
-  async changePassword(
+  async changePasswordInternal(
     userId: string,
-    req: ChangePasswordRequest,
+    currentPassword: string,
+    newPassword: string,
     clientIp: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; error?: string; message?: string }> {
     try {
       const user = await UserModel.findByPk(userId);
       if (!user) {
-        return { success: false, error: 'USER_NOT_FOUND' };
+        return { success: false, error: 'USER_NOT_FOUND', message: 'User not found' };
       }
 
       // Verify current password
-      const currentValid = await comparePassword(req.currentPassword, user.passwordHash);
+      const currentValid = await comparePassword(currentPassword, user.passwordHash);
       if (!currentValid) {
         auditLogger.warn('Password change failed — wrong current password', {
           actor_id: userId,
           client_ip: clientIp,
         });
-        return { success: false, error: 'INVALID_CURRENT_PASSWORD' };
+        return { success: false, error: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect' };
       }
 
       // Validate new password strength
-      const pwResult = validatePasswordStrength(req.newPassword);
+      const pwResult = validatePasswordStrength(newPassword);
       if (!pwResult.valid) {
-        return { success: false, error: 'WEAK_PASSWORD' };
+        return { success: false, error: 'WEAK_PASSWORD', message: pwResult.error };
       }
 
       // Cannot reuse same password
-      if (await comparePassword(req.newPassword, user.passwordHash)) {
-        return { success: false, error: 'PASSWORD_SAME_AS_CURRENT' };
+      if (await comparePassword(newPassword, user.passwordHash)) {
+        return { success: false, error: 'PASSWORD_SAME_AS_CURRENT', message: 'New password is the same as current' };
       }
 
       // Update password
       await UserModel.update(
-        { password: req.newPassword }, // Hook will hash
+        { password: newPassword },
         { where: { id: userId } }
       );
 
@@ -559,13 +562,13 @@ export class AuthService {
         client_ip: clientIp,
       });
 
-      return { success: true };
+      return { success: true, message: 'Password changed successfully' };
     } catch (err) {
       auditLogger.error('Password change error', {
         actor_id: userId,
         metadata: { error: (err as Error).message },
       });
-      return { success: false, error: 'PASSWORD_CHANGE_ERROR' };
+      return { success: false, error: 'PASSWORD_CHANGE_ERROR', message: 'Failed to change password' };
     }
   }
 
@@ -593,9 +596,121 @@ export class AuthService {
   }
 
   // ----------------------------------------------------------------
+  // REFRESH TOKENS — wrapper matching routes signature
+  // ----------------------------------------------------------------
+  async refreshTokens(session_id: string, refresh_token: string): Promise<AuthResult> {
+    try {
+      const sessionManager = await getSessionManager();
+      const result = await sessionManager.refreshSession(session_id, refresh_token);
+      if (!result.success) {
+        return { success: false, error: 'REFRESH_FAILED', message: 'Token refresh failed' };
+      }
+      return result;
+    } catch (err) {
+      return { success: false, error: 'REFRESH_ERROR', message: 'Token refresh failed' };
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // LOGOUT — wrapper matching routes signature
+  // ----------------------------------------------------------------
+  async logout(args: { userId: string; session_id?: string }): Promise<void> {
+    const sessionManager = await getSessionManager();
+    await sessionManager.invalidateSession(args.userId, args.session_id);
+    await (AuditLogModel as any).create({
+      event_id: generateSecureUuid(),
+      timestamp: new Date().toISOString(),
+      source: 'auth-service',
+      level: 'info',
+      category: 'auth',
+      message: 'User logged out',
+      actor_id: args.userId,
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // VERIFY MFA — wrapper matching routes signature
+  // ----------------------------------------------------------------
+  async verifyMfa(args: { mfa_session_id: string; code: string }): Promise<AuthResult> {
+    const result = await this.verifyMFA(args.mfa_session_id, args.code, '127.0.0.1');
+    if (result.success) {
+      return { ...result, user_id: result.user_id, message: 'MFA verified successfully' };
+    }
+    return {
+      ...result,
+      message: result.message ?? 'MFA verification failed',
+    };
+  }
+
+  // ----------------------------------------------------------------
+  // ENABLE MFA — wrapper matching routes signature
+  // ----------------------------------------------------------------
+  async enableMfa(args: { userId: string; mfa_session_id: string; code: string }): Promise<{ success: boolean; error?: string; message?: string }> {
+    const result = await this.enableMFA(args.mfa_session_id, args.code, '127.0.0.1');
+    if (result.success) {
+      return { success: true, message: 'MFA enabled successfully' };
+    }
+    return { success: false, error: result.error, message: 'Failed to enable MFA' };
+  }
+
+  // ----------------------------------------------------------------
+  // CHANGE PASSWORD — wrapper matching routes signature
+  // ----------------------------------------------------------------
+  async changePassword(args: { userId: string; current_password: string; new_password: string }): Promise<{ success: boolean; error?: string; message?: string }> {
+    try {
+      const user = await UserModel.findByPk(args.userId);
+      if (!user) {
+        return { success: false, error: 'USER_NOT_FOUND', message: 'User not found' };
+      }
+
+      // Verify current password
+      const currentValid = await comparePassword(args.current_password, user.passwordHash);
+      if (!currentValid) {
+        auditLogger.warn('Password change failed — wrong current password', { actor_id: args.userId });
+        return { success: false, error: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect' };
+      }
+
+      // Validate new password strength
+      const pwResult = validatePasswordStrength(args.new_password);
+      if (!pwResult.valid) {
+        return { success: false, error: 'WEAK_PASSWORD', message: pwResult.error };
+      }
+
+      // Cannot reuse same password
+      if (await comparePassword(args.new_password, user.passwordHash)) {
+        return { success: false, error: 'PASSWORD_SAME_AS_CURRENT', message: 'New password is the same as current' };
+      }
+
+      // Update password
+      await UserModel.update(
+        { password: args.new_password },
+        { where: { id: args.userId } }
+      );
+
+      await (AuditLogModel as any).create({
+        event_id: generateSecureUuid(),
+        timestamp: new Date().toISOString(),
+        source: 'auth-service',
+        level: 'info',
+        category: 'password',
+        message: 'Password changed successfully',
+        actor_id: args.userId,
+      });
+
+      return { success: true, message: 'Password changed successfully' };
+    } catch (err) {
+      auditLogger.error('Password change error', {
+        actor_id: args.userId,
+        metadata: { error: (err as Error).message },
+      });
+      return { success: false, error: 'PASSWORD_CHANGE_ERROR', message: 'Failed to change password' };
+    }
+  }
+
+  // ----------------------------------------------------------------
   // Internal helpers
   // ----------------------------------------------------------------
-      private async incrementFailedAttempts(user: UserModel): Promise<void> {
+  private async incrementFailedAttempts(user: UserModel): Promise<void> {
     const newAttempts = user.failed_attempts + 1;
     const lockUntil = newAttempts >= MAX_FAILED_ATTEMPTS 
       ? Date.now() + LOCKOUT_DURATION_MS 

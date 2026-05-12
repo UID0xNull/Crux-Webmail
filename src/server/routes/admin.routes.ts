@@ -289,12 +289,10 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(request, reply) {
+    async function handler(request: FastifyRequest<{ Params: { userId: string }; Body: { roles: string[] } }>, reply: FastifyReply) {
       try {
-        const body = UpdateRoleSchema.parse(
-          (request as FastifyRequest<{ Params: { userId: string }; Body: { roles: string[] } }>),
-        );
-        const adminId = (request as any).admin?.user_id;
+        const body = UpdateRoleSchema.parse(request.body);
+        const adminId = request.admin?.user_id;
         auditLogger.info('User roles updated', {
           actor_id: adminId,
           metadata: { target_user: request.params.userId, roles: body.roles },
@@ -328,12 +326,10 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(request, reply) {
+    async function handler(request: FastifyRequest<{ Params: { userId: string }; Body: { isActive: boolean } }>, reply: FastifyReply) {
       try {
-        const body = ToggleStatusSchema.parse(
-          (request as FastifyRequest<{ Params: { userId: string }; Body: { isActive: boolean } }>),
-        );
-        const adminId = (request as any).admin?.user_id;
+        const body = ToggleStatusSchema.parse(request.body);
+        const adminId = request.admin?.user_id;
         auditLogger.info('User status toggled', {
           actor_id: adminId,
           metadata: { target_user: request.params.userId, isActive: body.isActive },
@@ -366,9 +362,9 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(request, reply) {
+    async function handler(request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) {
       try {
-        const adminId = (request as any).admin?.user_id;
+        const adminId = request.admin?.user_id;
         auditLogger.info('User unlocked', {
           actor_id: adminId,
           metadata: { target_user: request.params.userId },

@@ -374,6 +374,30 @@ export class SecureSessionManager {
   }
 
   // ----------------------------------------------------------------
+  // refreshSession — wrapper matching auth-service signature
+  // ----------------------------------------------------------------
+  async refreshSession(
+    sessionId: string,
+    refreshToken: string
+  ): Promise<AuthResult> {
+    return this.refreshToken(refreshToken, sessionId, '127.0.0.1');
+  }
+
+  // ----------------------------------------------------------------
+  // invalidateSession — wrapper matching auth-service signature
+  // ----------------------------------------------------------------
+  async invalidateSession(
+    userId: string,
+    sessionId?: string
+  ): Promise<void> {
+    if (sessionId) {
+      await this.revokeSession(sessionId);
+    } else {
+      await this.revokeAllUserSessions(userId);
+    }
+  }
+
+  // ----------------------------------------------------------------
   // refreshToken — rota refresh + access token (Zero-Trust rotation)
   // ----------------------------------------------------------------
   async refreshToken(
