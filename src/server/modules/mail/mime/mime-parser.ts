@@ -126,7 +126,7 @@ export class MimeParser {
   }
 
   private processMailParser(
-    parser: InstanceType<typeof MailParser>,
+    parser: any,
     buf: Buffer
   ): Promise<ParsedMimeRaw> {
     return new Promise((resolve, reject) => {
@@ -154,7 +154,7 @@ export class MimeParser {
         // Convert value into array of strings.
         let values: (string | number)[];
         if (Array.isArray(value)) {
-          values = value;
+          values = value as (string | number)[];
         } else if (value != null && String(value).trim() !== '') {
           values = [value];
         } else {

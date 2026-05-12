@@ -7,8 +7,9 @@
 
 import { EventEmitter } from 'node:events';
 import { getMailService } from './mail-service';
-import { getWSGateway } from 'ws/ws-gateway';
+import { getWSGateway } from '@modules/ws/ws-gateway';
 import { getFlagSyncService } from './flag-sync.service';
+import { getMailConnectionManager } from './connection-manager';
 import { auditLogger } from 'utils/audit-logger';
 import type { IAccountConfig } from './contracts';
 
@@ -234,8 +235,8 @@ export class MailboxSyncService extends EventEmitter {
   async startIdle(userId: string, config: IAccountConfig, mailbox: string): Promise<void> {
     try {
       const mailService = getMailService();
-      const connMgr = mailService.getConnectionManager();
-      const imapAdapter = connMgr.getImapAdapter(userId, config);
+      const connMgr = getMailConnectionManager();
+      const imapAdapter = await connMgr.getImapAdapter(userId, config);
 
       const idleEmitter = await imapAdapter.startIdle(config, mailbox);
 
@@ -244,7 +245,7 @@ export class MailboxSyncService extends EventEmitter {
         this.flagSync.applyExternalChange(
           userId,
           String(d.mailbox || ''),
-          Number(d.uid),
+          String(d.uid || ''),
           Object.keys((d.flags || {}) as Record<string, unknown>),
         );
         this.broadcastSyncStatus(userId, 'syncing', 50, String(d.mailbox), 'Flag change detected');
@@ -267,7 +268,7 @@ export class MailboxSyncService extends EventEmitter {
         this.flagSync.applyExternalChange(
           userId,
           String(d.mailbox || ''),
-          Number(d.uid),
+          String(d.uid || ''),
           Object.keys((d.flags || {}) as Record<string, unknown>),
         );
       });
