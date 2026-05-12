@@ -8,11 +8,11 @@ import { getRedis } from 'cache/redis-client';
 // Use central WS types (canonical source), bridge uses MailEventPayload + WSServerMessage.
 import type {
   MailEventPayload,
+  WSServerEventType,
   WSServerMessage,
 } from 'types/ws.types';
 
 interface RateLimiterEntry { count: number; lastReset: number; }
-
 class EventRateLimiter {
   private buckets = new Map<string, RateLimiterEntry>();
   private readonly cooldownMs = 5000;
@@ -54,7 +54,10 @@ export class WSBridge {
   private dispatchToLocal(gateway: WSGateway, event: MailEventPayload): void {
     const ts = Date.now();
 
-    const makeMessage = (type: string, payload = event.data): WSServerMessage => ({
+    const makeMessage = (
+      type: WSServerEventType,
+      payload: Record<string, unknown> = event.data,
+    ): WSServerMessage => ({
       type,
       payload,
       timestamp: ts,

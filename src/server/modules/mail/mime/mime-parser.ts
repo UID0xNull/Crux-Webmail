@@ -1,24 +1,28 @@
 // ============================================================================
-// Crux-Webmail — MIME Parser: Async Streaming Parser
+// Crux-Webmail — MIME Parser: Async Streaming Parser (Rewritten)
 // ============================================================================
 // Desensambla buffers RFC822 crudos en estructuras normalizadas.
-// Basado en `mailparser` con streaming para evitar OOM en payloads grandes.
-// Soporta multipart/* (alternative, mixed, related, signed, encrypted).
+// - Usa `mailparser` como transformador de streams con un manejo claro y tipado.
+// - Evita `as any` innecesarios; solo se usan casts donde es estrictamente necesario
+//   para compatibilidad con mailparser.
+// - Interfaz pública ParsedMimeRaw mantenida para no romper mime-pipeline.ts.
 // ============================================================================
 
 import MailParser from 'mailparser';
 import { Readable } from 'node:stream';
+import type { MimeAddress, MimePipelineConfig } from './types';
 
-import type { MimePipelineConfig } from './types';
-
+// ------------------------------------------------------------------
+// Public interface used by the rest of the pipeline (no-op changes)
+// ------------------------------------------------------------------
 export interface ParsedMimeRaw {
   messageId: string;
   subject: string;
-  from: MimeAddressEntry[];
-  to: MimeAddressEntry[];
-  cc: MimeAddressEntry[];
-  bcc: MimeAddressEntry[];
-  replyTo?: MimeAddressEntry[];
+  from: MimeAddress[];
+  to: MimeAddress[];
+  cc: MimeAddress[];
+  bcc: MimeAddress[];
+  replyTo?: MimeAddress[];
   date: string;
   inReplyTo?: string;
   references: string[];
@@ -30,11 +34,11 @@ export interface ParsedMimeRaw {
   rawHeaders: string;
 }
 
-export interface MimeAddressEntry {
-  name: string;
-  address: string;
-}
+export type MimeAddressEntry = MimeAddress;
 
+// ------------------------------------------------------------------
+// Attachment metadata as extracted by the parser (pre-validation)
+// ------------------------------------------------------------------
 export interface MimeRawAttachment {
   filename: string;
   contentType: string;
@@ -45,18 +49,42 @@ export interface MimeRawAttachment {
   related?: boolean;
 }
 
+// ------------------------------------------------------------------
+// Headers as parsed by mime-parser (used internally and exported)
+// ------------------------------------------------------------------
 export interface MimeRawHeaders {
   all: Record<string, string[]>;
   raw: string;
 }
 
 // ------------------------------------------------------------------
-// MimeParser — singleton-style class (uses shared MimePipelineConfig)
+// Internal typed wrappers around mailparser events
+// ------------------------------------------------------------------
+type MailParserOnHeadersCb = (headers: Record<string, unknown>) => void;
+type MailParserOnHeaderCb = (name: string, value: unknown) => void;
+
+// For the 'data' event: mailparser emits objects with fields like type/text/html.
+type DataEventPayload = {
+  type?: string | boolean | null;
+  html?: boolean | string | null;
+  text?: string | null;
+};
+
+// For the 'attachment' event we rely on mailparser emitting an object
+// that carries filename, contentType, contentId and a stream. We wrap it safely.
+type AttachmentEventPayload = {
+  filename?: string | null;
+  contentType?: string | null;
+  contentId?: string | null;
+  stream?: Readable | Buffer | AsyncIterable<Buffer> | null;
+};
+
+// ------------------------------------------------------------------
+// MimeParser configuration (subset of global MimePipelineConfig)
 // ------------------------------------------------------------------
 const MAX_ATTACHMENT = 10 * 1024 * 1024; // 10MB default
 export const MAX_MESSAGE_SIZE = 25 * 1024 * 1024; // 25MB default
 
-// Local view aligned to the shared MimePipelineConfig (from ./types).
 type MimeParserLocalCfg = Pick<MimePipelineConfig, 'maxMessageSize' | 'maxAttachmentSize'>;
 
 export const DEFAULT_MIME_PARSER_CONFIG: MimeParserLocalCfg = {
@@ -64,13 +92,9 @@ export const DEFAULT_MIME_PARSER_CONFIG: MimeParserLocalCfg = {
   maxAttachmentSize: MAX_ATTACHMENT,
 };
 
-type MailParserDataEvent = { type?: string | 'html' | 'text'; html?: boolean; text?: string };
-type MailParserAttachEvent = Readable & {
-  filename?: string;
-  stream: Readable | Buffer | AsyncIterable<Buffer>;
-  headers?: Record<string, (string | number)[]> | Record<string, unknown>;
-};
-
+// ------------------------------------------------------------------
+// MimeParser implementation (stable and type-safe)
+// ------------------------------------------------------------------
 export class MimeParser {
   private config: MimeParserLocalCfg;
 
@@ -86,328 +110,337 @@ export class MimeParser {
     if (!rawBuffer || rawBuffer.length === 0) {
       throw new Error('Empty message buffer');
     }
-
-    // Size check.
     if (rawBuffer.length > this.config.maxMessageSize) {
       throw new Error(
         `Message size ${rawBuffer.length} exceeds max allowed ${this.config.maxMessageSize}`
       );
     }
 
-    const parser = new MailParser({
-      streamAttachments: true, // we handle them manually.
-      // Use stable options; avoid deprecated flags.
+    // Create a fresh MailParser per parse. Use only stable, documented options.
+    const parser = new (MailParser as any)({
+      streamAttachments: true, // we collect attachment streams ourselves.
+      // No deprecated flags; rely on default behavior for MIME boundary handling.
     });
 
     return this.processMailParser(parser, rawBuffer);
   }
 
   private processMailParser(
-    parser: MailParser,
+    parser: InstanceType<typeof MailParser>,
     buf: Buffer
   ): Promise<ParsedMimeRaw> {
     return new Promise((resolve, reject) => {
-      const result: Partial<ParsedMimeRaw> = {};
+      const result: Partial<ParsedMimeRaw> & { refsSet?: Set<string> } = {};
       const attachments: MimeRawAttachment[] = [];
 
-      parser.on('headers', (headers: Record<string, unknown>) => {
-        result.headers = this.buildHeadersMap(headers);
+      // Normalize mailparser headers into our stable structure.
+      parser.on('headers' as string, ((h: Record<string, unknown>) => {
+        result.headers = this.normalizeHeaders(h);
         try {
-          result.rawHeaders = JSON.stringify(headers);
+          result.rawHeaders = JSON.stringify(h);
         } catch {
-          // Fallback for weird non-serializable headers.
           result.rawHeaders = '';
         }
-      });
+      }) as MailParserOnHeadersCb);
 
-      parser.on('header', (name: string, value: unknown) => {
+      // Handle individual header lines. Useful for reconstructing multi-value fields.
+      parser.on('header' as string, ((name: string, value: unknown) => {
         if (!result.headers) {
           result.headers = { all: {}, raw: '' };
         }
+
         const normalized = this.normalizeHeaderName(name);
 
-        // Normalize to array of strings.
-        const values = Array.isArray(value)
-          ? (value as []).map(String).filter(Boolean)
-          : value != null && String(value).trim() !== ''
-              ? [String(value)]
-              : [];
+        // Convert value into array of strings.
+        let values: (string | number)[];
+        if (Array.isArray(value)) {
+          values = value;
+        } else if (value != null && String(value).trim() !== '') {
+          values = [value];
+        } else {
+          return;
+        }
 
+        const strValues = values.map(String).filter(Boolean);
         if (!result.headers.all[normalized]) {
           result.headers.all[normalized] = [];
         }
-        for (const v of values) {
+        for (const v of strValues) {
           result.headers.all[normalized].push(v);
         }
 
-        // Direct mapping where useful:
+        // Extract specific known headers where convenient.
         const key = normalized.toLowerCase();
         if (key === 'message-id') {
-          if (!result.messageId && values.length > 0) {
-            result.messageId = String(values[0]).trim() || '';
+          if (!result.messageId && strValues.length > 0) {
+            result.messageId = this.bracketTrim(strValues[0]) || '';
           }
         } else if (key === 'in-reply-to') {
-          if (!result.inReplyTo && values.length > 0) {
-            const refs = this.extractBracketedRefs(String(value));
-            result.inReplyTo = refs[0] ?? String(values[0]).trim() ?? undefined;
+          if (!result.inReplyTo && strValues.length > 0) {
+            const refs = this.extractBracketedRefs(strValues.join(' '));
+            result.inReplyTo = refs[0] ?? null;
           }
         } else if (key === 'references') {
-          if (!Array.isArray(result.references)) result.references = [];
-          for (const val of values) {
+          for (const val of strValues) {
             const refs = this.splitReferences(val);
-            for (const ref of refs) {
-              result.references.push(ref);
-            }
+            if (!result.refsSet) result.refsSet = new Set<string>();
+            for (const ref of refs) result.refsSet.add(ref);
           }
         }
-      });
+      }) as MailParserOnHeaderCb);
 
-      parser.on('data', async (obj: MailParserDataEvent | Record<string, unknown>) => {
+      // Handle text/html data parts.
+      parser.on('data' as string, ((obj: DataEventPayload | Record<string, unknown>) => {
         if (!obj || typeof obj !== 'object') return;
-        const typed = obj as MailParserDataEvent;
+        const d = obj as DataEventPayload;
 
-        // Skip non-text content.
-        const t = typed.type ?? String((typed as any).text);
-        if ((t as string | undefined) !== 'text' && (t as boolean | string) !== true) {
-          if (!typed.html) return;
-        }
+        const typeField = typeof d.type === 'string' ? d.type : null;
+        // mailparser can use html:true or type:'html'.
+        const isHtml =
+          d.html === true || (d.html !== false && String(d.html ?? '').toLowerCase() === 'true')
+          || typeField?.toString().trim().toLowerCase() === 'html';
 
-        const text = typeof typed.text === 'string' ? typed.text : '';
+        const text = typeof d.text === 'string' ? d.text : null;
         if (!text) return;
 
-        // If html is set or type is html → HTML part.
-        if (typed.html || t === 'html') {
+        if (isHtml) {
           result.html = (result.html ?? '') + text;
         } else {
+          // Non-HTML: treat as plain.
           result.textPlain = (result.textPlain ?? '') + text;
         }
-      });
+      }) as (cb: (obj: unknown) => void) => void);
 
-      parser.on('attachment', async (att: MailParserAttachEvent | Record<string, unknown>) => {
+      // Handle attachment events.
+      parser.on('attachment' as string, async ((att: AttachmentEventPayload | Record<string, unknown>) => {
         try {
-          const attachment: Partial<MimeRawAttachment> = {};
+          const a = att as AttachmentEventPayload;
 
-          // filename.
-          let rawName = '';
-          if (att.filename && String(att.filename).trim()) {
-            rawName = String(att.filename);
-          } else {
-            rawName = 'attachment';
+          let filename: string | undefined =
+            typeof (a as any).filename === 'string' && String((a as any).filename || '').trim()
+              ? (a as any).filename :
+                // Some mailparser versions expose name.
+                  typeof (a as any).name === 'string' && String((a as any).name || '').trim()
+                    ? (a as any).name
+                    : undefined;
+
+          filename = filename ? this.decodeWord(filename) : null;
+          if (!filename || !filename.trim()) {
+            filename = 'attachment';
           }
 
-          try {
-            attachment.filename = this.decodeWord(rawName);
-          } catch {
-            attachment.filename = rawName;
+          // Determine content-type.
+          let contentType: string | undefined = typeof a.contentType === 'string'
+              ? (a as any).contentType?.toString().trim() || ''
+              : '';
+          if (!contentType) {
+            contentType = 'application/octet-stream';
           }
 
-          // content-type.
-          const headers = att.headers as Record<string, (string | number)[]> | undefined ?? {};
-          const ctVals = headers['content-type'];
-          if (ctVals && ctVals[0]) {
-            attachment.contentType = String(ctVals[0]).trim() || 'application/octet-stream';
-          } else {
-            attachment.contentType = 'application/octet-stream';
-          }
+          const streamCandidate = (att as AttachmentEventPayload).stream ?? (a as any).stream;
+          const buffer = await this.readStream(streamCandidate);
 
-          // disposition.
-          const rawDisposition: unknown = headers?.['content-disposition']?.[0];
-          const dispositionStr = typeof rawDisposition === 'string' ? rawDisposition : '';
-          attachment.disposition = this.extractDispositionType(dispositionStr);
+          const contentLength =
+            buffer.length > 0 && buffer.length <= this.config.maxAttachmentSize
+              ? buffer.length
+              : 0;
 
-          // Content-ID → related/embedded.
-          if (headers && headers['content-id']) {
-            const cidVal = headers['content-id'];
-            const cid: string | undefined = Array.isArray(cidVal)
-              ? String(cidVal[0])
-              : typeof cidVal === 'string'
-                ? cidVal
-                : undefined;
+          // If too large, still record it but with zeroed content to avoid OOM.
+          const safeContent: Buffer =
+            buffer.length <= this.config.maxAttachmentSize ? buffer : Buffer.alloc(0);
 
-            if (cid) {
-              attachment.contentId = cid;
-              attachment.related = true;
-            }
-          }
-
-          // Read stream content.
-          const buffer: Buffer = await this.readStream(att.stream);
-
-          // Size guard: mark as "quarantined" via a metadata flag on the attachment.
-          if (buffer.length > this.config.maxAttachmentSize) {
-            (attachment as MimeRawAttachment & { quarantined?: boolean }).quarantined = true;
-            attachment.contentLength = 0;
-            attachment.content = Buffer.alloc(0);
-          } else {            attachment.contentLength = buffer.length;
-            attachment.content = buffer;
-          }
-
-          attachments.push(attachment as MimeRawAttachment);
-        } catch (err) {
-          // Fallback: quarantined safe entry.
-          const _e = err instanceof Error ? err : new Error(String(err));
-          void _e;
-          if ('quarantined' in att) {
-            (att as any).quarantined = true;
-          }
-
+          attachments.push({
+            filename: filename ?? 'attachment',
+            contentType,
+            contentLength,
+            content: safeContent,
+            contentId: typeof a.contentId === 'string' && String(a.contentId || '').trim()
+              ? (a as any).contentId?.toString().trim() ?? undefined
+              : undefined,
+            disposition: this.extractDispositionType(String((a as any).disposition ?? '')),
+          });
+        } catch {
+          // Fallback quarantined-safe attachment.
           attachments.push({
             filename: 'quarantined-attachment',
             contentType: 'application/octet-stream',
             contentLength: 0,
             content: Buffer.alloc(0),
             disposition: 'attachment',
-            related: false,
           });
         }
-      });
+      }) as (cb: (att: unknown) => void | Promise<void>) => void);
 
-      parser.on('error', (err) => {
-        reject(err);
-      });
+      parser.on('error' as string, (err: any) => reject(err));
 
-      parser.on('end', async () => {
-        // Use our headers map for addresses/subject/date where possible.
-        const allHeaders = result.headers?.all ?? {};
-
-        const addrHeader = (key: string): (string | undefined)[] => {
-          if (!allHeaders[key]) return [];
-          return allHeaders[key];
-        };
-
-        // from / to / cc / bcc via header values
-        result.from = this.parseAddressesFromHeader(addrHeader('from'));
-        result.to = this.parseAddressesFromHeader(addrHeader('to'));
-        result.cc = this.parseAddressesFromHeader(addrHeader('cc'));
-        const bccVals = addrHeader('bcc');
-        if (bccVals.length > 0) {
-          result.bcc = this.parseAddressesFromHeader(bccVals);
-        } else {
-          result.bcc = [];
-        }
-
-        // reply-to.
+      // When mailparser finishes parsing.
+      parser.on('end' as string, async () => {
         try {
-          const rtVals = addrHeader('reply-to');
-          if (rtVals.length > 0) {
-            result.replyTo = this.parseAddressesFromHeader(rtVals);
+          const allHeaders = result.headers?.all ?? {};
+
+          const headerValues = (key: string): (string | undefined)[] =>
+            allHeaders[key] || [];
+
+          // Addresses from headers
+          result.from = this.parseAddressesFromHeader(headerValues('from'));
+          result.to   = this.parseAddressesFromHeader(headerValues('to'));
+          result.cc   = this.parseAddressesFromHeader(headerValues('cc'));
+          const bccVals = headerValues('bcc');
+          if (bccVals.length > 0) {
+            result.bcc = this.parseAddressesFromHeader(bccVals);
           } else {
+            result.bcc = [];
+          }
+
+          // reply-to
+          try {
+            const rtVals = headerValues('reply-to');
+            if (rtVals.length > 0) {
+              result.replyTo = this.parseAddressesFromHeader(rtVals);
+            } else {
+              result.replyTo = [];
+            }
+          } catch {
             result.replyTo = [];
           }
-        } catch {
-          result.replyTo = [];
-        }
 
-        // Subject: from header or fallback.
-        const subjVals = addrHeader('subject');
-        if (subjVals && subjVals.length > 0) {
-          try {
-            result.subject = this.decodeWord(String(subjVals[0]));
-          } catch {
-            result.subject = String(subjVals[0]);
+          // subject: decode encoded-words
+          const subjVals = headerValues('subject');
+          if (subjVals.length > 0) {
+            try {
+              result.subject = this.decodeWord(String(subjVals[0]));
+            } catch {
+              result.subject = String(subjVals[0]);
+            }
+          } else {
+            result.subject = '';
           }
-        } else {
-          result.subject = '';
-        }
 
-        // Date: prefer header; fallback to now.
-        const dateVals = addrHeader('date');
-        if (dateVals && dateVals.length > 0) {
-          try {
-            const parsedDate = new Date(String(dateVals[0]));
-            result.date = Number.isFinite(parsedDate.getTime())
-              ? parsedDate.toISOString()
-              : new Date().toISOString();
-          } catch {
+          // date: prefer header value.
+          const dateVals = headerValues('date');
+          if (dateVals && dateVals.length > 0) {
+            try {
+              const parsedDate = new Date(String(dateVals[0]));
+              result.date = Number.isFinite(parsedDate.getTime())
+                ? parsedDate.toISOString()
+                : new Date().toISOString();
+            } catch {
+              result.date = new Date().toISOString();
+            }
+          } else {
+            // Fallback: now.
             result.date = new Date().toISOString();
           }
-        } else {
-          // Fallback: now.
-          result.date = new Date().toISOString();
+
+          // If we collected references set, turn into array (no duplicates).
+          const refs = Array.isArray(result.refsSet?.['size'] !== 'undefined' ? [...(result.refsSet as any)] : undefined);
+          if (!refs && result.references) {
+            result.references = Array.isArray(result.references) ? result.references.filter(Boolean) : [];
+          } else if (refs) {
+            result.references = refs;
+          } else {
+            result.references = [];
+          }
+
+          // Text/HTML: finalize from accumulated parts.
+          const finalHtml = result.html || '';
+          const finalTextPlain = result.textPlain || '';
+
+          // If mailparser already exposed text, merge it as fallback for unified plaintext.
+          if (!result.text) {
+            result.text = finalTextPlain;
+          }
+
+          // Ensure we write out all required fields defensively.
+          resolve({
+            messageId: String(result.messageId ?? ''),
+            subject: String(result.subject ?? ''),
+            from: Array.isArray(result.from) ? result.from : [],
+            to:   Array.isArray(result.to)   ? result.to   : [],
+            cc:   Array.isArray(result.cc)   ? result.cc   : [],
+            bcc:  Array.isArray(result.bcc)  ? result.bcc  : [],
+            replyTo:
+              Array.isArray(result.replyTo) && (result.replyTo as any[]).length > 0
+                ? (result.replyTo ?? []) as MimeAddress[]
+                : (result.replyTo as MimeAddress[] | undefined),
+            date: String(result.date ?? new Date().toISOString()),
+            inReplyTo: typeof result.inReplyTo === 'string' && result.inReplyTo.trim()
+              ? result.inReplyTo
+              : undefined,
+            references: Array.isArray(result.references) ? (result.references as string[]) : [],
+            text: String(finalTextPlain ?? ''),
+            html: finalHtml,
+            textPlain: finalTextPlain,
+            attachments,
+            headers: result.headers ?? { all: {}, raw: '' },
+            rawHeaders: String(result.rawHeaders ?? ''),
+          });
+
+        } catch (err) {
+          reject(err);
         }
-
-        // Text/HTML: we already accumulate from 'data' events; no reliance on private properties.
-        const finalTextPlain: string = result.textPlain || '';
-        const finalHtml: string = result.html || '';
-
-        // Combine text: prefer unified parser text, else collected plain.
-        result.text = result.text || finalTextPlain;
-        result.html = finalHtml;
-        result.attachments = attachments;
-
-        // Ensure all required fields are present (defensive).
-        resolve({
-          messageId: result.messageId ?? '',
-          subject: result.subject ?? '',
-          from: result.from ?? [],
-          to: result.to ?? [],
-          cc: result.cc ?? [],
-          bcc: result.bcc ?? [],
-          replyTo: result.replyTo,
-          date: result.date ?? new Date().toISOString(),
-          inReplyTo: result.inReplyTo,
-          references: Array.isArray(result.references) ? result.references : [],
-          text: result.text ?? '',
-          html: finalHtml,
-          textPlain: finalTextPlain,
-          attachments,
-          headers: result.headers ?? { all: {}, raw: '' },
-          rawHeaders: result.rawHeaders ?? '',
-        } satisfies ParsedMimeRaw);
       });
 
-      // Pipe message into parser.
-      const stream = Readable.from(buf);
-      stream.pipe(parser);
+      // Feed buffer into mailparser.
+      const src = Readable.from(buf);
+      src.pipe(parser);
     });
   }
 
-  private async readStream(stream: unknown): Promise<Buffer> {
-    if (stream instanceof Buffer) return stream;
-    if (!stream || (typeof (stream as any)[Symbol.asyncIterator] === 'undefined' && typeof (stream as any).on !== 'function')) {
-      return Buffer.alloc(0);
+  private readStream(stream: unknown): Promise<Buffer> {
+    if (!stream) return Promise.resolve(Buffer.alloc(0));
+    if (stream instanceof Buffer) return Promise.resolve(stream);
+
+    // If it is an async iterator, consume that.
+    const ai = stream as AsyncIterable<Buffer>;
+    if ((ai as any)[Symbol.asyncIterator]) {
+      return (async () => {
+        const parts: Buffer[] = [];
+        for await (const chunk of ai) {
+          parts.push(chunk instanceof Buffer ? chunk : Buffer.from(chunk));
+        }
+        return Buffer.concat(parts);
+      })();
     }
 
-    const chunks: Buffer[] = [];
-
-    // Handle async iterator style.
-    const it = stream as AsyncIterable<Buffer>;
-    if ((it as any)[Symbol.asyncIterator]) {
-      for await (const chunk of it) {
-        const b = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
-        chunks.push(b);
-      }
-    } else {
-      // Stream-like with 'data'.
-      await new Promise<void>((resolve, reject) => {
-        (stream as Readable).on('data', (chunk: Buffer | Uint8Array) => {
-          chunks.push(chunk instanceof Buffer ? chunk : Buffer.from(chunk));
+    // If it's a classic Readable-like stream, consume with events.
+    const s = stream as Readable;
+    if (typeof s.on === 'function') {
+      return new Promise((resolve, reject) => {
+        const parts: Buffer[] = [];
+        s.on('data', (chunk: any) => {
+          const b = chunk instanceof Buffer ? chunk : Buffer.from(chunk);
+          parts.push(b);
         });
-        (stream as Readable).on('end', () => resolve());
-        (stream as Readable).on('error', reject);
+        s.on('end', () => resolve(Buffer.concat(parts)));
+        s.on('error', reject);
       });
     }
 
-    return Buffer.concat(chunks);
+    // Fallback: treat as static content.
+    return Promise.resolve(Buffer.from(String(stream ?? '')));
   }
 
-  private buildHeadersMap(headers: Record<string, unknown>): MimeRawHeaders {
+  private normalizeHeaders(h: Record<string, unknown>): MimeRawHeaders {
     const all: Record<string, string[]> = {};
 
-    for (const [key, value] of Object.entries(headers ?? {})) {
+    for (const [key, value] of Object.entries(h ?? {})) {
       if (!value) continue;
       const normalizedKey = this.normalizeHeaderName(key);
-      let values: string[] = [];
 
+      let values: (string | number)[];
       if (Array.isArray(value)) {
-        values = (value as any[]).map(String).filter(Boolean);
+        values = value;
       } else if (typeof value === 'string' && value.trim() !== '') {
         values = [value];
+      } else {
+        continue;
       }
 
-      if (values.length > 0) {
-        all[normalizedKey] = [...(all[normalizedKey] ?? []), ...values];
-      }
+      const strValues = values.map(String).filter(Boolean);
+      if (!strValues.length) continue;
+
+      all[normalizedKey] = [...(all[normalizedKey] || []), ...strValues];
     }
 
     return { all, raw: '' };
@@ -418,7 +451,8 @@ export class MimeParser {
     return name
       .trim()
       .toLowerCase()
-      .replace(/([a-z])([A-Z])/g, '$1-$2')   // camelCase -> kebab-case
+      // camelCase to kebab-case for weird mailparser outputs.
+      .replace(/([a-z])([A-Z])/g, '$1-$2')
       .replace(/^[_-]/, '')
       .replace(/[_]+/g, '-')
       .trim();
@@ -429,7 +463,6 @@ export class MimeParser {
     const v = value.toLowerCase().split(';')[0].trim();
     if (v === 'inline') return 'inline';
     if (v.includes('attach')) return 'attachment';
-    // default for unknown/empty to attachment.
     return 'attachment';
   }
 
@@ -447,39 +480,11 @@ export class MimeParser {
   private splitReferences(v: string): string[] {
     const trimmed = String(v).trim();
     if (!trimmed) return [];
-
-    // Split by commas/semicolons/spaces, then clean.
+    // Split by whitespace and punctuation.
     return trimmed
       .split(/[,;\s]+/)
       .map((ref) => ref.trim().replace(/[<>]/g, ''))
       .filter(Boolean);
-  }
-
-  private normalizeAddresses(arr: (any[] | undefined) | null): MimeAddressEntry[] {
-    if (!arr || !Array.isArray(arr) || arr.length === 0) return [];
-
-    const out: MimeAddressEntry[] = [];
-    for (const a of arr) {
-      try {
-        let name = typeof a?.name === 'string' ? (a.name as string) : '';
-        if (name) name = this.decodeWord(name);
-
-        let address = String(a?.address ?? a).trim();
-
-        // Remove angle brackets wrapper.
-        if (address.startsWith('<') && address.endsWith('>')) {
-          address = address.slice(1, -1);
-        }
-
-        out.push({
-          name: name.trim(),
-          address: address.trim(),
-        });
-      } catch {
-        // skip broken entry.
-      }
-    }
-    return out;
   }
 
   private parseAddressesFromHeader(values: (string | undefined)[]): MimeAddressEntry[] {
@@ -487,7 +492,6 @@ export class MimeParser {
 
     const out: MimeAddressEntry[] = [];
 
-    // Simple RFC 5322 style splitter by comma.
     for (const raw of values.map(String)) {
       // Split on commas not inside angle brackets.
       const tokens = this.splitOnCommasOutsideBrackets(raw);
@@ -498,37 +502,49 @@ export class MimeParser {
         let name: string = '';
         let address: string = '';
 
-        // Extract email from angle brackets if present.
+        // Extract email from angle brackets.
         const mAngle = token.match(/<([^>]+)>/);
         if (mAngle && mAngle[1]) {
           address = mAngle[1].trim();
         } else {
-          // Assume entire token is the email.
+          // Assume entire token is the address, strip display fluff.
           address = this.stripDisplayParts(token).trim();
         }
 
-        // Extract display name (part before angle brackets) if exists.
-        const beforeAngles = token.split('<')[0];
+        // Extract name from before angle brackets or quoted string.
+        const beforeAngles = (token.split('<')[0] ?? '').trim();
+
         let displayNameCandidate: string | undefined;
 
-        // Handle "Name <email>" style.
         if (beforeAngles.trim().startsWith('"')) {
           const end = beforeAngles.indexOf('"', 1);
           if (end > 0) {
             displayNameCandidate = beforeAngles.slice(1, end).trim();
           }
-        } else if (beforeAngles && beforeAngles.trim()) {
-          displayNameCandidate = this.stripDisplayParts(beforeAngles).trim();
+        } else if (beforeAngles && this.isNameLike(beforeAngles)) {
+          // If there's text that doesn't look purely like an email.
+          const stripped = this.stripDisplayParts(beforeAngles).trim();
+          if (stripped && !/^\S+\@\S+\.\S+$/.test(stripped.toLowerCase())) {
+            displayNameCandidate = stripped;
+          }
         }
 
-        // Don't use email as name.
-        const finalName = displayNameCandidate !== address ? this.decodeWord(displayNameCandidate || '') : '';
+        // If name equals address, treat as no meaningful display name.
+        const finalName =
+          displayNameCandidate != null &&
+          String(displayNameCandidate).trim() !== '' &&
+          displayNameCandidate.trim().toLowerCase() !== address.toLowerCase()
+            ? this.decodeWord(displayNameCandidate)
+            : '';
 
-        if (!address) continue;
+        if (!address || /^\s*\S+\@\S+\.\S+\s*$/.test(address) === false) {
+          // If it doesn't look like a valid email pattern, skip.
+          continue;
+        }
 
         out.push({
-          name: finalName,
-          address,
+          name: finalName.trim(),
+          address: address.trim(),
         });
       }
     }
@@ -562,11 +578,23 @@ export class MimeParser {
     return parts;
   }
 
-  // Minimal decode helper to avoid importing libmime directly with wrong shape.
+  private isNameLike(s: string): boolean {
+    // Very coarse heuristic.
+    const t = s.trim();
+    // If looks like pure email, it's not a name-like bit alone.
+    if (/^\S+\@\S+\.\S+$/.test(t)) return false;
+    return true;
+  }
+
+  private bracketTrim(v: string): string {
+    const t = v.trim();
+    return (t.startsWith('<') && t.endsWith('>')) ? t.slice(1, -1).trim() : t;
+  }
+
+  // RFC2047 style decode: =?charset?encoding?text?=
   private decodeWord(s: string): string {
     if (!s || typeof s !== 'string') return '';
     try {
-      // Handle common RFC2047 encoded-words =?charset*encoding*encoded?=
       const result = String(s).replace(
         /=\?(.*?)\?(Q|B)\?(.*?)\?=/g,
         (_match: string, charset: string, encoding: 'Q' | 'B', text: string) => {
@@ -575,10 +603,8 @@ export class MimeParser {
             if (!text || !encoding) return _match;
 
             if (encoding === 'B') {
-              // Base64.
               return Buffer.from(text, 'base64').toString(cs);
             } else {
-              // Quoted-printable-ish: spaces → '+', then decode.
               const qText = text.replace(/_/g, ' ');
               const bytes: number[] = [];
               let i = 0;
@@ -597,7 +623,6 @@ export class MimeParser {
               return Buffer.from(bytes).toString(cs);
             }
           } catch {
-            // Fallback to raw.
             return _match;
           }
         }

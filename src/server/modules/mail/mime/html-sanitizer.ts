@@ -144,7 +144,7 @@ export class HtmlSanitizer {
       },
       allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
 
-      transformLinks: (linkAttrs) => {
+      transformLinks: (linkAttrs: Record<string, unknown>) => {
         const attrs = linkAttrs as Record<string, unknown>;
         const href = typeof attrs.href === 'string' ? attrs.href : '';
 

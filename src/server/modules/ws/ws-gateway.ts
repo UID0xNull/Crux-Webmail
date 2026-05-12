@@ -9,7 +9,10 @@
 import type WebSocket from 'ws';
 import type { FastifyInstance } from 'fastify';
 import { auditLogger } from '@utils/audit-logger';
+import { getRedis } from 'cache/redis-client';
 import type { WSServerMessage, WSChannel } from 'types/ws.types';
+import { createServerMessage } from 'types/ws.types';
+
 export interface WSClient {
   id: string;
   userId: string;
@@ -65,12 +68,11 @@ export class WSGateway {
     }
 
     // Notify all clients of shutdown
-    for (const ws of this.getClientsByUserId('*')) {
-      this.safeSend(ws, {
-        type: 'DISCONNECTED',
-        payload: { reason: 'server_shutdown' },
-        timestamp: Date.now(),
-      });
+    for (const [, userSet] of this.userSockets) {
+      for (const ws of userSet.values()) {
+        const shutdownMsg = createServerMessage('DISCONNECTED', { reason: 'server_shutdown' });
+        this.safeSend(ws, shutdownMsg);
+      }
     }
 
     this.clients.clear();

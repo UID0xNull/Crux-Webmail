@@ -101,7 +101,8 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         response: { 200: { type: 'object', additionalProperties: true } },
       },
     },
-    async function handler(request: FastifyRequest, reply: FastifyReply) {      try {
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
+      try {
         const userId = (request as any).user_id;
         const profile = await authService.getProfile(userId);
         return sendSuccess(reply, profile);
@@ -128,7 +129,8 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       },
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
-      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof RegisterSchema> }>;      const body = typedReq.body;
+      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof RegisterSchema> }>;
+      const body = typedReq.body;
 
       const result = await authService.register({
         username: body.username,
@@ -165,3 +167,180 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       const result = await authService.login({
         username: body.username,
         password: body.password
+      });
+
+      if (!result.success) {
+        auditLogger.warn('Login failed', { actor_id: body.username, metadata: { ip: clientIp } });
+        return sendError(reply, 401, 'AUTH_FAILED', result.message ?? 'Authentication failed');
+      }
+
+      return sendSuccess(reply, result);
+    }
+  );
+
+  // POST /api/auth/refresh (requires auth via middleware or tokens from body)
+  fastify.post(
+    '/refresh',
+    {
+      schema: {
+        description: 'Refresh access token using refresh_token + session_id',
+        tags: ['auth'],
+        body: RefreshSchema,
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
+    },
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
+      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof RefreshSchema> }>;
+      const body = typedReq.body;
+
+      try {
+        const result = await authService.refreshTokens({
+          refresh_token: body.refresh_token,
+          session_id: body.session_id,
+        });
+
+        if (!result.success) {
+          return sendError(reply, 401, 'REFRESH_FAILED', result.message ?? 'Token refresh failed');
+        }
+
+        return sendSuccess(reply, result);
+      } catch (_err) {
+        auditLogger.error('Refresh tokens error', { metadata: { error: String(_err) } });
+        return sendError(reply, 500, 'INTERNAL_ERROR', 'Internal Server Error');
+      }
+    }
+  );
+
+  // POST /api/auth/logout
+  fastify.post(
+    '/logout',
+    {
+      preHandler: [verifyAuthMiddleware],
+      schema: {
+        description: 'Logout current session',
+        tags: ['auth'],
+        body: LogoutSchema,
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
+    },
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
+      const userId = (request as any).user_id;
+
+      try {
+        await authService.logout({ userId });
+        return sendSuccess(reply, { logged_out: true });
+      } catch (_err) {
+        auditLogger.error('Logout error', { actor_id: userId, metadata: { error: String(_err) } });
+        return sendError(reply, 500, 'INTERNAL_ERROR', 'Internal Server Error');
+      }
+    }
+  );
+
+  // POST /api/auth/change-password
+  fastify.post(
+    '/change-password',
+    {
+      preHandler: [verifyAuthMiddleware],
+      schema: {
+        description: 'Change password for current user',
+        tags: ['auth'],
+        body: ChangePasswordSchema,
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
+    },
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
+      const userId = (request as any).user_id;
+      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof ChangePasswordSchema> }>;
+      const body = typedReq.body;
+
+      try {
+        const result = await authService.changePassword({
+          userId,
+          current_password: body.current_password,
+          new_password: body.new_password,
+        });
+
+        if (!result.success) {
+          return sendError(reply, 400, (result.error ?? 'PASSWORD_CHANGE_FAILED') as string, result.message ?? 'Failed to change password');
+        }
+
+        auditLogger.info('Password changed', { actor_id: userId });
+        return sendSuccess(reply, { message: 'Password changed' });
+      } catch (_err) {
+        auditLogger.error('Change password error', { actor_id: userId, metadata: { error: String(_err) } });
+        return sendError(reply, 500, 'INTERNAL_ERROR', 'Internal Server Error');
+      }
+    }
+  );
+
+  // POST /api/auth/mfa/verify
+  fastify.post(
+    '/mfa/verify',
+    {
+      schema: {
+        description: 'Verify MFA code',
+        tags: ['auth'],
+        body: MFAVerifySchema,
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
+    },
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
+      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof MFAVerifySchema> }>;
+      const body = typedReq.body;
+
+      try {
+        const result = await authService.verifyMfa({
+          mfa_session_id: body.mfa_session_id,
+          code: body.code,
+        });
+
+        if (!result.success) {
+          return sendError(reply, 400, (result.error ?? 'MFA_VERIFY_FAILED') as string, result.message ?? 'MFA verification failed');
+        }
+
+        auditLogger.info('MFA verified', { actor_id: String(result.user_id ?? '') });
+        return sendSuccess(reply, result);
+      } catch (_err) {
+        auditLogger.error('MFA verify error', { metadata: { error: String(_err) } });
+        return sendError(reply, 500, 'INTERNAL_ERROR', 'Internal Server Error');
+      }
+    }
+  );
+
+  // POST /api/auth/mfa/enable
+  fastify.post(
+    '/mfa/enable',
+    {
+      preHandler: [verifyAuthMiddleware],
+      schema: {
+        description: 'Enable MFA for user',
+        tags: ['auth'],
+        body: MFAEnableSchema,
+        response: { 200: { type: 'object', additionalProperties: true } },
+      },
+    },
+    async function handler(request: FastifyRequest, reply: FastifyReply) {
+      const userId = (request as any).user_id;
+      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof MFAEnableSchema> }>;
+      const body = typedReq.body;
+
+      try {
+        const result = await authService.enableMfa({
+          userId,
+          mfa_session_id: body.mfa_session_id,
+          code: body.code,
+        });
+
+        if (!result.success) {
+          return sendError(reply, 400, (result.error ?? 'MFA_ENABLE_FAILED') as string, result.message ?? 'Failed to enable MFA');
+        }
+
+        auditLogger.info('MFA enabled', { actor_id: userId });
+        return sendSuccess(reply, result);
+      } catch (_err) {
+        auditLogger.error('Enable MFA error', { actor_id: userId, metadata: { error: String(_err) } });
+        return sendError(reply, 500, 'INTERNAL_ERROR', 'Internal Server Error');
+      }
+    }
+  );
+}

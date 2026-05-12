@@ -293,27 +293,28 @@ export class MimePipeline extends EventEmitter {
   // Internal: build normalized headers
   // ----------------------------------------------------------------
   private buildHeaders(parsed: ParsedMimeRaw): MimeHeaders {
-    const normalizeAddr = (addr: MimeAddress[] | undefined): MimeAddress[] => {
-      if (!addr || addr.length === 0) return [];
-      return addr.map(a => ({
-        name: a.name ?? '',
-        address: a.address ?? '',
+    const normalizeAddr = (addr: any[]) => {
+      if (!Array.isArray(addr) || addr.length === 0) return [];
+      return addr.map((a) => ({
+        name: a?.name ?? '',
+        address: a?.address ?? '',
       }));
     };
 
     return {
-      from: normalizeAddr(parsed.from as MimeAddress[]),
-      to: normalizeAddr(parsed.to as MimeAddress[]),
-      cc: normalizeAddr(parsed.cc as MimeAddress[]),
-      bcc: normalizeAddr(parsed.bcc as MimeAddress[]),
-      subject: parsed.subject || '(No Subject)',
+      from: normalizeAddr(parsed.from),
+      to: normalizeAddr(parsed.to),
+      cc: normalizeAddr(parsed.cc),
+      bcc: normalizeAddr(parsed.bcc),      subject: parsed.subject || '(No Subject)',
       date: parsed.date || new Date().toISOString(),
       messageId: parsed.messageId || '',
       inReplyTo: parsed.inReplyTo,
       references: Array.isArray(parsed.references) ? parsed.references : [],
-      replyTo: normalizeAddr(parsed.replyTo as MimeAddress[]),
+      replyTo: parsed.replyTo && Array.isArray(parsed.replyTo)
+        ? normalizeAddr(parsed.replyTo)
+        : [],
       headers: parsed.headers?.all || {},
-      rawHeaders: parsed.rawHeaders || parsed.headers?.raw ?? '',
+      rawHeaders: (parsed.rawHeaders || parsed.headers?.raw) ?? '',
     };
   }
 
@@ -324,8 +325,7 @@ export class MimePipeline extends EventEmitter {
     attachments: ParsedAttachment[],
     sanitizationReport: SanitizationReport,
     _uid: string,
-  ): NonNullable<ParsedEmail['security']> {
-    const quarantined = attachments.filter(
+  ): ParsedEmail['security'] {    const quarantined = attachments.filter(
       (a) => a.securityStatus === 'quarantined',
     ).length;
 

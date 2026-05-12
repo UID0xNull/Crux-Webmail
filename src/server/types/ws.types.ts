@@ -20,7 +20,7 @@ export type WSClientEventType =
   | 'FOLDER_SYNC';
 
 // ------------------------------------------------------------------
-// Server → Client Events
+// Server → Client Events (typed payloads)
 // ------------------------------------------------------------------
 export interface WSServerMessage {
   type: WSServerEventType;
@@ -40,6 +40,96 @@ export type WSServerEventType =
   | 'SYNC_STATUS'
   | 'CONNECTION_WARNING'
   | 'DISCONNECTED';
+
+// Strictly typed message union (for new code).
+export type TypedWSServerMessage =
+  | ReadyMessage
+  | ErrorMessage
+  | PongMessage
+  | NewMessageEventMsg
+  | MessageFlagChangedEventMsg
+  | MessageDeletedEventMsg
+  | FolderCountsUpdatedEventMsg
+  | SyncStatusEventMsg
+  | ConnectionWarningMsg
+  | DisconnectedMessage;
+
+export interface ReadyPayload {
+  clientId: string;
+  userId: string;
+  channels: WSChannel[];
+  heartbeatMs: number;
+}
+export interface ReadyMessage extends WSServerMessageBase<'READY'> { payload: ReadyPayload; }
+
+export interface ErrorPayload {
+  message: string;
+}
+export interface ErrorMessage extends WSServerMessageBase<'ERROR'> { payload: ErrorPayload; }
+
+export interface PongPayload {
+  timestamp: number;
+}
+export interface PongMessage extends WSServerMessageBase<'PONG'> { payload: PongPayload; }
+
+export interface NewMessageEventMsg extends WSServerMessageBase<'NEW_MESSAGE'> {
+  payload: Record<string, unknown>;
+}
+
+export interface MessageFlagChangedEventMsg extends WSServerMessageBase<'MESSAGE_FLAG_CHANGED'> {
+  payload: Record<string, unknown>;
+}
+
+export interface MessageDeletedEventMsg extends WSServerMessageBase<'MESSAGE_DELETED'> {
+  payload: Record<string, unknown>;
+}
+
+export interface FolderCountsUpdatedEventMsg extends WSServerMessageBase<'FOLDER_COUNTS_UPDATED'> {
+  payload: Record<string, unknown>;
+}
+
+export interface SyncStatusPayload {
+  status: 'idle' | 'syncing' | 'error';
+  progress?: number;
+  mailbox?: string;
+}
+export interface SyncStatusEventMsg extends WSServerMessageBase<'SYNC_STATUS'> {
+  payload: SyncStatusPayload;
+}
+
+export interface ConnectionWarningPayload {
+  message: string;
+  disconnectIn: number;
+}
+export interface ConnectionWarningMsg extends WSServerMessageBase<'CONNECTION_WARNING'> {
+  payload: ConnectionWarningPayload;
+}
+
+export interface DisconnectedPayload {
+  reason: string;
+}
+export interface DisconnectedMessage extends WSServerMessageBase<'DISCONNECTED'> {
+  payload: DisconnectedPayload;
+}
+
+// Base used to define strongly-typed server messages.
+interface WSServerMessageBase<T extends WSServerEventType> {
+  type: T;
+  id?: string;
+  timestamp: number;
+}
+
+// Factory helper for consistent, typed WSServerMessage construction across modules.
+export function createServerMessage<T extends WSServerEventType>(
+  type: T,
+  payload: Record<string, unknown>,
+  { id, ts = Date.now() }?: {
+    id?: string;
+    ts?: number;
+  },
+): WSServerMessage {
+  return { type, id, timestamp: ts, payload } as WSServerMessage;
+}
 
 // ------------------------------------------------------------------
 // Channels for selective subscription
