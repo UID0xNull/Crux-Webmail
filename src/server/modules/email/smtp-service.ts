@@ -3,7 +3,15 @@
 // ============================================================================
 import type { SendMailOptions } from 'nodemailer';
 import nodemailer from 'nodemailer';
-import { createMessage, encrypt, readKey } from 'openpgp';
+// openpgp v5+ exposes a default namespace; use it to avoid export issues.
+import * as openpgp from 'openpgp';
+
+// Ensure Nodemailer Attachment typing compatibility.
+interface CruxAttachment {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
 
 export interface SMTPConfig {
   host: string;

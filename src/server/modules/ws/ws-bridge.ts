@@ -9,6 +9,7 @@ import { getRedis } from 'cache/redis-client';
 import {
   type MailEventPayload,
   type WSServerEventType,
+  type WSServerMessage,
   createServerMessage,
 } from 'types/ws.types';
 

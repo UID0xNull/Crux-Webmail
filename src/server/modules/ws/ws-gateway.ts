@@ -259,8 +259,8 @@ export class WSGateway {
   ): void {
     const userSet = this.userSockets.get(userId);
     if (!userSet) return;
-    for (const ws of userSet.values()) {
-      if (ws !== senderWs) {
+    for (const ws of Array.from(userSet.values())) {
+      if (ws !== senderWs && ws.readyState === WebSocket.OPEN) {
         this.safeSend(ws, message);
       }
     }
