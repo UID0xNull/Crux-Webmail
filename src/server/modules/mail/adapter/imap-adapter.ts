@@ -108,26 +108,34 @@ function parseAddresses(raw: unknown): IMailAddress[] {
   });
 }
 
+// parseHeader: safely extracts a header value from simple-imap style shapes.
 function parseHeader(headers: Record<string, unknown>, name: string): string {
-  if (!headers) return '';
+  if (!headers || !name) return '';
 
   const val = headers[name];
 
-  if (typeof val === 'string') {
-    return val;
+  // Direct string
+  if (typeof val === 'string') return val;
+
+  // Array → first non-empty entry
+  if (Array.isArray(val)) {
+    const first = val.find((v) => v != null && String(v).trim() !== '');
+    return first != null ? String(first).trim() : '';
   }
 
+  // Object with known keys: value / data / text / raw / name / address
   if (val != null && typeof val === 'object') {
     const obj = val as Record<string, unknown>;
-    if ('value' in obj && obj.value !== undefined) {
-      return String(obj.value);
-    }
-    if ('data' in obj && obj.data !== undefined) {
-      return String(obj.data);
+    for (const k of ['value', 'data', 'text', 'raw', 'name', 'address']) {
+      const candidate = obj[k];
+      if (candidate != null) {
+        return String(candidate).trim();
+      }
     }
   }
 
-  return val != null ? String(val) : '';
+  // Fallback: treat as-is only if present
+  return val != null ? String(val).trim() : '';
 }
 
 function uidToString(uid: number | string | undefined): string {

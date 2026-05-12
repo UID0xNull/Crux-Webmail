@@ -1,10 +1,10 @@
 // ============================================================================
 // Crux-Webmail — SMTP Service (Nodemailer)
 // ============================================================================
-import type { SendMailOptions } from 'nodemailer';
-import nodemailer from 'nodemailer';
-// openpgp v5+: import as default to align with ESM-style usage.
-import openpgp from 'openpgp';
+import nodemailer, type { SendMailOptions } from 'nodemailer';
+// openpgp v5+ can export both default and named; this pattern avoids import errors.
+import * as OpenPGPns from 'openpgp';
+const openpgp = (OpenPGPns.default || OpenPGPns) as typeof OpenPGPns;
 
 export interface SMTPConfig {
   host: string;

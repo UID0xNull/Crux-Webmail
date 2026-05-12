@@ -316,7 +316,7 @@ export class MimeParser {
             result.subject = '';
           }
 
-          // date: prefer header value.
+          // date: prefer header value; fallback to now.
           const dateVals = headerValues('date');
           if (dateVals && dateVals.length > 0) {
             try {
@@ -328,14 +328,15 @@ export class MimeParser {
               result.date = new Date().toISOString();
             }
           } else {
-            // Fallback: now.
             result.date = new Date().toISOString();
-// If we collected references set, turn into array (no duplicates). // If we collected references set, turn into array (no duplicates).
-          let refs: string[] | undefined;
+          }
 
-          if (result.refsSet && typeof (result.refsSet as any)['size'] === 'number') {
+          // references: turn collected set or existing list into a clean array.
+          let refs: string[] | undefined;
+          if (result.refsSet && typeof (result.refsSet as Set<string>)[Symbol.toStringTag] === 'Set') {
             try {
-              refs = [...(result.refsSet as Set<string>)];
+              const s = result.refsSet as Set<string>;
+              refs = [...s.values()];
             } catch {
               refs = Array.isArray(result.references) ? result.references.filter(Boolean) : [];
             }
@@ -347,7 +348,6 @@ export class MimeParser {
             result.references = result.references.filter(Boolean);
           } else {
             result.references = [];
-          }
           }
 
           // Text/HTML: finalize from accumulated parts.
@@ -368,9 +368,9 @@ export class MimeParser {
             cc:   Array.isArray(result.cc)   ? result.cc   : [],
             bcc:  Array.isArray(result.bcc)  ? result.bcc  : [],
             replyTo:
-              Array.isArray(result.replyTo) && (result.replyTo as any[]).length > 0
-                ? (result.replyTo ?? []) as MimeAddress[]
-                : (result.replyTo as MimeAddress[] | undefined),
+              (Array.isArray(result.replyTo) && result.replyTo.length > 0
+                ? result.replyTo as MimeAddress[]
+                : []) as MimeAddress[],
             date: String(result.date ?? new Date().toISOString()),
             inReplyTo: typeof result.inReplyTo === 'string' && result.inReplyTo.trim()
               ? result.inReplyTo
