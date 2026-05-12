@@ -16,19 +16,25 @@ import {
 } from 'types/ws.types';
 
 // Fastify/WebSocket-specific shape for the upgrade handler.
-type RawWSRequest = {
-  websocket: WebSocket | null;
-  raw?: {
+type WSFastifyRequest = {
+  id: string;
+  socket: { remoteAddress?: string; localAddress?: string };
+  url: string;
+  raw: {
     url?: string;
     headers?: Record<string, string | string[]>;
   };
+  websocket: WebSocket | null;
 };
 
 // ------------------------------------------------------------------
 // WebSocket upgrade handler — Fastify plugin
 // ------------------------------------------------------------------
 export async function registerWebSocketRoutes(fastify: FastifyInstance): Promise<void> {
-  await fastify.register(import('@fastify/websocket') as any);
+  const wsPlugin = await import('@fastify/websocket');
+  // Normalize for default/named exports (common ESM/CJS patterns)
+  const plugin = wsPlugin.default || wsPlugin;
+  await fastify.register(plugin);
 
   fastify.route<{
     Querystring: never;
@@ -37,10 +43,9 @@ export async function registerWebSocketRoutes(fastify: FastifyInstance): Promise
     method: 'GET',
     url: '/ws',
     websocket: true,
-    async handler(request: unknown) {
-      const rawRequest = request as RawWSRequest;
-      const ws = (rawRequest.websocket as WebSocket);
-      handleConnection(ws, fastify, rawRequest);
+    async handler(this: unknown, request: WSFastifyRequest) {
+      const ws = (request.websocket as WebSocket);
+      handleConnection(ws, fastify, request);
     },
   });
 

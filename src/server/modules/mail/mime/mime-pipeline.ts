@@ -333,7 +333,7 @@ export class MimePipeline extends EventEmitter {
       (a) => a.virusScanStatus === 'infected',
     ).length;
 
-    const xssThreats = sanitizationReport?.threatsFound || 0;
+    const xssThreats = sanitizationReport?.xssThreatsFound ?? 0;
 
     // Determine overall risk level as typed union, not as ParsedEmail['security'].
     let overallRisk: 'low' | 'medium' | 'high' | 'critical' = 'low';

@@ -4,12 +4,12 @@
       "1",
       {
         "id": "1",
-        "content": "Standardize WebSocket typing across ws-handler, ws-gateway, ws-bridge; fix duplicate 'client', raw/undefined/null mismatches",
+        "content": "Fix html-sanitizer/mime-pipeline/type mismatches (ParsedEmail, MimePipeline)",
         "status": "completed",
         "children": [],
         "createdAt": 1778443201602,
-        "updatedAt": 1778507762726,
-        "completedAt": 1778507762726,
+        "updatedAt": 1778559398722,
+        "completedAt": 1778513072991,
         "metadata": {}
       }
     ],
@@ -17,12 +17,12 @@
       "2",
       {
         "id": "2",
-        "content": "Fix Fastify route definitions in admin/auth/email routes: schema shape, handlers, cookie plugin typing",
-        "status": "in_progress",
+        "content": "Rewrite mailparser usage in mime-parser.ts; fix types",
+        "status": "completed",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778507762726,
-        "completedAt": 1778505014467,
+        "updatedAt": 1778559398722,
+        "completedAt": 1778559398722,
         "metadata": {}
       }
     ],
@@ -30,12 +30,12 @@
       "3",
       {
         "id": "3",
-        "content": "Fix openpgp import in smtp-service.ts and nodemailer Attachment type issues",
+        "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
         "status": "in_progress",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778507762726,
-        "completedAt": 1778505081858,
+        "updatedAt": 1778559398722,
+        "completedAt": 1778510221002,
         "metadata": {}
       }
     ],
@@ -43,11 +43,11 @@
       "4",
       {
         "id": "4",
-        "content": "Clean up IMAP adapter types; ensure module paths correct",
+        "content": "Fix smtp-service.ts openpgp import + nodemailer Attachment issues",
         "status": "in_progress",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778507762726,
+        "updatedAt": 1778559398723,
         "completedAt": 1778505383142,
         "metadata": {}
       }
@@ -56,11 +56,11 @@
       "5",
       {
         "id": "5",
-        "content": "Fix flag-sync/mailbox-sync service issues: ws-gateway path, allowed actions, FlagState fields",
+        "content": "Clean up IMAP adapter types (accountId, object.value/data)",
         "status": "in_progress",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778507762726,
+        "updatedAt": 1778559398724,
         "completedAt": 1778505644913,
         "metadata": {}
       }
@@ -69,11 +69,11 @@
       "6",
       {
         "id": "6",
-        "content": "Rewrite mailparser usage in mime-parser.ts to match current API; fix ParsedMail/attachment types",
-        "status": "in_progress",
+        "content": "Clean up IMAP adapter types (accountId, object.value/data)",
+        "status": "pending",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778507762726,
+        "updatedAt": 1778557889944,
         "completedAt": 1778505908956,
         "metadata": {}
       }
@@ -82,11 +82,11 @@
       "7",
       {
         "id": "7",
-        "content": "Standardize WebSocket typing across ws-handler, ws-gateway, ws-bridge; fix duplicate 'client', raw/undefined/null mismatches",
+        "content": "Rewrite mailparser usage in mime-parser.ts; fix types",
         "status": "in_progress",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778505908956,
+        "updatedAt": 1778509604992,
         "completedAt": 1778504524781,
         "metadata": {}
       }
@@ -95,11 +95,11 @@
       "8",
       {
         "id": "8",
-        "content": "Fix Fastify route definitions in admin.routes.ts/auth.routes.ts/email.routes.ts: incorrect schema shape (description/summary), handler signatures, and cookie plugin typing",
-        "status": "pending",
+        "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
+        "status": "in_progress",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778504897231,
+        "updatedAt": 1778509793877,
         "completedAt": 1778504545884,
         "metadata": {}
       }
@@ -108,11 +108,11 @@
       "9",
       {
         "id": "9",
-        "content": "Fix mail.routes.ts / email.routes.ts small issues: delete non-optional, ids/limit params.",
-        "status": "completed",
+        "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
+        "status": "in_progress",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778504594144,
+        "updatedAt": 1778509988056,
         "completedAt": 1778504545884,
         "metadata": {}
       }
@@ -121,11 +121,11 @@
       "10",
       {
         "id": "10",
-        "content": "Clean up services/utils type mismatches (null vs undefined; api-response/shared/types)",
-        "status": "completed",
+        "content": "Fix html-sanitizer, mime-pipeline, services/utils type mismatches (null/undefined, configs)",
+        "status": "in_progress",
         "children": [],
         "createdAt": 1778443589705,
-        "updatedAt": 1778504594144,
+        "updatedAt": 1778510221003,
         "completedAt": 1778504545884,
         "metadata": {}
       }
@@ -260,101 +260,101 @@
         "items": [
           {
             "id": "1",
-            "content": "Standardize WebSocket typing across ws-handler, ws-gateway, ws-bridge; fix duplicate 'client', raw/undefined/null mismatches",
+            "content": "Fix html-sanitizer/mime-pipeline/type mismatches (ParsedEmail, MimePipeline)",
             "status": "completed",
             "children": [],
             "createdAt": 1778443201602,
-            "updatedAt": 1778507762726,
-            "completedAt": 1778507762726,
+            "updatedAt": 1778559398722,
+            "completedAt": 1778513072991,
             "metadata": {}
           },
           {
             "id": "2",
-            "content": "Fix Fastify route definitions in admin/auth/email routes: schema shape, handlers, cookie plugin typing",
-            "status": "in_progress",
+            "content": "Rewrite mailparser usage in mime-parser.ts; fix types",
+            "status": "completed",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778507762726,
-            "completedAt": 1778505014467,
+            "updatedAt": 1778559398722,
+            "completedAt": 1778559398722,
             "metadata": {}
           },
           {
             "id": "3",
-            "content": "Fix openpgp import in smtp-service.ts and nodemailer Attachment type issues",
+            "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
             "status": "in_progress",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778507762726,
-            "completedAt": 1778505081858,
+            "updatedAt": 1778559398722,
+            "completedAt": 1778510221002,
             "metadata": {}
           },
           {
             "id": "4",
-            "content": "Clean up IMAP adapter types; ensure module paths correct",
+            "content": "Fix smtp-service.ts openpgp import + nodemailer Attachment issues",
             "status": "in_progress",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778507762726,
+            "updatedAt": 1778559398723,
             "completedAt": 1778505383142,
             "metadata": {}
           },
           {
             "id": "5",
-            "content": "Fix flag-sync/mailbox-sync service issues: ws-gateway path, allowed actions, FlagState fields",
+            "content": "Clean up IMAP adapter types (accountId, object.value/data)",
             "status": "in_progress",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778507762726,
+            "updatedAt": 1778559398724,
             "completedAt": 1778505644913,
             "metadata": {}
           },
           {
             "id": "6",
-            "content": "Rewrite mailparser usage in mime-parser.ts to match current API; fix ParsedMail/attachment types",
-            "status": "in_progress",
+            "content": "Clean up IMAP adapter types (accountId, object.value/data)",
+            "status": "pending",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778507762726,
+            "updatedAt": 1778557889944,
             "completedAt": 1778505908956,
             "metadata": {}
           },
           {
             "id": "7",
-            "content": "Standardize WebSocket typing across ws-handler, ws-gateway, ws-bridge; fix duplicate 'client', raw/undefined/null mismatches",
+            "content": "Rewrite mailparser usage in mime-parser.ts; fix types",
             "status": "in_progress",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778505908956,
+            "updatedAt": 1778509604992,
             "completedAt": 1778504524781,
             "metadata": {}
           },
           {
             "id": "8",
-            "content": "Fix Fastify route definitions in admin.routes.ts/auth.routes.ts/email.routes.ts: incorrect schema shape (description/summary), handler signatures, and cookie plugin typing",
-            "status": "pending",
+            "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
+            "status": "in_progress",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778504897231,
+            "updatedAt": 1778509793877,
             "completedAt": 1778504545884,
             "metadata": {}
           },
           {
             "id": "9",
-            "content": "Fix mail.routes.ts / email.routes.ts small issues: delete non-optional, ids/limit params.",
-            "status": "completed",
+            "content": "Standardize WebSocket typing across ws-handler/ws-gateway/ws-bridge",
+            "status": "in_progress",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778504594144,
+            "updatedAt": 1778509988056,
             "completedAt": 1778504545884,
             "metadata": {}
           },
           {
             "id": "10",
-            "content": "Clean up services/utils type mismatches (null vs undefined; api-response/shared/types)",
-            "status": "completed",
+            "content": "Fix html-sanitizer, mime-pipeline, services/utils type mismatches (null/undefined, configs)",
+            "status": "in_progress",
             "children": [],
             "createdAt": 1778443589705,
-            "updatedAt": 1778504594144,
+            "updatedAt": 1778510221003,
             "completedAt": 1778504545884,
             "metadata": {}
           },
@@ -450,7 +450,7 @@
           }
         ],
         "createdAt": 1778441896917,
-        "updatedAt": 1778507762726
+        "updatedAt": 1778559398722
       }
     ]
   ],

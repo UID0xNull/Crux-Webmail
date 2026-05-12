@@ -19,9 +19,13 @@ import { auditLogger } from '@utils/audit-logger';
 // ------------------------------------------------------------------
 // Tracking sanitization results for security audit
 // ------------------------------------------------------------------
+// Aligned with ParsedEmail.security for consistent pipeline usage
 export interface SanitizationReport {
-  threatsFound: number;
-  removedElements: string[];
+  // Primary fields used by mime-pipeline / ParsedEmail
+  xssThreatsFound: number;                 // threats found during sanitization
+  sanitizedElements: string[];             // element names removed (for security)
+  
+  // Internal detail fields (kept for diagnostics/logging only)
   removedAttributes: string[];
   removedProtocols: string[];
   cleanedCss: number;
@@ -194,16 +198,18 @@ export class HtmlSanitizer {
     while (this.containsDangerousContent(passHtml) && iterations < maxIterations) {
       passHtml = this.stripDangerousHtml(passHtml);
       iterations++;
-      report.threatsFound++;
+      // Each recursive clean iteration is an additional threat instance.
+      if (!report.xssThreatsFound) report.xssThreatsFound = 0;
+      report.xssThreatsFound += 1;
     }
 
-    // Log sanitization stats
+    // Log sanitization stats (using canonical fields aligned to ParsedEmail.security)
     if (xssCount > 0) {
       auditLogger.warn(`XSS threats sanitized in ${uidLabel}`, {
         metadata: {
           uid: uidLabel,
-          threats: report.threatsFound,
-          removedElements: report.removedElements,
+          threats: report.xssThreatsFound,
+          removedElements: report.sanitizedElements,
           iterations,
         },
       });
@@ -236,7 +242,8 @@ export class HtmlSanitizer {
         count += matches.length;
       }
     }
-    report.threatsFound = count;
+    // Map to canonical xssThreatsFound used by ParsedEmail.security
+    report.xssThreatsFound = count;
     return count;
   }
 
