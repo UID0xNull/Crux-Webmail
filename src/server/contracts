@@ -1,0 +1,138 @@
+// ============================================================================
+// Crux-Webmail — TypeScript Type Contracts (Shared Types)
+// ============================================================================
+// Contratos compartidos para evitar dependencias cíclicas entre módulos.
+// Define tipos comunes reutilizados por controllers, services y middlewares.
+// ============================================================================
+
+// ------------------------------------------------------------------
+// Base User Response
+// ------------------------------------------------------------------
+export interface UserResponse {
+  id: string;
+  username: string;
+  displayName?: string | null;
+  roles: string[];
+  isActive: boolean;
+  mfaEnabled: boolean;
+  email?: string;
+}
+
+// ------------------------------------------------------------------
+// Auth Payload & Token Types
+// ------------------------------------------------------------------
+export interface AuthPayload {
+  sub?: string;
+  username?: string;
+  email?: string;
+  iss?: string;
+  aud?: string;
+  exp?: number;
+  nbf?: number;
+}
+
+export type JWTPayload = AuthPayload & {
+  role?: string;
+};
+
+export interface JWTPayloadWithRole extends AuthPayload {
+  role: 'admin' | 'moderator' | 'user';
+}
+
+// ------------------------------------------------------------------
+// API Response Shapes (Shared)
+// ------------------------------------------------------------------
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  message: string;
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+}
+
+// ------------------------------------------------------------------
+// Email Message Metadata (for parsing/forwarding)
+// ------------------------------------------------------------------
+export interface EmailMetadata {
+  from: { name?: string; email: string };
+  to: Array<{ name?: string; email: string }>;
+  cc?: Array<{ name?: string; email: string }>;
+  bcc?: Array<{ name?: string; email: string }>;
+  subject: string;
+  date: Date | string;
+  messageId?: string;
+  replyTo?: { name?: string; email: string };
+  headers?: Record<string, string>;
+}
+
+// ------------------------------------------------------------------
+// Draft State Types
+// ------------------------------------------------------------------
+export interface DraftMessage extends EmailMetadata {
+  body?: string;
+  isDraft: true;
+  updated_at?: string;
+}
+
+// ------------------------------------------------------------------
+// Attachment (PGP Encrypted)
+// ------------------------------------------------------------------
+export interface Attachment {
+  filename?: string;
+  contentId?: string;
+  mimeType: string;
+  data: Buffer | string; // base64 encoded
+  headers?: Record<string, string>;
+}
+
+// ------------------------------------------------------------------
+// Audit Log Entry (Shared)
+// ------------------------------------------------------------------
+export interface AuditLogEntry {
+  timestamp: string;
+  user_id?: string;
+  username?: string;
+  action: string;
+  resource_type?: string;
+  resource_id?: string;
+  client_ip: string;
+}
+
+// ------------------------------------------------------------------
+// Session Token Response
+// ------------------------------------------------------------------
+export interface SessionTokenResponse {
+  token: string;
+  tokenType: 'session';
+  expiresInMinutes: number;
+  refreshToken?: string;
+  refreshTokenExpiresInDays?: number;
+}
+
+// ------------------------------------------------------------------
+// MFA Types
+// ------------------------------------------------------------------
+export type MfaMethod = 'totp' | 'email_authenticator' | 'passkey' | null;
+
+export interface MfaFactor {
+  type: 'totp' | 'email' | 'passkey';
+  provider?: string; // e.g. 'google authenticator'
+  status: 'active' | 'backup' | 'disabled';
+  createdAt: string;
+  secret?: string;
+}
+
+// ------------------------------------------------------------------
+// Attachment Service Result Shapes
+// ------------------------------------------------------------------
+export interface AttachedFileResult {
+  filename: string;
+  contentType: string;
+  data: Buffer;
+  size: number;
+}
+
+[SYSTEM — ACTION REQUIRED] You read/analyzed the above. Now you MUST use edit_file, create_file, or execute_command to actually apply the fix. Do NOT describe what needs to be done — DO it. Use a tool call immediately.

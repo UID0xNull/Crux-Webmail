@@ -119,10 +119,9 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     '/folders',
     {
       tags: ['email'],
-      schema: {
-        description: 'List IMAP folders for the user',
-      },
-    },
+      description: 'List IMAP folders for the user',
+      schema: {},
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -140,11 +139,11 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     {
       config: { rateLimit: { max: 120, timeWindow: '60000' } },
       tags: ['email'],
+      description: 'Search emails with pagination',
       schema: {
-        description: 'Search emails with pagination',
         querystring: SearchQuerySchema,
-      },
-    },
+      } as any,
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -187,10 +186,10 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     '/:uid',
     {
       tags: ['email'],
-      schema: {
-        description: 'Read email by UID',
-      },
-    },    async (request: FastifyRequest, reply: FastifyReply) => {
+      description: 'Read email by UID',
+      schema: {},
+    } as any,
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
         const parsedParams = EmailUidParamsSchema.parse(request.params as any);
@@ -216,7 +215,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Mark/unmark email flags',
       tags: ['email'],
       schema: { body: MarkFlagBodySchema },
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -239,7 +238,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Move email to another folder',
       tags: ['email'],
       schema: { body: MoveEmailBodySchema },
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -262,7 +261,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Delete an email permanently',
       tags: ['email'],
       schema: {},
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -292,7 +291,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Send email (async)',
       tags: ['email'],
       schema: { body: SendEmailBodySchema },
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -316,7 +315,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Bulk flag emails',
       tags: ['email', 'bulk'],
       schema: { body: BulkFlagBodySchema },
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -340,7 +339,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Bulk move emails',
       tags: ['email', 'bulk'],
       schema: { body: BulkMoveBodySchema },
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -364,7 +363,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Trigger IMAP sync for user',
       tags: ['email', 'sync'],
       schema: {},
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -383,7 +382,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Get IMAP sync status for user',
       tags: ['email', 'sync'],
       schema: {},
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {
@@ -402,7 +401,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       description: 'Close user IMAP connection',
       tags: ['email', 'connection'],
       schema: {},
-    },
+    } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
       try {

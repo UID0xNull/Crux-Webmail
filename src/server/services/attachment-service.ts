@@ -9,7 +9,8 @@
 // ============================================================================
 
 import { randomUUID, createHash } from 'node:crypto';
-import { writeFile, unlink, existsSync, mkdirSync } from 'node:fs';
+import { writeFile, unlink } from 'node:fs/promises';
+import { existsSync, mkdirSync } from 'node:fs';
 import { join, basename, extname } from 'node:path';
 import { Op } from 'sequelize';
 import { AttachmentModel } from '../models/Attachment';
@@ -153,7 +154,7 @@ async function processScanJob(attachmentId: string): Promise<void> {
   job.scheduled = true;
 
   try {
-    await AttachmentModel.update(
+    await (AttachmentModel as any).update(
       { scanStatus: 'scanning', scanMessage: null },
       { where: { id: attachmentId } }
     );
@@ -170,11 +171,8 @@ async function processScanJob(attachmentId: string): Promise<void> {
 
     if (!result.clean) {
       auditLogger.warn('Attachment flagged as infected', {
-        metadata: {
-          attachment_id: attachmentId,
-          message: result.message,
-        },
-      });
+        metadata: { attachmentId, message: result.message },
+      } as any);
     }
   } catch (err) {
     await AttachmentModel.update(
@@ -182,8 +180,8 @@ async function processScanJob(attachmentId: string): Promise<void> {
       { where: { id: attachmentId } }
     );
     auditLogger.error('Attachment scan error', {
-      metadata: { attachment_id: attachmentId, error: String(err) },
-    });
+      metadata: { attachmentId, error: String(err) },
+    } as any);
   } finally {
     scanQueue.delete(attachmentId);
   }
@@ -239,7 +237,7 @@ export async function uploadAttachment(
 
   // Write to disk
   mkdirSync(join(UPLOAD_DIR, userId, input.draftId), { recursive: true });
-  await writeFile(filePath, input.buffer);
+  await writeFile(filePath, input.buffer as unknown as Uint8Array);
 
   // Create DB record
   const attachment = await AttachmentModel.create({

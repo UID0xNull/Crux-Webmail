@@ -4,13 +4,10 @@
 // Configura tracing distribuido via OTLP HTTP exporter. Propaga traces
 // entre Fastify backend, PostgreSQL, Redis, BullMQ y downstream (SMTP/IMAP).
 // ============================================================================
-
-import { NodeSDK } from '@opentelemetry/sdk-node';
+import { NodeSDK, NodeSDKConfiguration } from '@opentelemetry/sdk-node';
+import otelInstrumentations from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { FsInstrumentation } from '@opentelemetry/instrumentation-fs';
+import { Resource } from '@opentelemetry/resources';
 import { v4 as uuidv4 } from 'uuid';
 
 let sdk: NodeSDK | null = null;
@@ -27,39 +24,13 @@ export function initOpenTelemetry(): void {
   }
 
   sdk = new NodeSDK({
-    // --- Trace Configuration ---
-    traceExporter: new OTLPTraceExporter({
-      url: `${otlpEndpoint}/v1/traces`,
-      headers: {},
+    traceExporter: isProd ? new OTLPTraceExporter({ url: `${otlpEndpoint}/v1/traces` }) : undefined,
+    resource: new Resource({
+      'service.name': 'crux-webmail-backend',
+      'service.version': '2.0.0-zero-trust',
+      'service.instance.id': uuidv4().replace(/-/g, ''),
     }),
-
-    // --- Metric Configuration ---
-    metricExporter: new OTLPMetricExporter({
-      url: `${otlpEndpoint}/v1/metrics`,
-      headers: {},
-    }),
-
-    // --- Auto-instrumentations ---
-    instrumentations: [
-      new HttpInstrumentation({
-        ignoreOutgoingUrls: ['/health', '/ready', '/metrics'],
-      }),
-      new FsInstrumentation(),
-    ],
-
-    // --- Resource identification ---
-    resource: {
-      service: {
-        name: 'crux-webmail-backend',
-        version: '2.0.0-zero-trust',
-        namespace: 'crux-webmail',
-      },
-      environment: process.env.NODE_ENV || 'development',
-    },
-
-    // --- Sampling ---
-    spanProcessors: [],
-  });
+  } as any);
 
   sdk.start();
 

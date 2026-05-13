@@ -123,11 +123,13 @@ interface WSServerMessageBase<T extends WSServerEventType> {
 export function createServerMessage<T extends WSServerEventType>(
   type: T,
   payload: Record<string, unknown>,
-  { id, ts = Date.now() }?: {
+  options?: {
     id?: string;
     ts?: number;
   },
 ): WSServerMessage {
+  const { id, ts = Date.now() } = options ?? {};
+  return { type, id, timestamp: ts, payload };
   return { type, id, timestamp: ts, payload } as WSServerMessage;
 }
 

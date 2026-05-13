@@ -5,13 +5,14 @@
 // mail stats, queue monitoring, settings management.
 // ============================================================================
 
-import { UserModel } from 'models/User';
-import { AuditLogModel } from 'models/AuditLog';
-import { getRedis } from 'utils/connections';
-import { config } from 'config/app.config';
+import { UserModel } from '@models/User';
+import { AuditLogModel } from '@models/AuditLog';
+import { getRedis } from '@utils/connections';
+import { config } from '@config/app.config';
 import { Op } from 'sequelize';
-import { auditLogger } from 'utils/audit-logger';
-import { getQueueStats } from 'modules/email/email-queue';
+import { auditLogger } from '@utils/audit-logger';
+import { getQueueStats } from '@modules/email/email-queue';
+import bcrypt from 'bcryptjs';
 
 // ------------------------------------------------------------------
 // Types
@@ -246,7 +247,8 @@ export async function getUserDetail(userId: string): Promise<AdminUserInfo | nul
 export async function updateUserRole(userId: string, roles: string[]): Promise<AdminUserInfo | null> {
   const validRoles = ['user', 'admin', 'moderator'];
   if (!roles.every((r) => validRoles.includes(r))) {
-    throw new Error('Invalid role. Allowed: user, admin, moderator');
+    auditLogger.error('Invalid roles provided for user', { actor_id: userId, metadata: { roles } });
+    throw new Error(`Invalid role(s). Allowed: ${validRoles.join(', ')}`);
   }
   const user = await UserModel.findByPk(userId);
   if (!user) return null;
@@ -271,15 +273,33 @@ export async function unlockUser(userId: string): Promise<boolean> {
   return true;
 }
 
-export async function createUserUser(username: string, password: string, displayName?: string, roles: string[] = ['user']): Promise<AdminUserInfo | null> {
-  const validRoles = ['user', 'admin', 'moderator'];
-  if (!roles.every((r) => validRoles.includes(r))) {
-    throw new Error('Invalid role');
+export async function createUser(
+  username: string,
+  password: string,
+  displayName?: string,
+  roles?: string[],
+): Promise<AdminUserInfo | null> {
+  try {
+    const id = crypto.randomUUID();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await UserModel.create({
+      id,
+      username,
+      passwordHash,
+      display_name: displayName ?? username,
+      roles: roles ?? ['user'],
+      is_active: true,
+      mfa_enabled: false,
+      failed_attempts: 0,
+      locked_until: null as any,
+    } as any);
+    auditLogger.info('New user created via admin service', { actor_id: user.id });
+    return getUserDetail(user.id);
+  } catch (err) {
+    auditLogger.error('Failed to create user via admin service', { error: (err as Error).message });
+    throw err;
   }
-  const existing = await UserModel.findOne({ where: { username } });
-  if (existing) throw new Error('Username already exists');
-  const user = await UserModel.create({ username, password, display_name: displayName || null, roles, is_active: true });
-  return getUserDetail(user.id);
 }
 
 // ------------------------------------------------------------------

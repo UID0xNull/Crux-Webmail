@@ -4,7 +4,7 @@
   "description": "Zero-Trust Webmail Backend — Fastify + OpenPGP",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only app.ts",
-    "build": "tsc",
+    "build": "npx tsc",
     "start": "node dist/app.js"
   },
   "dependencies": {

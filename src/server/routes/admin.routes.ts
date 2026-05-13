@@ -20,7 +20,7 @@ import {
   updateUserRole,
   toggleUserStatus,
   unlockUser,
-  createUserUser,
+  createUser,
   getSystemHealth,
   getAuditLogs,
   getAuditLogSummary,
@@ -260,7 +260,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         const body = CreateUserSchema.parse(
           (request as FastifyRequest<{ Body: { username: string; password: string; display_name?: string; roles?: string[] } }>),
         );
-        const user = await createUserUser(body.username, body.password, body.display_name, body.roles);
+        const user = await createUser(body.username, body.password, body.display_name, body.roles);
         auditLogger.info('New user created via admin panel', {
           actor_id: (request as any).admin?.user_id,
           metadata: { username: body.username },

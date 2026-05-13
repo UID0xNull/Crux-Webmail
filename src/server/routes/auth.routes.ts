@@ -8,7 +8,7 @@
 //   { data?: T; error?: ApiError; correlation_id: string }
 // ============================================================================
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply, FastifySchema } from 'fastify';
 import { z } from 'zod';
 import { getAuthService } from 'modules/auth/auth-service';
 import { getSessionManager } from 'modules/auth/session-manager';
@@ -101,10 +101,22 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     {
       preHandler: [verifyAuthMiddleware],
       schema: {
-        description: 'Get current user profile',
+        description: 'Get authenticated user profile',
         tags: ['auth'],
-        response: { 200: { type: 'object', additionalProperties: true } },
-      },
+        response: {
+          200: {
+            content: {
+              'application/json': {
+                type: 'object',
+                properties: {
+                  data: { type: 'object', additionalProperties: true },
+                  correlation_id: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
       try {
@@ -127,16 +139,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     {
       config: { rateLimit: { max: 10, timeWindow: '3600000' } },
       schema: {
-        description: 'Register a new user',
+        description: 'Register a new user account',
         tags: ['auth'],
-        body: RegisterSchema.shape,
         response: { 201: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
-      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof RegisterSchema> }>;
-      const body = RegisterSchema.parse(typedReq.body);
-
+      const body = RegisterSchema.parse(request.body);
       const result = await authService.register({
         username: body.username,
         password: body.password,
@@ -157,16 +166,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     {
       config: { rateLimit: { max: 20, timeWindow: '60000' } },
       schema: {
-        description: 'Login user',
+        description: 'Authenticate user and create session',
         tags: ['auth'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
-      const typedRequest = request as FastifyRequest<{ Body: z.infer<typeof LoginSchema> }>;
-      const body = LoginSchema.parse(typedRequest.body);
-
-      const clientIp = typedRequest.ip;
+      const body = LoginSchema.parse(request.body);
+      const clientIp = (request as any).ip;
 
       const result = await authService.login({
         username: body.username,
@@ -178,7 +185,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
 
       if (!result.success) {
         auditLogger.warn('Login failed', { actor_id: body.username, metadata: { ip: clientIp } });
-        return sendError(reply, 401, result.error ?? 'AUTH_FAILED', result.message ?? 'Authentication failed');
+        return sendError(reply, 401, String(result.error ?? 'AUTH_FAILED'), 'Authentication failed');
       }
 
       return sendSuccess(reply, result);
@@ -190,14 +197,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     '/refresh',
     {
       schema: {
-        description: 'Refresh access token using refresh_token + session_id',
+        description: 'Refresh authentication tokens',
         tags: ['auth'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
-      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof RefreshSchema> }>;
-      const body = typedReq.body;
+      const body = RefreshSchema.parse(request.body);
 
       try {
         const result = await authService.refreshTokens(
@@ -223,10 +229,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     {
       preHandler: [verifyAuthMiddleware],
       schema: {
-        description: 'Logout current session',
+        description: 'Logout user and invalidate session',
         tags: ['auth'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
       const userId = (request as any).userId;
@@ -247,15 +253,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     {
       preHandler: [verifyAuthMiddleware],
       schema: {
-        description: 'Change password for current user',
+        description: 'Change authenticated user password',
         tags: ['auth'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
       const userId = (request as any).userId;
-      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof ChangePasswordSchema> }>;
-      const body = typedReq.body;
+      const body = ChangePasswordSchema.parse(request.body);
 
       try {
         const result = await authService.changePassword({
@@ -265,7 +270,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         });
 
         if (!result.success) {
-          return sendError(reply, 400, (result.error ?? 'PASSWORD_CHANGE_FAILED') as string, result.message ?? 'Failed to change password');
+          return sendError(reply, 400, String(result.error ?? 'PASSWORD_CHANGE_FAILED'), 'Failed to change password');
         }
 
         auditLogger.info('Password changed', { actor_id: userId });
@@ -283,14 +288,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     {
       preHandler: [verifyAuthMiddleware],
       schema: {
-        description: 'Setup MFA for current user',
+        description: 'Setup MFA for authenticated user',
         tags: ['auth'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
       const userId = (request as any).userId;
-      const clientIp = request.ip;
+      const clientIp = (request as any).ip;
 
       try {
         const result = await authService.setupMFA(userId, clientIp);
@@ -310,11 +315,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         description: 'Verify MFA code',
         tags: ['auth'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
-      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof MFAVerifySchema> }>;
-      const body = typedReq.body;
+      const body = MFAVerifySchema.parse(request.body);
 
       try {
         const result = await authService.verifyMfa({
@@ -323,7 +327,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         });
 
         if (!result.success) {
-          return sendError(reply, 400, (result.error ?? 'MFA_VERIFY_FAILED') as string, result.message ?? 'MFA verification failed');
+          return sendError(reply, 400, String(result.error ?? 'MFA_VERIFY_FAILED'), 'MFA verification failed');
         }
 
         auditLogger.info('MFA verified', { actor_id: String(result.user_id ?? '') });
@@ -341,15 +345,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
     {
       preHandler: [verifyAuthMiddleware],
       schema: {
-        description: 'Enable MFA for user',
+        description: 'Enable MFA for authenticated user',
         tags: ['auth'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
       const userId = (request as any).userId;
-      const typedReq = request as FastifyRequest<{ Body: z.infer<typeof MFAEnableSchema> }>;
-      const body = typedReq.body;
+      const body = MFAEnableSchema.parse(request.body);
 
       try {
         const result = await authService.enableMfa({
@@ -359,7 +362,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         });
 
         if (!result.success) {
-          return sendError(reply, 400, (result.error ?? 'MFA_ENABLE_FAILED') as string, result.message ?? 'Failed to enable MFA');
+          return sendError(reply, 400, String(result.error ?? 'MFA_ENABLE_FAILED'), 'Failed to enable MFA');
         }
 
         auditLogger.info('MFA enabled', { actor_id: userId });

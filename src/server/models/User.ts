@@ -8,7 +8,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { generateSalt } from 'utils/crypto';
+
 
 // ------------------------------------------------------------------
 // Validation Schema
@@ -30,7 +30,7 @@ interface UserAttributes {
   username: string;
   password?: string; // transient for creation/update via hooks
   passwordHash: string;
-  display_name?: string;
+  display_name?: string | null;
   roles: string[];
   is_active: boolean;
   mfa_enabled: boolean;
@@ -43,7 +43,7 @@ interface UserAttributes {
   deleted_at?: string;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'passwordHash' | 'display_name' | 'roles' | 'is_active' | 'mfa_enabled' | 'failed_attempts'> {
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'passwordHash' | 'display_name' | 'roles' | 'is_active' | 'mfa_enabled' | 'failed_attempts' | 'created_at' | 'updated_at'> {
   password: string; // Plain password for creation only
 }
 
@@ -53,7 +53,6 @@ interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'passwo
 const BCRYPT_ROUNDS = 12; // ~256ms per hash on modern hardware
 
 async function hashPassword(plainPassword: string): Promise<string> {
-  const salt = await generateSalt(); // randomBytes(16) hex = 32 bytes
   return bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
 }
 

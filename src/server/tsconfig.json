@@ -40,6 +40,9 @@
       ],
       "@errors/*": [
         "errors/*"
+      ],
+      "@models/*": [
+        "models/*"
       ]
     }
   },
@@ -50,6 +53,9 @@
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "build-errors.txt",
+    "tsc-errors.*",
+    "ts-*.txt"
   ]
 }

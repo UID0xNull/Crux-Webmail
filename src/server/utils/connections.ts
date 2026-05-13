@@ -3,7 +3,7 @@
 // ============================================================================
 import { Redis } from 'ioredis';
 import { Sequelize } from 'sequelize';
-import { getDbConfig, getRedisConfig, config } from '../config/app.config';
+import { config, getRedisConfig, getConfig } from 'config/app.config';
 
 // ------------------------------------------------------------------
 // Redis — Singleton
@@ -13,7 +13,15 @@ let redisInstance: Redis | null = null;
 export async function getRedis(): Promise<Redis> {
   if (!redisInstance) {
     const rConfig = getRedisConfig();
-    redisInstance = new Redis(rConfig);
+    const redisOptions = {
+      host: rConfig.host,
+      port: rConfig.port,
+      password: rConfig.password || undefined, // null → undefined
+      db: rConfig.db,
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+    };
+    redisInstance = new Redis(redisOptions);
     redisInstance.on('connect', () => {
       console.log('[REDIS] Connected to', rConfig.host, ':', rConfig.port);
     });
@@ -32,10 +40,33 @@ let sequelizeInstance: Sequelize | null = null;
 
 export async function getSequelize(): Promise<Sequelize> {
   if (!sequelizeInstance) {
-    const dbConfig = getDbConfig();
-    sequelizeInstance = new Sequelize(dbConfig);
+    const c = getConfig();
+    const pool: any = {
+      max: 20,
+      min: 5,
+      acquire: 30000,
+      idle: 10000,
+    };
+
+    let ssl: any; // Usar 'any' para evitar conflictos de tipo en construcción dinámica
+    if (config.NODE_ENV === 'production' && c.POSTGRES_SSL) {
+      ssl = { rejectUnauthorized: false };
+    }
+
+    sequelizeInstance = new Sequelize({
+      dialect: 'postgres',
+      database: c.POSTGRES_DB,
+      username: c.POSTGRES_USER,
+      password: c.POSTGRES_PASSWORD,
+      host: c.POSTGRES_HOST,
+      port: c.POSTGRES_PORT,
+      ...(ssl !== undefined ? { ssl } : {}),
+      logging: c.NODE_ENV === 'development' ? console.log : false,
+      pool,
+    });
+
     await sequelizeInstance.authenticate();
-    console.log('[POSTGRES] Connected to', dbConfig.host, ':', dbConfig.port);
+    console.log('[POSTGRES] Connected to', c.POSTGRES_HOST, ':', c.POSTGRES_PORT);
   }
   return sequelizeInstance;
 }

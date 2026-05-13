@@ -6,8 +6,22 @@
 // ============================================================================
 
 import { FastifyReply } from 'fastify';
-import type { ApiResponse, ApiError } from 'shared/types';
 import { generateSecureUuid } from './crypto';
+
+// API Response Types (inline definitions, no external contracts package)
+type ApiError = {
+  status: number;
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+  correlation_id: string;
+};
+
+interface ApiResponse<T> {
+  data?: T;
+  error?: ApiError;
+  correlation_id: string;
+}
 
 // ------------------------------------------------------------------
 // Construye un ApiError con todos los campos requeridos
@@ -83,12 +97,13 @@ export function sendError<T>(
   message: string,
   options?: {
     details?: Record<string, unknown>;
+    correlationId?: string;
   }
 ): FastifyReply {
   const correlationId = (reply.raw as any).requestId ?? generateSecureUuid();
   const response = buildErrorResponse<T>(status, code, message, {
     ...options,
-    correlationId,
+    correlationId: options?.correlationId ?? correlationId,
   });
   return reply.code(status).send(response);
 }
