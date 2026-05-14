@@ -111,7 +111,7 @@ if [[ $ROLLBACK -eq 1 ]]; then
   log_info "Verifying rollback health..."
   HEALTH_OK=1
   for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
-    if curl -sf "http://localhost:3000/health" 2>/dev/null | grep -q "ok"; then
+    if docker compose -f "$COMPOSE_FILE" exec -T fastify-backend wget -qO- http://localhost:3000/health 2>/dev/null | grep -q "ok"; then
       log_info "Backend health check passed (attempt $i)"
       break
     fi
@@ -146,7 +146,8 @@ log_step "Pulling images"
 log_info "Pulling crux-server:$DEPLOY_TAG and crux-web:$DEPLOY_TAG"
 
 if ! docker compose -f "$COMPOSE_FILE" pull --quiet 2>/dev/null; then
-  log_warn "Pull failed — images may need to be built locally"
+  log_warn "Pull failed — building images locally..."
+  docker compose -f "$COMPOSE_FILE" build
 fi
 
 # Graceful shutdown of current services
@@ -165,7 +166,7 @@ docker compose -f "$COMPOSE_FILE" up -d --no-deps fastify-backend
 log_info "Waiting for backend health check..."
 CANARY_OK=0
 for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
-  if curl -sf "http://localhost:3000/health" 2>/dev/null | grep -q "ok"; then
+  if docker compose -f "$COMPOSE_FILE" exec -T fastify-backend wget -qO- http://localhost:3000/health 2>/dev/null | grep -q "ok"; then
     log_info "✅ Backend canary passed (attempt $i/$HEALTH_CHECK_RETRIES)"
     CANARY_OK=1
     break
