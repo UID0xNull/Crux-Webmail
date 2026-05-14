@@ -139,6 +139,8 @@ fastify.register(fastifyUnderPressure as any, {
     ? 100 * 1024 * 1024 // 100MB in prod
     : 50 * 1024 * 1024, // 50MB in dev
   memoryCheckInterval: 1000,
+  exposeStatusRoute: '/health-pressure',
+  healthCheckInterval: 5000,
   healthCheck: async () => {
     const health: Record<string, unknown> = {
       status: 'healthy',
