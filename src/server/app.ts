@@ -333,6 +333,7 @@ async function start(): Promise<void> {
     });
 
   } catch (err) {
+    console.error("EXACT ERROR:", err);
     auditLogger.fatal('Failed to start server', {
       error: (err as Error).message,
     });
