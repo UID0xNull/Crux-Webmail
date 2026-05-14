@@ -105,14 +105,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         tags: ['auth'],
         response: {
           200: {
-            content: {
-              'application/json': {
-                type: 'object',
-                properties: {
-                  data: { type: 'object', additionalProperties: true },
-                  correlation_id: { type: 'string' },
-                },
-              },
+            type: 'object',
+            properties: {
+              data: { type: 'object', additionalProperties: true },
+              correlation_id: { type: 'string' },
             },
           },
         },
