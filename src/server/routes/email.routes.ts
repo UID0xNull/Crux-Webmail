@@ -141,9 +141,6 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       config: { rateLimit: { max: 120, timeWindow: '60000' } },
       tags: ['email'],
       description: 'Search emails with pagination',
-      schema: {
-        querystring: SearchQuerySchema,
-      } as any,
     } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
@@ -215,7 +212,6 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     {
       description: 'Mark/unmark email flags',
       tags: ['email'],
-      schema: { body: MarkFlagBodySchema },
     } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
@@ -238,7 +234,6 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
     {
       description: 'Move email to another folder',
       tags: ['email'],
-      schema: { body: MoveEmailBodySchema },
     } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
@@ -291,7 +286,6 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       config: { rateLimit: { max: 30, timeWindow: '60000' } },
       description: 'Send email (async)',
       tags: ['email'],
-      schema: { body: SendEmailBodySchema },
     } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
@@ -315,7 +309,6 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       config: { rateLimit: { max: 10, timeWindow: '60000' } },
       description: 'Bulk flag emails',
       tags: ['email', 'bulk'],
-      schema: { body: BulkFlagBodySchema },
     } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);
@@ -339,7 +332,6 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       config: { rateLimit: { max: 10, timeWindow: '60000' } },
       description: 'Bulk move emails',
       tags: ['email', 'bulk'],
-      schema: { body: BulkMoveBodySchema },
     } as any,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const userId = getUserId(request);

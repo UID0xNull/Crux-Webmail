@@ -176,8 +176,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       schema: {
         description: 'List all users with pagination and filters',
         tags: ['admin'],
-        querystring: z.object({}).passthrough(),
-        response: { 200: z.record(z.any()) },
+        response: { 200: { type: 'object', additionalProperties: true } },
       } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
@@ -224,7 +223,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       schema: {
         description: 'Get user details',
         tags: ['admin'],
-        params: z.object({ userId: z.string().uuid() }),
+
         response: { 200: { type: 'object', additionalProperties: true } },
       } as FastifySchema,
     },
@@ -250,9 +249,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       schema: {
         description: 'Create a new user',
         tags: ['admin'],
-        body: CreateUserSchema.omit({ roles: true }).extend({
-          roles: z.array(z.string()).optional(),
-        }),
+
         response: { 201: { type: 'object', additionalProperties: true } },
       } as FastifySchema,
     },
@@ -286,7 +283,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       schema: {
         description: 'Update user roles',
         tags: ['admin'],
-        body: UpdateRoleSchema,
+
         response: { 200: { type: 'object', additionalProperties: true } },
       } as FastifySchema,
     },
@@ -323,7 +320,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       schema: {
         description: 'Activate/deactivate a user',
         tags: ['admin'],
-        body: ToggleStatusSchema,
+
         response: { 200: { type: 'object', additionalProperties: true } },
       } as FastifySchema,
     },
@@ -390,7 +387,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
       schema: {
         description: 'List audit log entries with filters',
         tags: ['admin'],
-        querystring: z.object({}).passthrough(),
+
         response: { 200: { type: 'object', additionalProperties: true } },
       } as FastifySchema,
     },
