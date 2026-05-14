@@ -278,6 +278,7 @@ services:
       - POSTGRES_INITDB_ARGS=--data-checksums
     tmpfs:
       - /tmp:size=64M
+      - /var/run/postgresql:size=32M
     read_only: true
     restart: always
     deploy:
