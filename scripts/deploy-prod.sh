@@ -160,7 +160,7 @@ docker compose -f "$COMPOSE_FILE" down --timeout 30
 log_step "Canary deployment — backend"
 
 log_info "Starting fastify-backend..."
-docker compose -f "$COMPOSE_FILE" up -d --no-deps fastify-backend
+docker compose -f "$COMPOSE_FILE" up -d fastify-backend
 
 # Wait and health check
 log_info "Waiting for backend health check..."
