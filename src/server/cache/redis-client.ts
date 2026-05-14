@@ -53,7 +53,6 @@ export async function initRedis(overrideConfig?: RedisConfig): Promise<Redis> {
     lazyConnect: true,
     // Timeouts
     connectTimeout: 10000,
-    commandTimeout: 5000,
     // ------------------------------------------------------------------
     // Performance: enable key-prefix for BullMQ namespace isolation
     // ------------------------------------------------------------------

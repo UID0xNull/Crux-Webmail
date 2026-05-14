@@ -159,6 +159,11 @@ docker compose -f "$COMPOSE_FILE" down --timeout 30
 # ============================================================================
 log_step "Canary deployment — backend"
 
+log_info "Ensuring PostgreSQL is ready and database exists..."
+docker compose -f "$COMPOSE_FILE" up -d postgres
+sleep 5
+docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U crux_user -d postgres -c "SELECT 1 FROM pg_database WHERE datname='crux_mail'" | grep -q 1 || docker compose -f "$COMPOSE_FILE" exec -T postgres psql -U crux_user -d postgres -c "CREATE DATABASE crux_mail;"
+
 log_info "Starting fastify-backend..."
 docker compose -f "$COMPOSE_FILE" up -d fastify-backend
 
