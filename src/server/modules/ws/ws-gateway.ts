@@ -116,7 +116,7 @@ export class WSGateway {
     this.userSockets.get(userId)!.add(ws);
 
     // Map WebSocket → client data (attached to ws for quick lookup)
-    ws.__cruxClient = client;
+    (ws as any).__cruxClient = client;
     this.clients.set(clientId, client);
 
     // Register with Redis PubSub for multi-instance
@@ -146,7 +146,7 @@ export class WSGateway {
   // Disconnect handling
   // ----------------------------------------------------------------
   async handleDisconnect(ws: WebSocket): Promise<void> {
-    const client = ws.__cruxClient;
+    const client = (ws as any).__cruxClient;
     if (!client) return;
 
     // Remove from per-user socket set
@@ -184,7 +184,7 @@ export class WSGateway {
   // Subscribe / Unsubscribe to channels
   // ----------------------------------------------------------------
   subscribe(ws: WebSocket, channels: WSChannel[]): void {
-    const client = ws.__cruxClient;
+    const client = (ws as any).__cruxClient;
     if (!client) return;
 
     for (const ch of channels) {
@@ -199,7 +199,7 @@ export class WSGateway {
   }
 
   unsubscribe(ws: WebSocket, channels: WSChannel[]): void {
-    const client = ws.__cruxClient;
+    const client = (ws as any).__cruxClient;
     if (!client) return;
 
     for (const ch of channels) {
@@ -395,7 +395,7 @@ export class WSGateway {
   // ----------------------------------------------------------------
   // Helper: get client metadata from a WebSocket
   getClient(ws: WebSocket): WSClient | null {
-    return ws.__cruxClient ?? null;
+    return (ws as any).__cruxClient ?? null;
   }
 
   // Broadcast to all WS connections of the same user except one specific connection.
