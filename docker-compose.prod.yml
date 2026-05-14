@@ -147,6 +147,8 @@ services:
       # Storage
       - MINIO_HOST=minio
       - MINIO_PORT=9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-crux_storage}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-CruxMinIO_2024!sT8vWq#jR3nXpZ}
 
       # OTel
       - OTLP_ENDPOINT=http://otel-collector:4318
