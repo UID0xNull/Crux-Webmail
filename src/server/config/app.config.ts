@@ -69,6 +69,7 @@ const envSchema = z.object({
   REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6379),
   REDIS_PASSWORD: z.string().nullable().default(null),
   REDIS_DB: z.coerce.number().int().min(0).max(15).default(0),
+  REDIS_SSL: z.boolean().default(false),
 
   // --- Dovecot / IMAP ---
   DOVECOT_HOST: z.string().min(1).default('172.21.0.11'),
@@ -204,7 +205,7 @@ export function getRedisConfig() {
     db: c.REDIS_DB,
     maxRetriesPerRequest: 3,
     lazyConnect: true,
-    tls: c.NODE_ENV === 'production' ? {} : undefined,
+    tls: c.REDIS_SSL ? {} : undefined,
   };
 }
 
