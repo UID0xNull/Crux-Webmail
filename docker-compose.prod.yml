@@ -62,7 +62,7 @@ services:
   # Edge Proxy — Nginx (TLS termination + reverse proxy)
   # =================================================================
   nginx:
-    image: nginx:1.27-alpine@sha256:9d74936a54f0a7d528a69e3bc64b87f6fc2d3a53a4316a9a0f5e4b2522707cc8
+    image: nginx:1.27-alpine
     container_name: crux-nginx-prod
     networks:
       - public
@@ -263,7 +263,7 @@ services:
   # PostgreSQL
   # =================================================================
   postgres:
-    image: postgres:17-alpine@sha256:1df7042764f40f6be59d370b21e0c0b821bd2611b8e04c93d838e48d1528d09d
+    image: postgres:17-alpine
     container_name: crux-postgres-prod
     networks:
       - data
@@ -315,7 +315,7 @@ services:
   # Redis
   # =================================================================
   redis:
-    image: redis:7-alpine@sha256:c55b1d7a5a8a3623c53e656f617310e4a0e8e78c8469481ee8f5f6e0c4a5a4b1
+    image: redis:7-alpine
     container_name: crux-redis-prod
     networks:
       - app
