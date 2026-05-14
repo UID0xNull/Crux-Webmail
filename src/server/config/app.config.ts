@@ -203,7 +203,7 @@ export function getRedisConfig() {
     port: c.REDIS_PORT,
     password: c.REDIS_PASSWORD,
     db: c.REDIS_DB,
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: null,
     lazyConnect: true,
     tls: c.REDIS_SSL ? {} : undefined,
   };

@@ -112,7 +112,7 @@ fastify.register(fastifyHelmet, {
 fastify.register(fastifyJwt, {
   secret: config.JWT_SECRET,
   sign: {
-    algorithm: 'RS256',
+    algorithm: 'HS256',
     expiresIn: '1h',
   },
   verify: {
@@ -333,7 +333,6 @@ async function start(): Promise<void> {
     });
 
   } catch (err) {
-    console.error("EXACT ERROR:", err);
     auditLogger.fatal('Failed to start server', {
       error: (err as Error).message,
     });
