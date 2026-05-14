@@ -166,7 +166,7 @@ docker compose -f "$COMPOSE_FILE" up -d fastify-backend
 log_info "Waiting for backend health check..."
 CANARY_OK=0
 for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
-  if docker compose -f "$COMPOSE_FILE" exec -T fastify-backend wget -qO- http://localhost:3000/health 2>/dev/null | grep -q "ok"; then
+  if docker compose -f "$COMPOSE_FILE" exec -T fastify-backend wget -qO- http://127.0.0.1:3000/health 2>/dev/null | grep -q "ok"; then
     log_info "✅ Backend canary passed (attempt $i/$HEALTH_CHECK_RETRIES)"
     CANARY_OK=1
     break
