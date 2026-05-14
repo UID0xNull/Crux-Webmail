@@ -40,7 +40,7 @@ export async function initRedis(overrideConfig?: RedisConfig): Promise<Redis> {
     // ------------------------------------------------------------------
     // Connection pooling & resilience
     // ------------------------------------------------------------------
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: null,
     // Exponential backoff with jitter
     retryStrategy: (times: number) => {
       if (times > 5) {

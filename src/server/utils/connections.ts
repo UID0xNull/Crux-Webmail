@@ -18,7 +18,7 @@ export async function getRedis(): Promise<Redis> {
       port: rConfig.port,
       password: rConfig.password || undefined, // null → undefined
       db: rConfig.db,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: null,
       lazyConnect: true,
     };
     redisInstance = new Redis(redisOptions);
