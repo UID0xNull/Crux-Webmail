@@ -33,4 +33,3 @@ export function CardBody({ children, className = '' }: { children: React.ReactNo
 export function CardFooter({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <div className={`px-4 py-3 border-t border-gray-100 dark:border-gray-700 ${className}`}>{children}</div>;
 }
----CODE---

@@ -126,8 +126,14 @@ async function buildHeaders(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'X-Correlation-ID': generateCorrelationId(),
-    ...customHeaders,
   };
+
+  if (customHeaders) {
+    const custom = new Headers(customHeaders);
+    custom.forEach((value, key) => {
+      headers[key] = value;
+    });
+  }
 
   const token = useAuthStore.getState().token;
   if (token) {
@@ -241,4 +247,3 @@ function generateCorrelationId(): string {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
----CODE---

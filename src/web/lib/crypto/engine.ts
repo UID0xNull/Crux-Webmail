@@ -17,7 +17,7 @@ export class CryptoKeyManager {
   /**
    * Generate a new AES-256-GCM key pair (symmetric key + public export)
    */
-  static async generateSessionKey(): Promise<crypto.CryptoKey> {
+  static async generateSessionKey(): Promise<CryptoKey> {
     return crypto.subtle.generateKey(
       { name: this.ALGO, length: this.BIT_LENGTH },
       true,
@@ -28,7 +28,7 @@ export class CryptoKeyManager {
   /**
    * Export key as base64 for transmission
    */
-  static async exportKey(key: crypto.CryptoKey): Promise<string> {
+  static async exportKey(key: CryptoKey): Promise<string> {
     const raw = await crypto.subtle.exportKey('raw', key);
     return btoa(String.fromCharCode(...new Uint8Array(raw)));
   }
@@ -36,7 +36,7 @@ export class CryptoKeyManager {
   /**
    * Import key from base64
    */
-  static async importKey(b64Key: string): Promise<crypto.CryptoKey> {
+  static async importKey(b64Key: string): Promise<CryptoKey> {
     const bytes = Uint8Array.from(atob(b64Key), (c) => c.charCodeAt(0));
     return crypto.subtle.importKey('raw', bytes, this.ALGO, true, ['encrypt', 'decrypt']);
   }
@@ -47,7 +47,7 @@ export class CryptoKeyManager {
   static async deriveKeyFromPassword(
     password: string,
     salt: string
-  ): Promise<crypto.CryptoKey> {
+  ): Promise<CryptoKey> {
     const enc = new TextEncoder();
 
     const baseKey = await crypto.subtle.importKey(
@@ -84,8 +84,11 @@ export class CryptoKeyManager {
     const db = await this.openDb();
     const tx = db.transaction('keyPairs', 'readwrite');
     const store = tx.objectStore('keyPairs');
-    await store.put({ userId, ...keyPair });
-    await tx.done;
+    store.put({ userId, ...keyPair });
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   /**
@@ -127,7 +130,7 @@ export class E2EEngine {
    */
   static async encrypt(
     plaintext: string,
-    key: crypto.CryptoKey
+    key: CryptoKey
   ): Promise<E2EEncryptedMessage> {
     const enc = new TextEncoder();
     const data = enc.encode(plaintext);
@@ -160,7 +163,7 @@ export class E2EEngine {
    */
   static async decrypt(
     msg: E2EEncryptedMessage,
-    key: crypto.CryptoKey
+    key: CryptoKey
   ): Promise<string> {
     // Reconstruct ciphertext + tag
     const ctBytes = this.base64ToBytes(msg.ciphertext);
@@ -172,9 +175,9 @@ export class E2EEngine {
     combined.set(tagBytes, ctBytes.length);
 
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: ivBytes },
+      { name: 'AES-GCM', iv: ivBytes as BufferSource },
       key,
-      combined
+      combined as BufferSource
     );
 
     return new TextDecoder().decode(decrypted);
@@ -226,7 +229,7 @@ export class E2EEngine {
   /**
    * Generate a P-256 keypair for E2E identity
    */
-  static async generateIdentityKeypair(): Promise<crypto.CryptoKeyPair> {
+  static async generateIdentityKeypair(): Promise<CryptoKeyPair> {
     return crypto.subtle.generateKey(
       { name: 'ECDSA', namedCurve: 'P-256' },
       true,
@@ -239,7 +242,7 @@ export class E2EEngine {
    */
   static async signData(
     data: string,
-    privateKey: crypto.CryptoKey
+    privateKey: CryptoKey
   ): Promise<string> {
     const enc = new TextEncoder();
     const signature = await crypto.subtle.sign(
@@ -256,14 +259,14 @@ export class E2EEngine {
   static async verifySignature(
     data: string,
     signature: string,
-    publicKey: crypto.CryptoKey
+    publicKey: CryptoKey
   ): Promise<boolean> {
     const enc = new TextEncoder();
     try {
       return crypto.subtle.verify(
         { name: 'ECDSA', hash: { name: 'SHA-256' } },
         publicKey,
-        this.base64ToBytes(signature).buffer,
+        this.base64ToBytes(signature) as BufferSource,
         enc.encode(data)
       );
     } catch {
@@ -278,12 +281,12 @@ export class E2EEngine {
     const components = [
       navigator.userAgent,
       navigator.language,
-      screen.resolutionMedia ?? '',
+      (screen as any).resolutionMedia ?? window.devicePixelRatio?.toString() ?? '',
       screen.width.toString(),
       screen.height.toString(),
       new Date().getTimezoneOffset().toString(),
       navigator.hardwareConcurrency?.toString() ?? '',
-      navigator.deviceMemory?.toString() ?? '',
+      (navigator as any).deviceMemory?.toString() ?? '',
     ];
 
     const raw = components.join('|');
@@ -302,7 +305,7 @@ export class E2EEngine {
   }
 
   private static async exportPublicKey(
-    key: crypto.CryptoKey
+    key: CryptoKey
   ): Promise<string> {
     const spki = await crypto.subtle.exportKey('spki', key);
     return this.bytesToBase64(new Uint8Array(spki));
@@ -334,22 +337,22 @@ export class PGPAdapter {
 
     const key = await generateKey({
       type: 'ecc',
-      curve: 'curve25519',
+      curve: 'curve25519Legacy',
       userIDs: [
         {
           name: userName,
           email: userEmail,
         },
       ],
-      // SHA-256 hashing algo
-      hashAlg: 'sha256',
-      encryptAlg: 'aes256',
     });
 
+    const { readKey } = await import('openpgp');
+    const parsedKey = await readKey({ armoredKey: key.publicKey });
+
     return {
-      privateKey: await key.getPrivateKey(),
-      publicKey: await key.getPublicKey(),
-      fingerprint: key.getPrimaryKey().fingerprint,
+      privateKey: key.privateKey,
+      publicKey: key.publicKey,
+      fingerprint: parsedKey.getFingerprint(),
     };
   }
 
@@ -360,20 +363,18 @@ export class PGPAdapter {
     plaintext: string,
     recipientArmor: string
   ): Promise<string> {
-    const { readMessage, encrypt } = await import('openpgp');
+    const { createMessage, encrypt } = await import('openpgp');
 
     // Parse recipient public keys
-    const { readPublicKey } = await import('openpgp');
-    const recipientKeys = await readPublicKey({
+    const { readKey } = await import('openpgp');
+    const recipientKey = await readKey({
       armoredKey: recipientArmor,
     });
 
     // Encrypt
     const message = await encrypt({
-      message: await readMessage({
-        cleartext: plaintext,
-      }),
-      encryptionKeys: recipientKeys,
+      message: await createMessage({ text: plaintext }),
+      encryptionKeys: recipientKey,
     });
 
     return message.armoredMessage;
@@ -387,16 +388,21 @@ export class PGPAdapter {
     privateKeyArmor: string,
     passphrase: string
   ): Promise<string> {
-    const { readMessage, readPrivateKey, decrypt } = await import('openpgp');
+    const { readMessage, readPrivateKey, decryptKey, decrypt } = await import('openpgp');
 
     const message = await readMessage({
       armoredMessage: encryptedArmor,
     });
 
-    const keys = await readPrivateKey({
+    let keys = await readPrivateKey({
       armoredKey: privateKeyArmor,
-      passphrase,
     });
+    if (!keys.isDecrypted()) {
+      keys = await decryptKey({
+        privateKey: keys,
+        passphrase,
+      });
+    }
 
     const { data: decrypted } = await decrypt({
       message,
@@ -406,4 +412,3 @@ export class PGPAdapter {
     return decrypted;
   }
 }
----CODE---

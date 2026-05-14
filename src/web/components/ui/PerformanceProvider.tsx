@@ -161,7 +161,7 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
       const clsObserver = new PerformanceObserver((list) => {
         let clsValue = 0;
         for (const entry of list.getEntries()) {
-          const ls = entry as LayoutShift;
+          const ls = entry as PerformanceEntry & { hadRecentInput: boolean; value: number };
           if (!ls.hadRecentInput) {
             clsValue += ls.value;
           }
@@ -185,7 +185,8 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
     try {
       const fidObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          const fid = entry.processingStart - entry.startTime;
+          const fidEntry = entry as PerformanceEntry & { processingStart: number };
+          const fid = fidEntry.processingStart - entry.startTime;
           setMetrics((prev) => ({ ...prev, fid }));
         }
       });

@@ -3,15 +3,15 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { DashboardSidebar } from './DashboardSidebar';
 import { Search, Mail, Settings, AlertCircle, Wifi, WifiOff, RefreshCw, ChevronLeft } from 'lucide-react';
-import { useConnectionStatus, useRealTimeEvents } from 'hooks/useWebSocket';
-import { useAuthStore } from 'lib/store/auth';
-import { useMailStore } from 'lib/store/mail';
+import { useConnectionStatus, useRealTimeEvents } from '@/hooks/useWebSocket';
+import { useAuthStore } from '@/lib/store/auth';
+import { useMailStore } from '@/lib/store/mail';
 import { useEffect, useState } from 'react';
-import { hydrateAuth } from 'lib/store/auth';
-import { useNotificationCount } from 'hooks/useWebSocket';
+import { hydrateAuth } from '@/lib/store/auth';
+import { useNotificationCount } from '@/hooks/useWebSocket';
 import { formatDistanceToNow } from 'date-fns';
-import { ErrorBoundary, ComponentErrorBoundary } from 'ui/ErrorBoundary';
-import { PerformanceProvider } from 'ui/PerformanceProvider';
+import { ErrorBoundary, ComponentErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { PerformanceProvider } from '@/components/ui/PerformanceProvider';
 
 // ------------------------------------------------------------------
 // Dashboard Layout - wraps all /dashboard/* routes
@@ -114,6 +114,7 @@ interface DashboardTopBarProps {
 }
 
 function DashboardTopBar({
+  user,
   wsState,
   isHealthy,
   isConnecting,
@@ -188,4 +189,3 @@ function BellIcon({ className }: { className?: string }) {
     </svg>
   );
 }
----CODE---

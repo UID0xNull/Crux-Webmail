@@ -13,4 +13,3 @@ export default function DashboardRootLayout({
 
   return <DashboardLayout>{children}</DashboardLayout>;
 }
----CODE---

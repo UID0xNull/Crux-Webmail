@@ -2,15 +2,15 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMailStore } from 'lib/store/mail';
-import { MessageListSkeleton } from 'components/ui/skeleton';
-import { Badge } from 'components/ui/badge';
-import { MessageSearchBar } from 'components/email/MessageSearchBar';
-import { MessageFilters } from 'components/email/MessageFilters';
-import { MultiSelectBar } from 'components/email/MultiSelectBar';
+import { useMailStore } from '@/lib/store/mail';
+import { MessageListSkeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { MessageSearchBar } from '@/components/email/MessageSearchBar';
+import { MessageFilters } from '@/components/email/MessageFilters';
+import { MultiSelectBar } from '@/components/email/MultiSelectBar';
 import { MailOpen, Star, Paperclip, AlertTriangle, CheckSquare, Check } from 'lucide-react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
-import type { EmailMessage } from 'lib/types';
+import type { EmailMessage } from '@/lib/types';
 
 export default function InboxPage() {
   const router = useRouter();

@@ -6,8 +6,8 @@
 // ============================================================================
 
 import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
-import { env } from 'env';
-import type { FrontendEnv } from 'env';
+import { env } from '@/lib/env';
+import type { FrontendEnv } from '@/lib/env';
 
 // ------------------------------------------------------------------
 // Types

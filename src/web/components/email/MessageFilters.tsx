@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useMailStore } from 'lib/store/mail';
+import { useMailStore } from '@/lib/store/mail';
 import { ChevronDown, Filter, X, Calendar, Paperclip, Star, Eye, AlertTriangle } from 'lucide-react';
-import type { EmailMessage } from 'lib/types';
+import type { EmailMessage } from '@/lib/types';
 
 // ------------------------------------------------------------------
 // Filter types
@@ -48,7 +48,7 @@ export function MessageFilters({ messages, onFilterChange, onReset }: MessageFil
       if (next[key] === value) {
         delete next[key];
       } else {
-        next[key] = value;
+        (next as any)[key] = value;
       }
       return next;
     });

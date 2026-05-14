@@ -80,6 +80,8 @@ export const useWebSocketStore = create<WebSocketStore>()(
         return;
       }
 
+      let t0 = performance.now();
+
       // Close existing if any
       if (_ws) {
         _ws.close();
@@ -101,7 +103,7 @@ export const useWebSocketStore = create<WebSocketStore>()(
       _ws = new WebSocket(wsUrl);
 
       _ws.onopen = () => {
-        const t0 = performance.now();
+        t0 = performance.now();
         // Send AUTH
         _ws?.send(JSON.stringify({
           type: 'AUTH',
@@ -123,7 +125,7 @@ export const useWebSocketStore = create<WebSocketStore>()(
           return;
         }
 
-        handleMessage(data, set, get);
+        handleMessage(data as Record<string, unknown>, set, get);
 
         set((s) => {
           if (!s.connection) return s;

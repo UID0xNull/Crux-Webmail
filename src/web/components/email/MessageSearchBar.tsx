@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useMailStore } from 'lib/store/mail';
+import { useMailStore } from '@/lib/store/mail';
 import { Search, X, Loader2 } from 'lucide-react';
 
 // ------------------------------------------------------------------

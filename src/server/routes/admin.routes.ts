@@ -8,7 +8,7 @@
 //   { data?: T; error?: ApiError; correlation_id: string }
 // ============================================================================
 
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest, FastifySchema } from 'fastify';
 import { z } from 'zod';
 import { adminAuthPreHandler } from 'middleware/admin-auth.middleware';
 import { auditLogger } from 'utils/audit-logger';
@@ -29,6 +29,7 @@ import {
   getAppSettings,
   getRecentActivity,
 } from 'services/admin-service';
+import type { AuditLogParams } from 'services/admin-service';
 
 // ------------------------------------------------------------------
 // Zod Schemas
@@ -87,7 +88,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'Get admin dashboard overview',
         tags: ['admin'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(_request: FastifyRequest, reply: FastifyReply) {
       try {
@@ -118,7 +119,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'Get detailed system health',
         tags: ['admin'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(_request, reply) {
       try {
@@ -139,7 +140,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'Get mail subsystem status (Postfix, Dovecot, Amavis, ClamAV, MinIO)',
         tags: ['admin'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(_request, reply) {
       try {
@@ -160,7 +161,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'Get current application settings',
         tags: ['admin'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(_request, reply) {
       const settings = getAppSettings();
@@ -177,7 +178,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         tags: ['admin'],
         querystring: z.object({}).passthrough(),
         response: { 200: z.record(z.any()) },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest, reply: FastifyReply) {
       try {
@@ -204,7 +205,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'Get user statistics',
         tags: ['admin'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(_request, reply) {
       try {
@@ -225,7 +226,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         tags: ['admin'],
         params: z.object({ userId: z.string().uuid() }),
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) {
       try {
@@ -253,7 +254,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
           roles: z.array(z.string()).optional(),
         }),
         response: { 201: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request, reply) {
       try {
@@ -287,7 +288,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         tags: ['admin'],
         body: UpdateRoleSchema,
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest<{ Params: { userId: string }; Body: { roles: string[] } }>, reply: FastifyReply) {
       try {
@@ -324,7 +325,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         tags: ['admin'],
         body: ToggleStatusSchema,
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest<{ Params: { userId: string }; Body: { isActive: boolean } }>, reply: FastifyReply) {
       try {
@@ -360,7 +361,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'Unlock a locked user account',
         tags: ['admin'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request: FastifyRequest<{ Params: { userId: string } }>, reply: FastifyReply) {
       try {
@@ -391,13 +392,13 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         tags: ['admin'],
         querystring: z.object({}).passthrough(),
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(request, reply) {
       try {
         const params = AuditLogSchema.parse(
           (request as FastifyRequest<{ Querystring: Record<string, string> }>),
-        );
+        ) as AuditLogParams;
         const result = await getAuditLogs(params);
         sendSuccess(reply, result);
       } catch (err) {
@@ -420,7 +421,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'Get audit log summary statistics',
         tags: ['admin'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(_request, reply) {
       try {
@@ -441,7 +442,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance): Promise<voi
         description: 'List all active sessions',
         tags: ['admin'],
         response: { 200: { type: 'object', additionalProperties: true } },
-      },
+      } as FastifySchema,
     },
     async function handler(_request, reply) {
       try {

@@ -62,4 +62,3 @@ window.__WIKI_DEBUG__.nav       // Datos de navegación
 window.__WIKI_DEBUG__.search    // Motor de búsqueda
 window.__WIKI_DEBUG__.hooks     // Hooks registrados
 ```
----CODE---

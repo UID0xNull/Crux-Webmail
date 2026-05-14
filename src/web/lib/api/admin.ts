@@ -15,7 +15,7 @@ import type {
   AdminMailSystemStats,
   AdminSessionInfo,
   AdminAppSettings,
-} from 'types';
+} from '@/lib/types';
 
 // ------------------------------------------------------------------
 // Dashboard

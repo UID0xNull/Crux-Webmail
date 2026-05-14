@@ -2,12 +2,12 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMailStore } from 'lib/store/mail';
-import { Button } from 'components/ui/button';
-import { Badge } from 'components/ui/badge';
-import { Card } from 'components/ui/card';
-import { sanitizeEmail, sanitizeDisplayName } from 'lib/sanitizer/html-sanitizer';
-import type { EmailAddress, AttachmentData } from 'lib/types';
+import { useMailStore } from '@/lib/store/mail';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { sanitizeEmail, sanitizeDisplayName } from '@/lib/sanitizer/html-sanitizer';
+import type { EmailAddress, AttachmentData } from '@/lib/types';
 import {
   ChevronLeft,
   Send,

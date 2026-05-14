@@ -16,6 +16,7 @@ import { sendSuccess, sendError } from 'utils/api-response';
 
 // Controller (business logic)
 import * as emailCtrl from 'modules/email/email.controller';
+import type { MarkFlagRequest, MoveEmailRequest, SendEmailRequest, BulkOperationRequest } from 'modules/email/types';
 
 type RequestWithUser = FastifyRequest & { user_id?: string; secureContext?: { user_id?: string }; ip: string };
 
@@ -220,7 +221,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       const userId = getUserId(request);
       try {
         const body = MarkFlagBodySchema.parse(request.body as any);
-        const result = await emailCtrl.toggleEmailFlag(userId, body);
+        const result = await emailCtrl.toggleEmailFlag(userId, body as MarkFlagRequest);
         return sendSuccess(reply, result);
       } catch (err) {
         if (err instanceof z.ZodError) {
@@ -243,7 +244,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       const userId = getUserId(request);
       try {
         const body = MoveEmailBodySchema.parse(request.body as any);
-        const result = await emailCtrl.moveUserEmail(userId, body);
+        const result = await emailCtrl.moveUserEmail(userId, body as MoveEmailRequest);
         return sendSuccess(reply, result);
       } catch (err) {
         if (err instanceof z.ZodError) {
@@ -296,7 +297,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       const userId = getUserId(request);
       try {
         const body = SendEmailBodySchema.parse(request.body as any);
-        const result = await emailCtrl.queueEmailSend(userId, body);
+        const result = await emailCtrl.queueEmailSend(userId, body as SendEmailRequest);
         return sendSuccess(reply, result, 202);
       } catch (err) {
         if (err instanceof z.ZodError) {
@@ -320,7 +321,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       const userId = getUserId(request);
       try {
         const body = BulkFlagBodySchema.parse(request.body as any);
-        const result = await emailCtrl.bulkMarkFlags(userId, body);
+        const result = await emailCtrl.bulkMarkFlags(userId, body as BulkOperationRequest & { flag: 'SEEN' | 'UNSEEN' | 'FLAGGED' | 'UNFLAGGED' | 'DELETED' });
         return sendSuccess(reply, result);
       } catch (err) {
         if (err instanceof z.ZodError) {
@@ -344,7 +345,7 @@ export async function registerEmailRoutes(fastify: FastifyInstance): Promise<voi
       const userId = getUserId(request);
       try {
         const body = BulkMoveBodySchema.parse(request.body as any);
-        const result = await emailCtrl.bulkMoveEmails(userId, body);
+        const result = await emailCtrl.bulkMoveEmails(userId, body as BulkOperationRequest & { toFolder: string });
         return sendSuccess(reply, result);
       } catch (err) {
         if (err instanceof z.ZodError) {

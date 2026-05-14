@@ -21,7 +21,7 @@ export async function computeFingerprint(): Promise<ClientFingerprint> {
     window.devicePixelRatio?.toString() ?? '1',
     new Date().getTimezoneOffset().toString(),
     navigator.hardwareConcurrency?.toString() ?? '',
-    navigator.deviceMemory?.toString() ?? '',
+    (navigator as any).deviceMemory?.toString() ?? '',
     // Canvas fingerprint
     await getCanvasHash(),
     // WebGL fingerprint
@@ -39,7 +39,7 @@ export async function computeFingerprint(): Promise<ClientFingerprint> {
     os: browserInfo.os,
     screen: `${screen.width}x${screen.height}`,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    languages: navigator.languages || [navigator.language],
+    languages: navigator.languages ? [...navigator.languages] : [navigator.language],
     hash: hashHex,
   };
 }
@@ -80,7 +80,7 @@ async function getCanvasHash(): Promise<string> {
 async function getWebGLHash(): Promise<string> {
   try {
     const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') ?? canvas.getContext('experimental-webgl');
+    const gl = (canvas.getContext('webgl') ?? canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
     if (!gl) return 'no-webgl';
 
     const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
@@ -153,4 +153,3 @@ export async function getOrComputeFingerprint(): Promise<string> {
 export async function getFingerprintData(): Promise<ClientFingerprint> {
   return computeFingerprint();
 }
----CODE---

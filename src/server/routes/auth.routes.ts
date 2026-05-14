@@ -178,7 +178,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
       const result = await authService.login({
         username: body.username,
         password: body.password,
-        device_fingerprint: body.device_fingerprint,
+        device_fingerprint: body.device_fingerprint as { browser: string; os: string; screen: string; timezone: string; languages: string[] },
         clientIp: clientIp,
         mtlsSerial: 'none',
       });

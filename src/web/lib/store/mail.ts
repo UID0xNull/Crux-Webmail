@@ -275,4 +275,3 @@ export const useMailStore = create<MailStore>()((set, get) => ({
     await get().loadInbox(get().selectedMailbox);
   },
 }));
----CODE---

@@ -85,7 +85,7 @@ export async function registerMailRoutes(fastify: FastifyInstance): Promise<void
     }
 
     const userId = request.secureContext.user_id;
-    const result = await mailService.sendEmail(userId, parsed.data);
+    const result = await mailService.sendEmail(userId, parsed.data as { from: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; text: string; html?: string });
     return {
       status: 200,
       envelope_id: result.envelopeId,

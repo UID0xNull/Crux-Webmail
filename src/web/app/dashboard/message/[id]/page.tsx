@@ -344,7 +344,8 @@ function SenderAvatar({ sender }: { sender?: EmailAddress }) {
 // Sanitized Email Body - CRITICAL for XSS protection
 // ------------------------------------------------------------------
 function SanitizedEmailBody({ message }: { message: EmailMessage }) {
-  const safeHtml = sanitizeHtml(message.bodyStructure);
+  const bodyContent = message.previewText || '';
+  const safeHtml = sanitizeHtml(bodyContent);
 
   return (
     <div
@@ -371,4 +372,3 @@ function AttachmentList() {
     </div>
   );
 }
----CODE---

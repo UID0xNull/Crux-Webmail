@@ -768,15 +768,15 @@ FAIL tests/mime-pipeline.spec.ts
     [7m   [0m [91m                                          ~~~~~~~[0m
     [96mtests/mime-pipeline.spec.ts[0m:[93m297[0m:[93m4[0m - [91merror[0m[90m TS2304: [0mCannot find name 'CODE'.
 
-    [7m297[0m ---CODE---
+    [7m297[0m 
     [7m   [0m [91m   ~~~~[0m
     [96mtests/mime-pipeline.spec.ts[0m:[93m297[0m:[93m3[0m - [91merror[0m[90m TS1109: [0mExpression expected.
 
-    [7m297[0m ---CODE---
+    [7m297[0m 
     [7m   [0m [91m  ~[0m
     [96mtests/mime-pipeline.spec.ts[0m:[93m297[0m:[93m11[0m - [91merror[0m[90m TS1109: [0mExpression expected.
 
-    [7m297[0m ---CODE---
+    [7m297[0m 
     [7m   [0m [91m          [0m
 
 ---------------------|---------|----------|---------|---------|---------------------------------------
@@ -1342,15 +1342,15 @@ FAIL tests/mime-pipeline.spec.ts
     [7m   [0m [91m                                          ~~~~~~~[0m
     [96mtests/mime-pipeline.spec.ts[0m:[93m297[0m:[93m4[0m - [91merror[0m[90m TS2304: [0mCannot find name 'CODE'.
 
-    [7m297[0m ---CODE---
+    [7m297[0m 
     [7m   [0m [91m   ~~~~[0m
     [96mtests/mime-pipeline.spec.ts[0m:[93m297[0m:[93m3[0m - [91merror[0m[90m TS1109: [0mExpression expected.
 
-    [7m297[0m ---CODE---
+    [7m297[0m 
     [7m   [0m [91m  ~[0m
     [96mtests/mime-pipeline.spec.ts[0m:[93m297[0m:[93m11[0m - [91merror[0m[90m TS1109: [0mExpression expected.
 
-    [7m297[0m ---CODE---
+    [7m297[0m 
     [7m   [0m [91m          [0m
 
 

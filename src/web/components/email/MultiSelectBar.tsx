@@ -1,9 +1,9 @@
 'use client';
 
-import { useMailStore } from 'lib/store/mail';
-import { Button } from 'ui/button';
+import { useMailStore } from '@/lib/store/mail';
+import { Button } from '@/components/ui/button';
 import { Trash2, Archive, Eye, EyeOff, Star, CheckSquare, X, MailOpen } from 'lucide-react';
-import type { EmailMessage } from 'lib/types';
+import type { EmailMessage } from '@/lib/types';
 
 // ------------------------------------------------------------------
 // MultiSelectBar — Barra de acciones cuando hay mensajes seleccionados

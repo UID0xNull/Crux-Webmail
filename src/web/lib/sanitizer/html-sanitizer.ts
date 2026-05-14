@@ -125,7 +125,7 @@ export function sanitizeHtml(
       `^(${ALLOWED_PROTOCOLS.join('|')})://`,
       'i'
     ),
-    ALLOW_DATA_URI: opts.allowImages,
+    ADD_DATA_URI_TAGS: opts.allowImages ? ['img'] : [],
     KEEP_CONTENT: true,
     FORBID_TAGS: ['SCRIPT', 'FRAME', 'IFRAME', 'OBJECT', 'EMBED', 'VIDEO', 'AUDIO'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
@@ -286,4 +286,3 @@ export interface WASMSanitizer {
 //   const wasmModule = await import('../wasm/sanitizer.wasm');
 //   return wasmModule.instance.exports;
 // }
----CODE---

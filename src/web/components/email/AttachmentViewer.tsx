@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { isSafeAttachment } from 'lib/sanitizer/html-sanitizer';
-import type { AttachmentData, EmailMessage } from 'lib/types';
+import { isSafeAttachment } from '@/lib/sanitizer/html-sanitizer';
+import type { AttachmentData, EmailMessage } from '@/lib/types';
 import {
   Paperclip,
   Eye,
@@ -232,7 +232,7 @@ function getPlaceholderAttachments(message: EmailMessage): AttachmentData[] {
   // Generate placeholders based on message size
   const estimatedAttachments = Math.min(Math.max(Math.floor(message.size / 500000), 1), 5);
   return Array.from({ length: estimatedAttachments }).map((_, i) => ({
-    name: `attachment_${i + 1}.${message.mimeType || 'pdf'}`,
+    name: `attachment_${i + 1}.dat`,
     mimeType: 'application/octet-stream',
     data: '',
     size: Math.floor(message.size / estimatedAttachments),
