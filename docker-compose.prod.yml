@@ -104,6 +104,11 @@ services:
       options:
         max-size: "25m"
         max-file: "5"
+    depends_on:
+      fastify-backend:
+        condition: service_healthy
+      nextjs-frontend:
+        condition: service_started
 
   # =================================================================
   # Fastify Backend API
@@ -177,7 +182,7 @@ services:
         max_attempts: 5
         window: 60s
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health | grep -q \"ok\""]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health | grep -q \"ok\""]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -241,7 +246,7 @@ services:
         max_attempts: 5
         window: 60s
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
