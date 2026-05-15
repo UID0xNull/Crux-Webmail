@@ -11,6 +11,7 @@
 // ============================================================================
 
 import type { NextConfig } from 'next';
+import path from 'path';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -19,6 +20,7 @@ const nextConfig: NextConfig = {
 
   // Standalone output for Docker
   output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '../../'),
 
   // Transpile shared packages
   transpilePackages: [],

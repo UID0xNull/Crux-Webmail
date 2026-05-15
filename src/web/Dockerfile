@@ -63,8 +63,8 @@ WORKDIR /app
 COPY --from=builder /app/src/web/.next/standalone ./
 
 # Copy static assets + public
-COPY --from=builder /app/src/web/.next/static ./.next/static
-COPY --from=builder /app/src/web/public ./public
+COPY --from=builder /app/src/web/.next/static ./src/web/.next/static
+COPY --from=builder /app/src/web/public ./src/web/public
 
 USER appuser
 
@@ -72,6 +72,6 @@ EXPOSE 3001
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget -qO- http://localhost:3001/ || exit 1
+  CMD wget -qO- http://127.0.0.1:3001/ || exit 1
 
-CMD ["node", "server.js"]
+CMD ["node", "src/web/server.js"]
