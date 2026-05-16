@@ -106,9 +106,10 @@ export default function AuthGate({ children, requireRole }: AuthGateProps) {
     if (authenticated && !hasRequiredRole()) {
       setAuthenticated(false);
       clearSession();
-      router.replace('/login');
+      const query = pathname !== '/login' ? `?redirect=${encodeURIComponent(pathname)}` : '';
+      router.replace(`/login${query}`);
     }
-  }, [authenticated, hasRequiredRole, clearSession, router]);
+  }, [authenticated, hasRequiredRole, clearSession, router, pathname]);
 
   // ---------------------------------------------------------------
   // Loading — verifying session
