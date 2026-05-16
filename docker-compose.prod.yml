@@ -246,7 +246,7 @@ services:
         max_attempts: 5
         window: 60s
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
