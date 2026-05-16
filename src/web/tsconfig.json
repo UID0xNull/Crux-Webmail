@@ -27,9 +27,10 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"],
+      "lib/*": ["./lib/*"],
+      "components/*": ["./components/*"],
+      "hooks/*": ["./hooks/*"]
     }
   },
   "include": [

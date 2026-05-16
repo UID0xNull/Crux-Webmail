@@ -49,7 +49,7 @@ export interface ClientFingerprint {
   os: string;
   screen: string;
   timezone: string;
-  languages: string[];
+  languages: readonly string[];
   hash: string;
 }
 
