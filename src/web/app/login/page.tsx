@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from 'lib/store/auth';
 import type { ClientFingerprint } from 'lib/types';
 
@@ -68,6 +68,8 @@ function ShieldIcon() {
 // ─── Main Component ────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams?.get('redirect') || null;
   const { login, isLoading, error, isAuthenticated, updateFingerprint } = useAuthStore();
 
   const [username, setUsername] = useState('');
@@ -99,9 +101,9 @@ export default function LoginPage() {
   // ── Redirect if already authenticated ─────────────────────────
   useEffect(() => {
     if (isAuthenticated && mounted) {
-      router.replace('/dashboard/inbox');
+      router.replace(redirectParam || '/dashboard/inbox');
     }
-  }, [isAuthenticated, router, mounted]);
+  }, [isAuthenticated, router, mounted, redirectParam]);
 
   // ── Sync global error → local ─────────────────────────────────
   useEffect(() => {
@@ -132,7 +134,7 @@ export default function LoginPage() {
       });
 
       if (success) {
-        router.replace('/dashboard/inbox');
+        router.replace(redirectParam || '/dashboard/inbox');
       }
     },
     [username, password, login, router]
