@@ -71,7 +71,7 @@ USER appuser
 EXPOSE 3001
 
 # Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3001/ || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=45s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3001/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 CMD ["node", "src/web/server.js"]

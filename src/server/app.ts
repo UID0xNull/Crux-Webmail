@@ -311,7 +311,8 @@ async function start(): Promise<void> {
     // OpenTelemetry (lazy, prod-only when enabled)
     if (config.OTEL_ENABLED && config.NODE_ENV === 'production') {
       try {
-        await import('./observability/opentelemetry');
+        const otel = await import('./observability/opentelemetry');
+        await otel.initOpenTelemetry();
         auditLogger.info('OpenTelemetry initialized');
       } catch {
         auditLogger.warn('OpenTelemetry initialization failed, continuing without it');

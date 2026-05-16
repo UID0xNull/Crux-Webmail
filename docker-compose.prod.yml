@@ -251,11 +251,11 @@ services:
         max_attempts: 5
         window: 60s
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/ || exit 1"]
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 45s
     security_opt:
       - no-new-privileges:true
     cap_drop:
