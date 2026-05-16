@@ -1,7 +1,8 @@
 'use client';
 
-import DashboardLayout from '../../components/layout/DashboardLayout';
-import { useWebSocket } from '../../hooks/useWebSocket';
+import { useWebSocket } from 'hooks/useWebSocket';
+import DashboardLayout from 'components/layout/DashboardLayout';
+import AuthGate from 'components/auth/AuthGate';
 
 export default function DashboardRootLayout({
   children,
@@ -11,5 +12,9 @@ export default function DashboardRootLayout({
   // Initialize WebSocket connection
   useWebSocket();
 
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return (
+    <AuthGate>
+      <DashboardLayout>{children}</DashboardLayout>
+    </AuthGate>
+  );
 }
