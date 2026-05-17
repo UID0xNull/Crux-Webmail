@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const PROTECTED_PATHS = ['/dashboard'];
 const AUTH_PATHS = ['/login'];
-const PUBLIC_PATHS = ['/health', '/'];
+const PUBLIC_PATHS = ['/health'];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATHS.some((p) => pathname.startsWith(p));
@@ -35,6 +35,14 @@ export function middleware(request: NextRequest) {
   }
 
   const token = getSessionToken(request);
+
+  // ── Root route: redirect to dashboard or login based on auth ──
+  if (pathname === '/') {
+    if (token) {
+      return NextResponse.redirect(new URL('/dashboard/inbox', request.url));
+    }
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
   if (isProtectedPath(pathname) && !token) {
     const loginUrl = new URL('/login', request.url);

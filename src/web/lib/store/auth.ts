@@ -117,6 +117,11 @@ export const useAuthStore = create<AuthStore>()(
           expiresAt,
         });
 
+        // Sync cookie so middleware can validate on SSR / hard refresh
+        if (typeof document !== 'undefined' && tokens.access_token) {
+          setAuthCookie(tokens.access_token, tokens.expires_in);
+        }
+
         // Load user profile
         try {
           const profileResp = await api.get<UserProfile>('/api/auth/profile');
@@ -144,6 +149,10 @@ export const useAuthStore = create<AuthStore>()(
           isLoading: false,
           error: null,
         });
+        // Remove auth cookie so middleware sees the logout
+        if (typeof document !== 'undefined') {
+          clearAuthCookie();
+        }
       },
 
       // ------------------------------------------------------------------
@@ -188,6 +197,33 @@ function scheduleExpiryCheck(expiresAt: number): void {
 }
 
 // ------------------------------------------------------------------
+// Cookie helpers — keep middleware + client in sync
+// ------------------------------------------------------------------
+const AUTH_COOKIE_NAME = 'crux_access_token';
+
+function setAuthCookie(token: string, expiresIn: number): void {
+  const maxAge = Math.max(expiresIn, 60);
+  const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
+  document.cookie = `${AUTH_COOKIE_NAME}=${token}; Path=/; Max-Age=${maxAge}; SameSite=Lax; ${typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'Secure;' : ''}`;
+}
+
+function clearAuthCookie(): void {
+  document.cookie = `${AUTH_COOKIE_NAME}=; Path=/; Max-Age=0`;
+  document.cookie = `${AUTH_COOKIE_NAME}=; Path=/; Max-Age=0; Secure;`;
+}
+
+function syncCookieFromStore(): void {
+  const token = useAuthStore.getState().token;
+  const expiresAt = useAuthStore.getState().expiresAt;
+  if (token && expiresAt && expiresAt > Date.now()) {
+    const remainingSec = Math.max(Math.floor((expiresAt - Date.now()) / 1000), 60);
+    setAuthCookie(token, remainingSec);
+  } else {
+    if (typeof document !== 'undefined') clearAuthCookie();
+  }
+}
+
+// ------------------------------------------------------------------
 // Hydrate on load: validate persisted session
 // ------------------------------------------------------------------
 export async function hydrateAuth(): Promise<boolean> {
@@ -196,6 +232,7 @@ export async function hydrateAuth(): Promise<boolean> {
 
   try {
     await api.get<UserProfile>('/api/auth/profile');
+    syncCookieFromStore();
     return true;
   } catch {
     useAuthStore.getState().clearSession();

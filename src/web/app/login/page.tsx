@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from 'lib/store/auth';
+import { useAuthStore, hydrateAuth } from 'lib/store/auth';
 import type { ClientFingerprint } from 'lib/types';
 
 // ─── SVG Icons ─────────────────────────────────────────────────────
@@ -96,8 +96,12 @@ function LoginForm() {
   const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ── Fingerprint ────────────────────────────────────────────────
+  // ── Hydrate auth state from cookie + Fingerprint ──────────────
   useEffect(() => {
+    (async () => {
+      await hydrateAuth();
+    })();
+
     const fp: ClientFingerprint = {
       browser: navigator.userAgent.split(' ')[0],
       os: navigator.platform,

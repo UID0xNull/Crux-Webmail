@@ -4,12 +4,12 @@
       "1",
       {
         "id": "1",
-        "content": "Fix src/web/tsconfig.json extends path",
+        "content": "Actualizar page.tsx y dashboard para manejar auth routing",
         "status": "completed",
         "children": [],
         "createdAt": 1778710029079,
-        "updatedAt": 1778710029079,
-        "completedAt": 1778710029079,
+        "updatedAt": 1778979287847,
+        "completedAt": 1778964997821,
         "metadata": {}
       }
     ],
@@ -17,12 +17,62 @@
       "2",
       {
         "id": "2",
-        "content": "Fix OpenTelemetry instrumentation setup",
+        "content": "Actualizar page.tsx y dashboard para manejar auth routing",
         "status": "completed",
         "children": [],
         "createdAt": 1778710029079,
-        "updatedAt": 1778710029079,
-        "completedAt": 1778710029079,
+        "updatedAt": 1778976456022,
+        "completedAt": 1778974959681,
+        "metadata": {}
+      }
+    ],
+    [
+      "3",
+      {
+        "id": "3",
+        "content": "Verificar compilación y corregir errores",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1778964963023,
+        "updatedAt": 1778976449414,
+        "completedAt": 1778976449414,
+        "metadata": {}
+      }
+    ],
+    [
+      "4",
+      {
+        "id": "4",
+        "content": "AuthGate fully implemented and verified - task done",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1778964963023,
+        "updatedAt": 1778975300879,
+        "completedAt": 1778975300879,
+        "metadata": {}
+      }
+    ],
+    [
+      "5",
+      {
+        "id": "5",
+        "content": "Actualizar page.tsx y dashboard para manejar auth routing",
+        "status": "in_progress",
+        "children": [],
+        "createdAt": 1778964963023,
+        "updatedAt": 1778975300879,
+        "metadata": {}
+      }
+    ],
+    [
+      "6",
+      {
+        "id": "6",
+        "content": "Verificar compilación y corregir errores",
+        "status": "pending",
+        "children": [],
+        "createdAt": 1778964997821,
+        "updatedAt": 1778965315153,
         "metadata": {}
       }
     ]
@@ -36,27 +86,65 @@
         "items": [
           {
             "id": "1",
-            "content": "Fix src/web/tsconfig.json extends path",
+            "content": "Actualizar page.tsx y dashboard para manejar auth routing",
             "status": "completed",
             "children": [],
             "createdAt": 1778710029079,
-            "updatedAt": 1778710029079,
-            "completedAt": 1778710029079,
+            "updatedAt": 1778979287847,
+            "completedAt": 1778964997821,
             "metadata": {}
           },
           {
             "id": "2",
-            "content": "Fix OpenTelemetry instrumentation setup",
+            "content": "Actualizar page.tsx y dashboard para manejar auth routing",
             "status": "completed",
             "children": [],
             "createdAt": 1778710029079,
-            "updatedAt": 1778710029079,
-            "completedAt": 1778710029079,
+            "updatedAt": 1778976456022,
+            "completedAt": 1778974959681,
+            "metadata": {}
+          },
+          {
+            "id": "3",
+            "content": "Verificar compilación y corregir errores",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1778964963023,
+            "updatedAt": 1778976449414,
+            "completedAt": 1778976449414,
+            "metadata": {}
+          },
+          {
+            "id": "4",
+            "content": "AuthGate fully implemented and verified - task done",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1778964963023,
+            "updatedAt": 1778975300879,
+            "completedAt": 1778975300879,
+            "metadata": {}
+          },
+          {
+            "id": "5",
+            "content": "Actualizar page.tsx y dashboard para manejar auth routing",
+            "status": "in_progress",
+            "children": [],
+            "createdAt": 1778964963023,
+            "updatedAt": 1778975300879,
+            "metadata": {}
+          },
+          {
+            "id": "6",
+            "content": "Verificar compilación y corregir errores",
+            "status": "pending",
+            "children": [],
+            "createdAt": 1778964997821,
+            "updatedAt": 1778965315153,
             "metadata": {}
           }
         ],
         "createdAt": 1778441896917,
-        "updatedAt": 1778710029080
+        "updatedAt": 1778979287847
       }
     ]
   ],
