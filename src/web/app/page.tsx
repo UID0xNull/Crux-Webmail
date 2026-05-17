@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { hydrateAuth } from 'lib/store/auth';
 
 export default function HomePage() {
   const router = useRouter();
-  const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -19,7 +18,6 @@ export default function HomePage() {
         } else {
           router.replace('/login');
         }
-        setResolved(true);
       }
     })();
 

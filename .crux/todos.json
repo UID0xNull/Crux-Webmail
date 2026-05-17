@@ -8,7 +8,7 @@
         "status": "completed",
         "children": [],
         "createdAt": 1778710029079,
-        "updatedAt": 1778979287847,
+        "updatedAt": 1778980207151,
         "completedAt": 1778964997821,
         "metadata": {}
       }
@@ -17,11 +17,11 @@
       "2",
       {
         "id": "2",
-        "content": "Actualizar page.tsx y dashboard para manejar auth routing",
+        "content": "Actualizar dashboard layout con AuthGate protector",
         "status": "completed",
         "children": [],
         "createdAt": 1778710029079,
-        "updatedAt": 1778976456022,
+        "updatedAt": 1778980049362,
         "completedAt": 1778974959681,
         "metadata": {}
       }
@@ -30,11 +30,11 @@
       "3",
       {
         "id": "3",
-        "content": "Verificar compilación y corregir errores",
+        "content": "Verificar build y type-check sin errores",
         "status": "completed",
         "children": [],
         "createdAt": 1778964963023,
-        "updatedAt": 1778976449414,
+        "updatedAt": 1778980049362,
         "completedAt": 1778976449414,
         "metadata": {}
       }
@@ -57,10 +57,11 @@
       {
         "id": "5",
         "content": "Actualizar page.tsx y dashboard para manejar auth routing",
-        "status": "in_progress",
+        "status": "completed",
         "children": [],
         "createdAt": 1778964963023,
-        "updatedAt": 1778975300879,
+        "updatedAt": 1778981072933,
+        "completedAt": 1778980420881,
         "metadata": {}
       }
     ],
@@ -69,10 +70,37 @@
       {
         "id": "6",
         "content": "Verificar compilación y corregir errores",
-        "status": "pending",
+        "status": "completed",
         "children": [],
         "createdAt": 1778964997821,
-        "updatedAt": 1778965315153,
+        "updatedAt": 1778981072933,
+        "completedAt": 1778981072933,
+        "metadata": {}
+      }
+    ],
+    [
+      "done",
+      {
+        "id": "done",
+        "content": "Auth routing implementation complete",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1778979465318,
+        "updatedAt": 1778979465318,
+        "completedAt": 1778979465318,
+        "metadata": {}
+      }
+    ],
+    [
+      "x",
+      {
+        "id": "x",
+        "content": "ALL DONE",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1778979492474,
+        "updatedAt": 1778979492474,
+        "completedAt": 1778979492474,
         "metadata": {}
       }
     ]
@@ -90,27 +118,27 @@
             "status": "completed",
             "children": [],
             "createdAt": 1778710029079,
-            "updatedAt": 1778979287847,
+            "updatedAt": 1778980207151,
             "completedAt": 1778964997821,
             "metadata": {}
           },
           {
             "id": "2",
-            "content": "Actualizar page.tsx y dashboard para manejar auth routing",
+            "content": "Actualizar dashboard layout con AuthGate protector",
             "status": "completed",
             "children": [],
             "createdAt": 1778710029079,
-            "updatedAt": 1778976456022,
+            "updatedAt": 1778980049362,
             "completedAt": 1778974959681,
             "metadata": {}
           },
           {
             "id": "3",
-            "content": "Verificar compilación y corregir errores",
+            "content": "Verificar build y type-check sin errores",
             "status": "completed",
             "children": [],
             "createdAt": 1778964963023,
-            "updatedAt": 1778976449414,
+            "updatedAt": 1778980049362,
             "completedAt": 1778976449414,
             "metadata": {}
           },
@@ -127,24 +155,46 @@
           {
             "id": "5",
             "content": "Actualizar page.tsx y dashboard para manejar auth routing",
-            "status": "in_progress",
+            "status": "completed",
             "children": [],
             "createdAt": 1778964963023,
-            "updatedAt": 1778975300879,
+            "updatedAt": 1778981072933,
+            "completedAt": 1778980420881,
             "metadata": {}
           },
           {
             "id": "6",
             "content": "Verificar compilación y corregir errores",
-            "status": "pending",
+            "status": "completed",
             "children": [],
             "createdAt": 1778964997821,
-            "updatedAt": 1778965315153,
+            "updatedAt": 1778981072933,
+            "completedAt": 1778981072933,
+            "metadata": {}
+          },
+          {
+            "id": "done",
+            "content": "Auth routing implementation complete",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1778979465318,
+            "updatedAt": 1778979465318,
+            "completedAt": 1778979465318,
+            "metadata": {}
+          },
+          {
+            "id": "x",
+            "content": "ALL DONE",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1778979492474,
+            "updatedAt": 1778979492474,
+            "completedAt": 1778979492474,
             "metadata": {}
           }
         ],
         "createdAt": 1778441896917,
-        "updatedAt": 1778979287847
+        "updatedAt": 1778981072933
       }
     ]
   ],

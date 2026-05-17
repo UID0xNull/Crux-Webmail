@@ -231,8 +231,10 @@ export async function hydrateAuth(): Promise<boolean> {
   if (!state.token) return false;
 
   try {
-    await api.get<UserProfile>('/api/auth/profile');
+    const profileResp = await api.get<UserProfile>('/api/auth/profile');
+    useAuthStore.setState({ isAuthenticated: true, user: profileResp.data });
     syncCookieFromStore();
+    scheduleExpiryCheck(state.expiresAt);
     return true;
   } catch {
     useAuthStore.getState().clearSession();
