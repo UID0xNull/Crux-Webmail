@@ -456,7 +456,10 @@ services:
       - "9001"
     volumes:
       - minio_data:/data:rw
-    command: minio server /data --console-address :9001
+    command: >-
+      sh -c 'export MINIO_ROOT_USER="$(cat /run/secrets/minio_access_key)" &&
+             export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)" &&
+             exec minio server /data --console-address ":9001"'
     tmpfs:
       - /tmp:size=32M
     read_only: true
@@ -475,12 +478,9 @@ services:
       - CHOWN
       - DAC_OVERRIDE
       - FOWNER
-    command: >-
-      sh -c 'export MINIO_ROOT_USER="$(cat /run/secrets/minio_access_key)" &&
-             export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)" &&
-             exec minio server /data --console-address ":9001"'
     environment:
-      - MINIO_SERVER_URL=https://storage.crux.local      - TZ=UTC
+      - MINIO_SERVER_URL=https://storage.crux.local
+      - TZ=UTC
     secrets:
       - minio_access_key
       - minio_secret_key
@@ -852,8 +852,8 @@ services:
       # MinIO
       - MINIO_HOST=crux-minio
       - MINIO_PORT=9000
-      - MINIO_ROOT_USER_FILE=/run/secrets/minio_access_key
-      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_secret_key
+      - MINIO_ACCESS_KEY_FILE=/run/secrets/minio_access_key.txt
+      - MINIO_SECRET_KEY_FILE=/run/secrets/minio_secret_key.txt
 
       # OTel
       - OTLP_ENDPOINT=http://otel-collector:4318
