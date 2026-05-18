@@ -104,9 +104,9 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "nginx -t && wget -qO- http://localhost:443/health || exit 1"]
-      interval: 5s
-      timeout: 2s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy | grep -q 'OK'"]
+      interval: 15s
+      timeout: 5s
       retries: 3
       start_period: 10s
     security_opt:
@@ -176,7 +176,6 @@ services:
     environment:
       - TZ=UTC
       - TZDATA_DIR=/usr/share/zoneinfo
-    user: "1000:1000"
     logging:
       driver: json-file
       options:
@@ -185,7 +184,7 @@ services:
         tag: "{{.Name}}"
 
   # =================================================================
-  # APP-TIER — LDA/IMAP: Dovecot
+  # APP-TIER — Content Filter: Amavis
   # =================================================================
   dovecot:
     image: mwader/dovecot:latest
@@ -196,7 +195,7 @@ services:
       data-network:
     expose:
       - "993"
-      - "24"
+      - "995"
       - "143"
     volumes:
       - ./dovecot/dovecot.conf:/etc/dovecot/dovecot.conf:ro
@@ -226,9 +225,11 @@ services:
     cap_add:
       - NET_BIND_SERVICE
       - SETGID
-      - SETUID
     environment:
+      - DOVECOT_MASTER_PASSWORD_FILE=/run/secrets/dovecot_master_password
       - TZ=UTC
+    secrets:
+      - dovecot_master_password
     user: "1000:1000"
     depends_on:
       postgres:
@@ -242,7 +243,7 @@ services:
 
   # =================================================================
   # APP-TIER — Content Filter: Amavis
-  # =================================================================
+  # ==========================================================================
   amavis:
     image: mwader/amavis:latest
     container_name: crux-amavis
@@ -423,6 +424,11 @@ services:
     cap_add:
       - DAC_OVERRIDE
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    environment:
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+      - TZ=UTC
+    secrets:
+      - redis_password
     deploy:
       resources:
         limits:
@@ -469,12 +475,13 @@ services:
       - DAC_OVERRIDE
       - FOWNER
     environment:
-      - MINIO_ROOT_USER=crux_storage
-      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_password
+      - MINIO_ROOT_USER_FILE=/run/secrets/minio_access_key
+      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_secret_key
       - MINIO_SERVER_URL=https://storage.crux.local
       - TZ=UTC
     secrets:
-      - minio_password
+      - minio_access_key
+      - minio_secret_key
     logging:
       driver: json-file
       options:
@@ -557,7 +564,7 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy | grep -q \\"Prometheus Server is Healthy\\""]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy | grep -q 'Prometheus Server is Healthy'"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -595,6 +602,10 @@ services:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
       - '--web.enable-lifecycle'
+    environment:
+      - SLACK_WEBHOOK_URL_FILE=/run/secrets/alertmanager_webhook_url
+    secrets:
+      - alertmanager_webhook_url
     tmpfs:
       - /tmp:size=32M
     read_only: true
@@ -629,10 +640,15 @@ services:
     expose:
       - "9121"
     environment:
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
       - REDIS_ADDR=redis://crux-redis:6379
       - REDIS_EXPORTER_LOG_LEVEL=warning
       - REDIS_EXPORTER_CHECK_DUPLICATE_QUERIES=true
-      - REDIS_EXPORTER_SCRIPT_PATH=
+    secrets:
+      - redis_password
+    tmpfs:
+      - /tmp:size=32M
+    read_only: true
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -726,10 +742,15 @@ services:
       - /tmp:size=32M
       - /loki:size=512M
     read_only: true
-    command: -config.file=/etc/loki/local-config.yaml
+    command: "-config.file=/etc/loki/local-config.yaml"
+    environment:
+      - LOKI_ADMIN_PASSWORD_FILE=/run/secrets/loki_admin_password
+      - TZ=UTC
+    secrets:
+      - loki_admin_password
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q \\"ready\\""]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q \"ready\""]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -805,7 +826,13 @@ services:
       # JWT
       - JWT_SECRET_FILE=/run/secrets/jwt_secret
       - JWT_REFRESH_SECRET_FILE=/run/secrets/jwt_refresh_secret
-
+    secrets:
+      - postgres_password
+      - redis_password
+      - jwt_secret
+      - jwt_refresh_secret
+      - session_encryption_key
+      - ip_hash_salt
     tmpfs:
       - /tmp:size=64M
     restart: unless-stopped
@@ -901,6 +928,11 @@ services:
       - '--config=/etc/otel-collector-config.yaml'
     volumes:
       - ./monitoring/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    environment:
+      - OTLP_AUTH_API_KEY_FILE=/run/secrets/otel_api_key
+      - TZ=UTC
+    secrets:
+      - otel_api_key
     tmpfs:
       - /tmp:size=32M
     restart: unless-stopped
@@ -933,8 +965,14 @@ secrets:
     file: ./secrets/postgres_password.txt
   minio_password:
     file: ./secrets/minio_password.txt
+  minio_access_key:
+    file: ./secrets/minio_access_key.txt
+  minio_secret_key:
+    file: ./secrets/minio_secret_key.txt
   grafana_password:
     file: ./secrets/grafana_password.txt
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password.txt
   mail_server_tls_key:
     file: ./secrets/tls_key.pem
   mail_server_tls_cert:
@@ -945,6 +983,20 @@ secrets:
     file: ./secrets/jwt_secret.txt
   jwt_refresh_secret:
     file: ./secrets/jwt_refresh_secret.txt
+  session_encryption_key:
+    file: ./secrets/session_encryption_key.txt
+  ip_hash_salt:
+    file: ./secrets/ip_hash_salt.txt
+  dovecot_master_password:
+    file: ./secrets/dovecot_master_password.txt
+  postfix_smtp_password:
+    file: ./secrets/postfix_smtp_password.txt
+  otel_api_key:
+    file: ./secrets/otel_api_key.txt
+  loki_admin_password:
+    file: ./secrets/loki_admin_password.txt
+  alertmanager_webhook_url:
+    file: ./secrets/alertmanager_webhook_url.txt
 
 # ------------------------------------------------------------------
 # SECCOMP PROFILE GLOBAL (opcional, requiere Docker >= 20.10)

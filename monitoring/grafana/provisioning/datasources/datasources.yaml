@@ -1,0 +1,45 @@
+# ============================================================================
+# Grafana Datasources Provisioning — Crux-Webmail Enterprise
+# ============================================================================
+
+apiVersion: 1
+
+datasources:
+  # ------------------------------------------------------------------
+  # Prometheus (primary metrics)
+  # ------------------------------------------------------------------
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://crux-prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: POST
+
+  # ------------------------------------------------------------------
+  # Loki (log aggregation)
+  # ------------------------------------------------------------------
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://crux-loki:3100
+    editable: true
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - name: TraceID
+          matcherRegex: "traceID=(\\w+)"
+          url: '$${__value.raw}'
+
+  # ------------------------------------------------------------------
+  # Alertmanager
+  # ------------------------------------------------------------------
+  - name: Alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://crux-alertmanager:9093
+    editable: true
+    jsonData:
+      implementation: prometheus

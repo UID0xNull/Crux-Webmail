@@ -1,0 +1,18 @@
+# ============================================================================
+# Grafana Dashboards Provisioning — Crux-Webmail Enterprise
+# ============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: crux-webmail-dashboards
+    orgId: 1
+    folder: Crux-Webmail
+    folderUid: crux-webmail
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/files
+      foldersFromFilesStructure: false

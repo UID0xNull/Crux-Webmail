@@ -1,0 +1,15 @@
+# ============================================================================
+# Grafana — Dashboards Provisioning
+# ============================================================================
+apiVersion: 1
+
+providers:
+  - name: 'crux-dashboards'
+    org_id: 1
+    folder: 'Crux-Webmail'
+    type: file
+    disable_deprecation_alert: true
+    update_interval_seconds: 30
+    allow_ui_updates: true
+    options:
+      path: /var/lib/grafana/dashboards

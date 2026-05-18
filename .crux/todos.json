@@ -4,12 +4,12 @@
       "1",
       {
         "id": "1",
-        "content": "Actualizar page.tsx y dashboard para manejar auth routing",
+        "content": "Crear secrets por defecto para nuevos servicios",
         "status": "completed",
         "children": [],
         "createdAt": 1778710029079,
-        "updatedAt": 1778980207151,
-        "completedAt": 1778964997821,
+        "updatedAt": 1779067515178,
+        "completedAt": 1779067107646,
         "metadata": {}
       }
     ],
@@ -17,12 +17,12 @@
       "2",
       {
         "id": "2",
-        "content": "Actualizar dashboard layout con AuthGate protector",
+        "content": "Verificar docker-compose config",
         "status": "completed",
         "children": [],
         "createdAt": 1778710029079,
-        "updatedAt": 1778980049362,
-        "completedAt": 1778974959681,
+        "updatedAt": 1779067515178,
+        "completedAt": 1779064734005,
         "metadata": {}
       }
     ],
@@ -30,12 +30,12 @@
       "3",
       {
         "id": "3",
-        "content": "Verificar build y type-check sin errores",
+        "content": "Generar documentación de infraestructura",
         "status": "completed",
         "children": [],
         "createdAt": 1778964963023,
-        "updatedAt": 1778980049362,
-        "completedAt": 1778976449414,
+        "updatedAt": 1779066630555,
+        "completedAt": 1779064851383,
         "metadata": {}
       }
     ],
@@ -43,12 +43,12 @@
       "4",
       {
         "id": "4",
-        "content": "AuthGate fully implemented and verified - task done",
+        "content": "Configurar variables de entorno",
         "status": "completed",
         "children": [],
         "createdAt": 1778964963023,
-        "updatedAt": 1778975300879,
-        "completedAt": 1778975300879,
+        "updatedAt": 1779066630555,
+        "completedAt": 1779064984024,
         "metadata": {}
       }
     ],
@@ -56,12 +56,12 @@
       "5",
       {
         "id": "5",
-        "content": "Actualizar page.tsx y dashboard para manejar auth routing",
+        "content": "Crear secrets por defecto para nuevos servicios",
         "status": "completed",
         "children": [],
         "createdAt": 1778964963023,
-        "updatedAt": 1778981072933,
-        "completedAt": 1778980420881,
+        "updatedAt": 1779066630555,
+        "completedAt": 1779045069571,
         "metadata": {}
       }
     ],
@@ -69,12 +69,12 @@
       "6",
       {
         "id": "6",
-        "content": "Verificar compilación y corregir errores",
+        "content": "Corregir referencias de secrets en servicios",
         "status": "completed",
         "children": [],
         "createdAt": 1778964997821,
-        "updatedAt": 1778981072933,
-        "completedAt": 1778981072933,
+        "updatedAt": 1779066630555,
+        "completedAt": 1779045069571,
         "metadata": {}
       }
     ],
@@ -103,6 +103,57 @@
         "completedAt": 1778979492474,
         "metadata": {}
       }
+    ],
+    [
+      "7",
+      {
+        "id": "7",
+        "content": "Eliminar configuraciones rotas de TLS/OTel",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1779044748867,
+        "updatedAt": 1779066630555,
+        "completedAt": 1779045328163,
+        "metadata": {}
+      }
+    ],
+    [
+      "8",
+      {
+        "id": "8",
+        "content": "Sincronizar documentación y código",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1779044748867,
+        "updatedAt": 1779066630555,
+        "completedAt": 1779066630555,
+        "metadata": {}
+      }
+    ],
+    [
+      "9",
+      {
+        "id": "9",
+        "content": "Verificar docker-compose config",
+        "status": "in_progress",
+        "children": [],
+        "createdAt": 1779045069571,
+        "updatedAt": 1779066630556,
+        "metadata": {}
+      }
+    ],
+    [
+      "99",
+      {
+        "id": "99",
+        "content": "Review pending tasks",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1779066572104,
+        "updatedAt": 1779066598334,
+        "completedAt": 1779066598334,
+        "metadata": {}
+      }
     ]
   ],
   "lists": [
@@ -114,62 +165,62 @@
         "items": [
           {
             "id": "1",
-            "content": "Actualizar page.tsx y dashboard para manejar auth routing",
+            "content": "Crear secrets por defecto para nuevos servicios",
             "status": "completed",
             "children": [],
             "createdAt": 1778710029079,
-            "updatedAt": 1778980207151,
-            "completedAt": 1778964997821,
+            "updatedAt": 1779067515178,
+            "completedAt": 1779067107646,
             "metadata": {}
           },
           {
             "id": "2",
-            "content": "Actualizar dashboard layout con AuthGate protector",
+            "content": "Verificar docker-compose config",
             "status": "completed",
             "children": [],
             "createdAt": 1778710029079,
-            "updatedAt": 1778980049362,
-            "completedAt": 1778974959681,
+            "updatedAt": 1779067515178,
+            "completedAt": 1779064734005,
             "metadata": {}
           },
           {
             "id": "3",
-            "content": "Verificar build y type-check sin errores",
+            "content": "Generar documentación de infraestructura",
             "status": "completed",
             "children": [],
             "createdAt": 1778964963023,
-            "updatedAt": 1778980049362,
-            "completedAt": 1778976449414,
+            "updatedAt": 1779066630555,
+            "completedAt": 1779064851383,
             "metadata": {}
           },
           {
             "id": "4",
-            "content": "AuthGate fully implemented and verified - task done",
+            "content": "Configurar variables de entorno",
             "status": "completed",
             "children": [],
             "createdAt": 1778964963023,
-            "updatedAt": 1778975300879,
-            "completedAt": 1778975300879,
+            "updatedAt": 1779066630555,
+            "completedAt": 1779064984024,
             "metadata": {}
           },
           {
             "id": "5",
-            "content": "Actualizar page.tsx y dashboard para manejar auth routing",
+            "content": "Crear secrets por defecto para nuevos servicios",
             "status": "completed",
             "children": [],
             "createdAt": 1778964963023,
-            "updatedAt": 1778981072933,
-            "completedAt": 1778980420881,
+            "updatedAt": 1779066630555,
+            "completedAt": 1779045069571,
             "metadata": {}
           },
           {
             "id": "6",
-            "content": "Verificar compilación y corregir errores",
+            "content": "Corregir referencias de secrets en servicios",
             "status": "completed",
             "children": [],
             "createdAt": 1778964997821,
-            "updatedAt": 1778981072933,
-            "completedAt": 1778981072933,
+            "updatedAt": 1779066630555,
+            "completedAt": 1779045069571,
             "metadata": {}
           },
           {
@@ -191,10 +242,49 @@
             "updatedAt": 1778979492474,
             "completedAt": 1778979492474,
             "metadata": {}
+          },
+          {
+            "id": "7",
+            "content": "Eliminar configuraciones rotas de TLS/OTel",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1779044748867,
+            "updatedAt": 1779066630555,
+            "completedAt": 1779045328163,
+            "metadata": {}
+          },
+          {
+            "id": "8",
+            "content": "Sincronizar documentación y código",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1779044748867,
+            "updatedAt": 1779066630555,
+            "completedAt": 1779066630555,
+            "metadata": {}
+          },
+          {
+            "id": "9",
+            "content": "Verificar docker-compose config",
+            "status": "in_progress",
+            "children": [],
+            "createdAt": 1779045069571,
+            "updatedAt": 1779066630556,
+            "metadata": {}
+          },
+          {
+            "id": "99",
+            "content": "Review pending tasks",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1779066572104,
+            "updatedAt": 1779066598334,
+            "completedAt": 1779066598334,
+            "metadata": {}
           }
         ],
         "createdAt": 1778441896917,
-        "updatedAt": 1778981072933
+        "updatedAt": 1779067515178
       }
     ]
   ],

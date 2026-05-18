@@ -1,0 +1,48 @@
+# ============================================================================
+# OpenTelemetry Collector — Configuration
+# ============================================================================
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      - cpu
+      - memory
+      - disk
+      - network
+
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: crux
+    send_timestamps: true
+    resource_to_telemetry_conversion:
+      enabled: true
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/push
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp, hostmetrics]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      exporters: [loki]
+    traces:
+      receivers: [otlp]
+      exporters: [loki]
