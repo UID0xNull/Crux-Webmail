@@ -109,6 +109,7 @@ services:
       start_period: 10s
     security_opt:
       - no-new-privileges:true
+      - no-new-privileges:true
     cap_drop:
       - ALL
     cap_add:
@@ -853,8 +854,8 @@ services:
       # MinIO
       - MINIO_HOST=crux-minio
       - MINIO_PORT=9000
-      - MINIO_ACCESS_KEY_FILE=/run/secrets/minio_access_key.txt
-      - MINIO_SECRET_KEY_FILE=/run/secrets/minio_secret_key.txt
+      - MINIO_ACCESS_KEY_FILE=/run/secrets/minio_access_key
+      - MINIO_SECRET_KEY_FILE=/run/secrets/minio_secret_key
 
       # OTel
       - OTLP_ENDPOINT=http://otel-collector:4318
