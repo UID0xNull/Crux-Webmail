@@ -475,11 +475,12 @@ services:
       - CHOWN
       - DAC_OVERRIDE
       - FOWNER
+    command: >-
+      sh -c 'export MINIO_ROOT_USER="$(cat /run/secrets/minio_access_key)" &&
+             export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)" &&
+             exec minio server /data --console-address ":9001"'
     environment:
-      - MINIO_ROOT_USER_FILE=/run/secrets/minio_access_key
-      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_secret_key
-      - MINIO_SERVER_URL=https://storage.crux.local
-      - TZ=UTC
+      - MINIO_SERVER_URL=https://storage.crux.local      - TZ=UTC
     secrets:
       - minio_access_key
       - minio_secret_key
@@ -779,8 +780,7 @@ services:
     restart: unless-stopped
     read_only: true
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q \"ready\""]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q ready || exit 1"]      interval: 10s
       timeout: 3s
       retries: 3
       start_period: 20s
@@ -852,6 +852,8 @@ services:
       # MinIO
       - MINIO_HOST=crux-minio
       - MINIO_PORT=9000
+      - MINIO_ROOT_USER_FILE=/run/secrets/minio_access_key
+      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_secret_key
 
       # OTel
       - OTLP_ENDPOINT=http://otel-collector:4318
@@ -866,6 +868,8 @@ services:
       - jwt_secret
       - jwt_refresh_secret
       - session_encryption_key
+      - minio_access_key
+      - minio_secret_key
     tmpfs:
       - /tmp:size=64M
     read_only: true
