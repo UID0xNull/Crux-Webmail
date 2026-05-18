@@ -10,8 +10,6 @@
 #   - Default DROPPING de tráfico inter-red
 # ============================================================================
 
-version: "3.9"
-
 # ------------------------------------------------------------------
 # NETWORKS: Segmentación Zero-Trust
 # ------------------------------------------------------------------
@@ -104,7 +102,7 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ -O - > /dev/null 2>&1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ > /dev/null 2>&1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -187,7 +185,7 @@ services:
         tag: "{{.Name}}"
 
   # =================================================================
-  # APP-TIER — Content Filter: Amavis
+  # APP-TIER — LDA/IMAP: Dovecot
   # =================================================================
   dovecot:
     image: mwader/dovecot:latest
@@ -258,7 +256,7 @@ services:
       - "10024"
       - "9998"
     volumes:
-      - ./amavis/amavis.conf:/etc/amavis/amavis.conf:ro
+      - ./infra/amavis/amavis.conf:/etc/amavis/amavis.conf:ro
       - amavis_db:/var/lib/amavis:rw
       - logs_shared:/var/log/amavis
     tmpfs:
@@ -426,9 +424,9 @@ services:
       - ALL
     cap_add:
       - DAC_OVERRIDE
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    command: >-
+      sh -c 'exec redis-server /usr/local/etc/redis/redis.conf --requirepass "$(cat /run/secrets/redis_password)"'
     environment:
-      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
       - TZ=UTC
     secrets:
       - redis_password
@@ -503,8 +501,8 @@ services:
         ipv4_address: 172.23.0.10
       public-network:
         ipv4_address: 172.20.0.30
-    ports:
-      - "3000:3000"  # Only Grafana exposed for dashboard access
+    expose:
+      - "3000"  # Accessed via nginx reverse proxy only
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/provisioning/dashboards/files:/etc/grafana/provisioning/dashboards/files:ro
@@ -686,8 +684,12 @@ services:
     expose:
       - "9187"
     environment:
-      - DATA_SOURCE_NAME=postgresql://crux_user:@crux-postgres:5432/crux_mail?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://crux_user@crux-postgres:5432/crux_mail?sslmode=disable
       - PG_EXPORTER_EXTEND_QUERY_PATH=
+    secrets:
+      - postgres_password
+    command: >
+      sh -c "export PGPASSWORD=$(cat /run/secrets/postgres_password) && exec /postgres_exporter"
     tmpfs:
       - /tmp:size=32M
     read_only: true
@@ -735,6 +737,9 @@ services:
       - NET_RAW
     pid: host
     user: "65534:65534"  # nobody:nobody
+    read_only: true
+    tmpfs:
+      - /tmp:size=32M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9100/metrics | grep -q 'node_exporter_build_info'"]
       interval: 15s
@@ -764,8 +769,7 @@ services:
       - ./monitoring/loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
     tmpfs:
       - /tmp:size=32M
-      - /loki:size=512M
-    read_only: true
+      - /var/lib/loki:size=64M
     command: "--config.file=/etc/loki/local-config.yaml"
     environment:
       - LOKI_ADMIN_PASSWORD_FILE=/run/secrets/loki_admin_password
@@ -773,6 +777,7 @@ services:
     secrets:
       - loki_admin_password
     restart: unless-stopped
+    read_only: true
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q \"ready\""]
       interval: 10s
@@ -783,6 +788,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     logging:
       driver: json-file
       options:
@@ -850,6 +859,7 @@ services:
       # JWT
       - JWT_SECRET_FILE=/run/secrets/jwt_secret
       - JWT_REFRESH_SECRET_FILE=/run/secrets/jwt_refresh_secret
+      - SESSION_ENCRYPTION_KEY_FILE=/run/secrets/session_encryption_key
     secrets:
       - postgres_password
       - redis_password
@@ -900,12 +910,11 @@ services:
     networks:
       app-network:
         ipv4_address: 172.21.0.21
-      public-network:
     expose:
       - "3001"
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - NEXT_PUBLIC_API_URL=http://crux-fastify:3000
+      - NEXT_PUBLIC_API_URL=/api
       - TZ=UTC
 
     tmpfs:
@@ -1002,8 +1011,6 @@ secrets:
     file: ./secrets/jwt_refresh_secret.txt
   session_encryption_key:
     file: ./secrets/session_encryption_key.txt
-  ip_hash_salt:
-    file: ./secrets/ip_hash_salt.txt
   dovecot_master_password:
     file: ./secrets/dovecot_master_password.txt
   otel_api_key:
