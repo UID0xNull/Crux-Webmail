@@ -94,8 +94,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro
       - logs_shared:/var/log/nginx
     tmpfs:
       - /var/cache/nginx:size=128M
@@ -104,7 +104,7 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy | grep -q 'OK'"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ -O - > /dev/null 2>&1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -127,6 +127,10 @@ services:
     depends_on:
       postfix:
         condition: service_healthy
+      fastify-backend:
+        condition: service_healthy
+      nextjs-frontend:
+        condition: service_healthy
 
   # =================================================================
   # APP-TIER — MTA: Postfix
@@ -141,14 +145,13 @@ services:
     expose:
       - "25"
       - "587"
-      - "993"
     volumes:
-      - ./postfix/main.cf:/etc/postfix/main.cf:ro
-      - ./postfix/master.cf:/etc/postfix/master.cf:ro
+      - ./infra/postfix/main.cf:/etc/postfix/main.cf:ro
+      - ./infra/postfix/master.cf:/etc/postfix/master.cf:ro
       - postfix_mail:/var/mail:rw
       - postfix_queue:/var/spool/postfix:rw
       - logs_shared:/var/log/postfix
-      - ./certs:/etc/crux-certs:ro
+      - ./infra/certs:/etc/crux-certs:ro
     tmpfs:
       - /var/spool/postfix/dev:size=64M
       - /var/spool/postfix/pid:size=64M
@@ -198,15 +201,15 @@ services:
       - "995"
       - "143"
     volumes:
-      - ./dovecot/dovecot.conf:/etc/dovecot/dovecot.conf:ro
-      - ./dovecot/conf.d/10-ssl.conf:/etc/dovecot/conf.d/10-ssl.conf:ro
-      - ./dovecot/conf.d/20-lmtp.conf:/etc/dovecot/conf.d/20-lmtp.conf:ro
-      - ./dovecot/conf.d/10-mail.conf:/etc/dovecot/conf.d/10-mail.conf:ro
-      - ./dovecot/conf.d/10-auth.conf:/etc/dovecot/conf.d/10-auth.conf:ro
+      - ./infra/dovecot/dovecot.conf:/etc/dovecot/dovecot.conf:ro
+      - ./infra/dovecot/conf.d/10-ssl.conf:/etc/dovecot/conf.d/10-ssl.conf:ro
+      - ./infra/dovecot/conf.d/20-lmtp.conf:/etc/dovecot/conf.d/20-lmtp.conf:ro
+      - ./infra/dovecot/conf.d/10-mail.conf:/etc/dovecot/conf.d/10-mail.conf:ro
+      - ./infra/dovecot/conf.d/10-auth.conf:/etc/dovecot/conf.d/10-auth.conf:ro
       - dovecot_mail:/var/mail:rw
       - dovecot_db:/var/lib/dovecot:rw
       - logs_shared:/var/log/dovecot
-      - ./certs:/etc/crux-certs:ro
+      - ./infra/certs:/etc/crux-certs:ro
     tmpfs:
       - /var/run/dovecot:size=64M
       - /tmp:size=64M
@@ -511,7 +514,7 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q \"commit\""]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q 'OK'"]
       interval: 15s
       timeout: 3s
       retries: 3
@@ -522,12 +525,12 @@ services:
       - ALL
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_password
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - TZ=UTC
     secrets:
-      - grafana_password
+      - grafana_admin_password
     logging:
       driver: json-file
       options:
@@ -611,7 +614,7 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy | grep -q \\"OK\\""]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy | grep -q 'OK'"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -650,6 +653,12 @@ services:
       - /tmp:size=32M
     read_only: true
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9121/metrics | grep -q 'redis_up'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -666,7 +675,7 @@ services:
 
   # =================================================================
   # MONITORING — PostgreSQL Exporter (PostgreSQL metrics)
-  # =================================================================
+  # ============================================================================
   postgres-exporter:
     image: promcommunity/postgres_exporter:v0.15.0
     container_name: crux-postgres-exporter
@@ -679,6 +688,15 @@ services:
     environment:
       - DATA_SOURCE_NAME=postgresql://crux_user:@crux-postgres:5432/crux_mail?sslmode=disable
       - PG_EXPORTER_EXTEND_QUERY_PATH=
+    tmpfs:
+      - /tmp:size=32M
+    read_only: true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9187/metrics | grep -q 'pg_up'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -717,6 +735,12 @@ services:
       - NET_RAW
     pid: host
     user: "65534:65534"  # nobody:nobody
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9100/metrics | grep -q 'node_exporter_build_info'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -726,7 +750,7 @@ services:
 
   # =================================================================
   # MONITORING — Loki (Log aggregation)
-  # =================================================================
+  # ============================================================================
   loki:
     image: grafana/loki:3.0.0
     container_name: crux-loki
@@ -742,7 +766,7 @@ services:
       - /tmp:size=32M
       - /loki:size=512M
     read_only: true
-    command: "-config.file=/etc/loki/local-config.yaml"
+    command: "--config.file=/etc/loki/local-config.yaml"
     environment:
       - LOKI_ADMIN_PASSWORD_FILE=/run/secrets/loki_admin_password
       - TZ=UTC
@@ -832,9 +856,9 @@ services:
       - jwt_secret
       - jwt_refresh_secret
       - session_encryption_key
-      - ip_hash_salt
     tmpfs:
       - /tmp:size=64M
+    read_only: true
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health | grep -q \"ok\""]
@@ -864,9 +888,9 @@ services:
       dovecot:
         condition: service_healthy
 
-  # =================================================================
+  # =========================================================================
   # APP-TIER — Next.js Frontend
-  # =================================================================
+  # =========================================================================
   nextjs-frontend:
     build:
       context: .
@@ -886,6 +910,7 @@ services:
 
     tmpfs:
       - /tmp:size=32M
+    read_only: true
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ || exit 1"]
@@ -963,20 +988,12 @@ services:
 secrets:
   postgres_password:
     file: ./secrets/postgres_password.txt
-  minio_password:
-    file: ./secrets/minio_password.txt
   minio_access_key:
     file: ./secrets/minio_access_key.txt
   minio_secret_key:
     file: ./secrets/minio_secret_key.txt
-  grafana_password:
-    file: ./secrets/grafana_password.txt
   grafana_admin_password:
     file: ./secrets/grafana_admin_password.txt
-  mail_server_tls_key:
-    file: ./secrets/tls_key.pem
-  mail_server_tls_cert:
-    file: ./secrets/tls_cert.pem
   redis_password:
     file: ./secrets/redis_password.txt
   jwt_secret:
@@ -989,8 +1006,6 @@ secrets:
     file: ./secrets/ip_hash_salt.txt
   dovecot_master_password:
     file: ./secrets/dovecot_master_password.txt
-  postfix_smtp_password:
-    file: ./secrets/postfix_smtp_password.txt
   otel_api_key:
     file: ./secrets/otel_api_key.txt
   loki_admin_password:

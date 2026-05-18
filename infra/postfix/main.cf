@@ -16,7 +16,7 @@ inet_protocols  = ipv4
 # ----------------------------------------------------------------------------
 # NETWORK & CONNECTION CONTROL
 # ----------------------------------------------------------------------------
-defaul_transport = lmtp:unix:private/dovecot-lmtp
+default_transport = lmtp:unix:private/dovecot-lmtp
 relayhost =
 
 # Max concurrent connections — DDoS mitigation
