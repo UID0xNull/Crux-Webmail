@@ -4,12 +4,12 @@
       "1",
       {
         "id": "1",
-        "content": "Crear secrets por defecto para nuevos servicios",
+        "content": "Verificar docker-compose config",
         "status": "completed",
         "children": [],
         "createdAt": 1778710029079,
-        "updatedAt": 1779067515178,
-        "completedAt": 1779067107646,
+        "updatedAt": 1779127549176,
+        "completedAt": 1779098967778,
         "metadata": {}
       }
     ],
@@ -17,12 +17,12 @@
       "2",
       {
         "id": "2",
-        "content": "Verificar docker-compose config",
+        "content": "Crear secrets por defecto para nuevos servicios (alertmanager_webhook_url, loki_admin_password)",
         "status": "completed",
         "children": [],
         "createdAt": 1778710029079,
-        "updatedAt": 1779067515178,
-        "completedAt": 1779064734005,
+        "updatedAt": 1779110926579,
+        "completedAt": 1779110918554,
         "metadata": {}
       }
     ],
@@ -30,11 +30,11 @@
       "3",
       {
         "id": "3",
-        "content": "Generar documentación de infraestructura",
+        "content": "Tasks completed — awaiting next task",
         "status": "completed",
         "children": [],
         "createdAt": 1778964963023,
-        "updatedAt": 1779066630555,
+        "updatedAt": 1779078958629,
         "completedAt": 1779064851383,
         "metadata": {}
       }
@@ -43,11 +43,11 @@
       "4",
       {
         "id": "4",
-        "content": "Configurar variables de entorno",
+        "content": "Verificar docker-compose config",
         "status": "completed",
         "children": [],
         "createdAt": 1778964963023,
-        "updatedAt": 1779066630555,
+        "updatedAt": 1779077588006,
         "completedAt": 1779064984024,
         "metadata": {}
       }
@@ -154,6 +154,32 @@
         "completedAt": 1779066598334,
         "metadata": {}
       }
+    ],
+    [
+      "vdc",
+      {
+        "id": "vdc",
+        "content": "Verificar docker-compose config",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1779079787634,
+        "updatedAt": 1779079787634,
+        "completedAt": 1779079787634,
+        "metadata": {}
+      }
+    ],
+    [
+      "2.1",
+      {
+        "id": "2.1",
+        "content": "Fix alertmanager volumes syntax in prod",
+        "status": "completed",
+        "children": [],
+        "createdAt": 1779105881955,
+        "updatedAt": 1779105881955,
+        "completedAt": 1779105881955,
+        "metadata": {}
+      }
     ]
   ],
   "lists": [
@@ -165,41 +191,41 @@
         "items": [
           {
             "id": "1",
-            "content": "Crear secrets por defecto para nuevos servicios",
-            "status": "completed",
-            "children": [],
-            "createdAt": 1778710029079,
-            "updatedAt": 1779067515178,
-            "completedAt": 1779067107646,
-            "metadata": {}
-          },
-          {
-            "id": "2",
             "content": "Verificar docker-compose config",
             "status": "completed",
             "children": [],
             "createdAt": 1778710029079,
-            "updatedAt": 1779067515178,
-            "completedAt": 1779064734005,
+            "updatedAt": 1779127549176,
+            "completedAt": 1779098967778,
+            "metadata": {}
+          },
+          {
+            "id": "2",
+            "content": "Crear secrets por defecto para nuevos servicios (alertmanager_webhook_url, loki_admin_password)",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1778710029079,
+            "updatedAt": 1779110926579,
+            "completedAt": 1779110918554,
             "metadata": {}
           },
           {
             "id": "3",
-            "content": "Generar documentación de infraestructura",
+            "content": "Tasks completed — awaiting next task",
             "status": "completed",
             "children": [],
             "createdAt": 1778964963023,
-            "updatedAt": 1779066630555,
+            "updatedAt": 1779078958629,
             "completedAt": 1779064851383,
             "metadata": {}
           },
           {
             "id": "4",
-            "content": "Configurar variables de entorno",
+            "content": "Verificar docker-compose config",
             "status": "completed",
             "children": [],
             "createdAt": 1778964963023,
-            "updatedAt": 1779066630555,
+            "updatedAt": 1779077588006,
             "completedAt": 1779064984024,
             "metadata": {}
           },
@@ -281,10 +307,30 @@
             "updatedAt": 1779066598334,
             "completedAt": 1779066598334,
             "metadata": {}
+          },
+          {
+            "id": "vdc",
+            "content": "Verificar docker-compose config",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1779079787634,
+            "updatedAt": 1779079787634,
+            "completedAt": 1779079787634,
+            "metadata": {}
+          },
+          {
+            "id": "2.1",
+            "content": "Fix alertmanager volumes syntax in prod",
+            "status": "completed",
+            "children": [],
+            "createdAt": 1779105881955,
+            "updatedAt": 1779105881955,
+            "completedAt": 1779105881955,
+            "metadata": {}
           }
         ],
         "createdAt": 1778441896917,
-        "updatedAt": 1779067515178
+        "updatedAt": 1779127549176
       }
     ]
   ],

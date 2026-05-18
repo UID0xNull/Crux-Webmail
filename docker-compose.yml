@@ -465,7 +465,7 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      test: ["CMD-SHELL", "wget --spider http://localhost:9000/minio/health/live || exit 1"]
       interval: 5s
       timeout: 2s
       retries: 5
@@ -780,7 +780,8 @@ services:
     restart: unless-stopped
     read_only: true
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q ready || exit 1"]      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q ready || exit 1"]
+      interval: 10s
       timeout: 3s
       retries: 3
       start_period: 20s

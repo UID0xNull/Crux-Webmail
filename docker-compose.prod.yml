@@ -167,8 +167,9 @@ services:
   # =================================================================
   # Fastify Backend API
   # =================================================================
+  # TODO (CI): pin this to a semantic tag when images are published. For now, build fallback is used.
   fastify-backend:
-    image: ghcr.io/crux/crux-server:latest
+    image: ghcr.io/crux/crux-server:v1.0.0-rc
     pull_policy: if_not_present
     build:
       context: .
@@ -269,6 +270,7 @@ services:
   # Next.js Frontend
   # =================================================================
   nextjs-frontend:
+    # TODO(CI): replace latest with explicit semantic version when tags are available.
     image: ghcr.io/crux/crux-web:latest
     pull_policy: if_not_present
     build:
@@ -424,7 +426,8 @@ services:
   # MinIO — S3-Compatible Object Storage (Attachments)
   # =================================================================
   minio:
-    image: minio/minio:latest
+    # Pinned to a stable release; update when verified in your registry.
+    image: "minio/minio:RELEASE.2024-06-07T21-05-39Z"
     container_name: crux-minio-prod
     networks:
       - data
@@ -468,7 +471,8 @@ services:
   # Dovecot — IMAP/POP3 Mail Server
   # =================================================================
   dovecot:
-    image: mvault/dovecot:latest
+    # TODO(CI): replace latest with explicit tag once stable images are published.
+    image: mvault/dovecot:v1.0.0-rc
     container_name: crux-dovecot-prod
     networks:
       - app
@@ -753,7 +757,8 @@ services:
   # Prometheus — Metrics Collection
   # ==========================================================================
   prometheus:
-    image: prom/prometheus:latest
+    # Pinned to stable release; update only after validation.
+    image: "prom/prometheus:v2.51.0"
     container_name: crux-prometheus-prod
     networks:
       - monitoring
@@ -890,7 +895,8 @@ services:
   # Alertmanager — Alerting & Notifications
   # =================================================================
   alertmanager:
-    image: prom/alertmanager:latest
+    # Pinned to stable release; update only after validation.
+    image: "prom/alertmanager:v0.27.0"
     container_name: crux-alertmanager-prod
     networks:
       - monitoring
@@ -936,7 +942,7 @@ services:
   # Node Exporter — Host Metrics
   # =================================================================
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.8.2
     container_name: crux-node-exporter-prod
     networks:
       - monitoring
@@ -979,7 +985,8 @@ services:
   # cAdvisor — Container Metrics
   # =================================================================
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    # Pinned for reproducibility; update after validation.
+    image: gcr.io/cadvisor/cadvisor:v0.50.0
     container_name: crux-cadvisor-prod
     networks:
       - monitoring
