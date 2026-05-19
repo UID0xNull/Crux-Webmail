@@ -357,11 +357,11 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U crux_user -d crux_mail || exit 1"]
       interval: 5s
       timeout: 2s
       retries: 5
-      start_period: 15s
+      start_period: 30s
     security_opt:
       - no-new-privileges:true
     cap_drop:
