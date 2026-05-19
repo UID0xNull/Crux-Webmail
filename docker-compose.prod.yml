@@ -121,8 +121,7 @@ services:
     command: >-
       sh -c 'exec redis-server --requirepass "$(cat /run/secrets/redis_password)"'
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG || exit 1"]
-      interval: 5s
+      test: ["CMD-SHELL", 'redis-cli -a "$(cat /run/secrets/redis_password)" ping | grep -q PONG || exit 1']      interval: 5s
       timeout: 3s
       retries: 5
     deploy:
