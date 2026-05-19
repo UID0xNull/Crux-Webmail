@@ -118,6 +118,8 @@ services:
       app:
     secrets:
       - redis_password
+    command: >-
+      sh -c 'exec redis-server --requirepass "$(cat /run/secrets/redis_password)"'
     deploy:
       resources:
         limits:
@@ -359,7 +361,7 @@ services:
           memory: 4G
 
   prometheus:
-    image: "prom/prometheus:${CRUX_VERSION:-latest}"
+    image: "prom/prometheus:v2.53.0"
     restart: always
     volumes:
       - type: bind
@@ -373,8 +375,9 @@ services:
         limits:
           cpus: "2.0"
           memory: 4G
+
   grafana:
-    image: "grafana/grafana:${CRUX_VERSION:-latest}"
+    image: "grafana/grafana:latest"
     restart: always
     volumes:
       - grafana_data:/var/lib/grafana
@@ -387,7 +390,7 @@ services:
           memory: 2G
 
   loki:
-    image: "grafana/loki:${CRUX_VERSION:-latest}"
+    image: "grafana/loki:3.0.0"
     restart: always
     volumes:
       - type: bind
@@ -403,7 +406,7 @@ services:
           memory: 4G
 
   alertmanager:
-    image: "grafana/alertmanager:${CRUX_VERSION:-latest}"
+    image: "grafana/alertmanager:v0.27.0"
     restart: always
     volumes:
       - type: bind

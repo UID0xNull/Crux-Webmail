@@ -393,7 +393,7 @@ services:
         tag: "{{.Name}}"
 
   # =================================================================
-  # DATA-TIER — Cache/Rate-limiting: Redis
+  # DATA-TIER — Redis (cache, sessions, queues)
   # =================================================================
   redis:
     image: redis:7-alpine
@@ -413,7 +413,7 @@ services:
     read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping | grep -q PONG || exit 1"]
       interval: 5s
       timeout: 2s
       retries: 5
@@ -800,49 +800,8 @@ services:
         max-file: "3"
         tag: "{{.Name}}"
 
-  # =================================================================
-  # DATA-TIER — Redis (sessions, queues, caching)
-  # =================================================================
-  redis:
-    image: redis:7.2-alpine
-    container_name: crux-redis
-    networks:
-      data-network:
-        ipv4_address: 172.22.0.30
-    expose:
-      - "6379"
-    volumes:
-      - ./infra/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
-      - redis_data:/data
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-    secrets:
-      - redis_password
-    environment:
-      - TZ=UTC
-    tmpfs:
-      - /tmp:size=32M
-    read_only: true
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping | grep -q PONG || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    deploy:
-      resources:
-        limits:
-          memory: "512M"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "2"
-        tag: "{{.Name}}"
+  # NOTE: Primary Redis is defined above under DATA-TIER — Redis (cache, sessions, queues).
+  # This duplicate entry has been removed to avoid key collision.
 
   # =================================================================
   # APP-TIER — Fastify Backend API
