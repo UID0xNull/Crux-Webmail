@@ -1,16 +1,7 @@
 # ============================================================================
 # Crux-Webmail — Docker Compose PRODUCTION
-# ============================================================================
 # Uso: docker compose -f docker-compose.prod.yml up -d
-
-# Diferencias vs compose dev:
-#   - Imágenes referenciadas desde registry (con fallback a build local)
-#   - Resources: limits + reservations en todos los servicios
-#   - Secrets desde Docker Swarm / vault externo
-#   - Restart policies estrictas
-#   - Logs rotados con max-size menor
-#   - Replicas para alta disponibilidad del backend
-#   - sin dependencias de dev ni tooling de testing
+# ============================================================================
 
 networks:
   public:
@@ -87,11 +78,6 @@ secrets:
     file: ./secrets/otel_api_key.txt
 
 services:
-  # -------------------------------------------------------------------
-  # BASE INFRASTRUCTURE
-  # Database, caché y almacenamiento distribuido
-  # -------------------------------------------------------------------
-
   postgres:
     image: "postgres:15-alpine"
     restart: always
@@ -153,11 +139,6 @@ services:
           cpus: "2.0"
           memory: 4G
 
-  # -------------------------------------------------------------------
-  # CORE APPLICATION SERVICES
-  # Fastify, Server y Frontend de Crux-Webmail
-  # -------------------------------------------------------------------
-
   fastify-backend:
     image: "ghcr.io/crux/fastify-backend:${CRUX_VERSION:-latest}"
     restart: always
@@ -216,11 +197,6 @@ services:
           cpus: "2.0"
           memory: 4G
 
-  # -------------------------------------------------------------------
-  # REVERSE PROXY / LOAD BALANCER (NGINX)
-  # Exposición de puertos web y SMTP
-  # -------------------------------------------------------------------
-
   nginx-proxy:
     image: "nginx:1.25-alpine"
     restart: always
@@ -246,11 +222,6 @@ services:
           cpus: "2.0"
           memory: 2G
 
-  # -------------------------------------------------------------------
-  # MAIL STACK (SMTP)
-  # Postfix, Dovecot, Amavis y ClamAV para gestión de correo electrónico
-  # -------------------------------------------------------------------
-
   dovecot:
     image: "ghcr.io/crux/dovecot:${CRUX_VERSION:-latest}"
     restart: always
@@ -266,10 +237,55 @@ services:
           cpus: "4.0"
           memory: 8G
 
-# -------------------------------------------------------------------
-# MONITORING STACK
-# Observabilidad: Prometheus + Grafana + Loki + Alertmanager + Node Exporter
-# -------------------------------------------------------------------
+  amavis-virus:
+    image: "ghcr.io/crux/amavis:${CRUX_VERSION:-latest}"
+    restart: always
+    volumes:
+      - amavis_virus:/var/virus
+      - logs_prod:/logs/app/amavis
+    networks:
+      mail:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+
+  clamdav:
+    image: "ghcr.io/crux/clamdav:${CRUX_VERSION:-latest}"
+    restart: always
+    volumes:
+      - type: bind
+        source: "./config/clamav/conf.d"
+        target: /etc/clamav/
+      - clamav_database:/var/lib/clamav/db
+      - clamav_persistent:/var/lib/clamav/persistent
+      - logs_prod:/logs/app/clamdav
+    networks:
+      mail:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+
+  postfix:
+    image: "ghcr.io/crux/postfix:${CRUX_VERSION:-latest}"
+    restart: always
+    volumes:
+      - type: bind
+        source: "./config/postfix/conf.d"
+        target: /etc/postfix/
+      - postfix_data:/var/lib/postfix/data
+      - postfix_queue:/var/lib/postfix/queue
+      - logs_prod:/logs/app/postfix
+    networks:
+      mail:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
 
   prometheus:
     image: "ghcr.io/crux/prometheus:${CRUX_VERSION:-latest}"
