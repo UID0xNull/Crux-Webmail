@@ -311,7 +311,7 @@ services:
           memory: 2G
 
   dovecot:
-    image: "dovecot/dovecot:v2.3.19"
+    image: "dovecot/dovecot:2.3-latest"
     restart: always
     volumes:
       - dovecot_mail:/var/vmail/mailboxes
