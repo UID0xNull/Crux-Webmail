@@ -120,6 +120,11 @@ services:
       - redis_password
     command: >-
       sh -c 'exec redis-server --requirepass "$(cat /run/secrets/redis_password)"'
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     deploy:
       resources:
         limits:
@@ -149,6 +154,11 @@ services:
       context: .
       dockerfile: src/server/Dockerfile
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       SERVER_PORT: "3000"
@@ -202,6 +212,11 @@ services:
       context: .
       dockerfile: src/server/Dockerfile
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       SERVER_PORT: "3000"
