@@ -87,6 +87,11 @@ secrets:
     file: ./secrets/otel_api_key.txt
 
 services:
+  # -------------------------------------------------------------------
+  # BASE INFRASTRUCTURE
+  # Database, caché y almacenamiento distribuido
+  # -------------------------------------------------------------------
+
   postgres:
     image: "postgres:15-alpine"
     restart: always
@@ -148,6 +153,11 @@ services:
           cpus: "2.0"
           memory: 4G
 
+  # -------------------------------------------------------------------
+  # CORE APPLICATION SERVICES
+  # Fastify, Server y Frontend de Crux-Webmail
+  # -------------------------------------------------------------------
+
   fastify-backend:
     image: "ghcr.io/crux/fastify-backend:${CRUX_VERSION:-latest}"
     restart: always
@@ -206,6 +216,11 @@ services:
           cpus: "2.0"
           memory: 4G
 
+  # -------------------------------------------------------------------
+  # REVERSE PROXY / LOAD BALANCER (NGINX)
+  # Exposición de puertos web y SMTP
+  # -------------------------------------------------------------------
+
   nginx-proxy:
     image: "nginx:1.25-alpine"
     restart: always
@@ -231,25 +246,10 @@ services:
           cpus: "2.0"
           memory: 2G
 
-# -------------------------------------------------------------------
-# MAIL STACK (SMTP)
-# Postfix, Dovecot, Amavis y ClamAV para gestión de correo electrónico
-# -------------------------------------------------------------------
-
-  postfix:
-    image: "ghcr.io/crux/postfix:${CRUX_VERSION:-latest}"
-    restart: always
-    volumes:
-      - postfix_data:/etc/postfix/main.cf
-      - postfix_queue:/var/spool/vmail
-      - logs_prod:/logs/app/postfix
-    networks:
-      mail:
-    deploy:
-      resources:
-        limits:
-          cpus: "4.0"
-          memory: 4G
+  # -------------------------------------------------------------------
+  # MAIL STACK (SMTP)
+  # Postfix, Dovecot, Amavis y ClamAV para gestión de correo electrónico
+  # -------------------------------------------------------------------
 
   dovecot:
     image: "ghcr.io/crux/dovecot:${CRUX_VERSION:-latest}"
