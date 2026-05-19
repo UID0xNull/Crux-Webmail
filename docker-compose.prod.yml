@@ -79,7 +79,7 @@ secrets:
 
 services:
   postgres:
-    image: "postgres:15-alpine"
+    image: "postgres:17-alpine"
     restart: always
     environment:
       POSTGRES_USER: crux_user
@@ -100,9 +100,9 @@ services:
           cpus: "0.5"
           memory: 1G
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "pg_isready -U crux_user -d crux_mail || exit 1"]
+      interval: 5s
+      timeout: 2s
       retries: 5
 
   redis:
