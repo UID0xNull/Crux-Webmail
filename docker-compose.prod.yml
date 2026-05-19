@@ -144,9 +144,8 @@ services:
 
   fastify-backend:
     build:
-      context: ./src/server
-      dockerfile: Dockerfile
-
+      context: .
+      dockerfile: src/server/Dockerfile
     restart: always
     expose:
       - 3000/tcp
@@ -171,8 +170,8 @@ services:
   crux-server:
     image: "crux-server:${CRUX_VERSION:-latest}"
     build:
-      context: ./src/server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/server/Dockerfile
     restart: always
     expose:
       - 5678/tcp
