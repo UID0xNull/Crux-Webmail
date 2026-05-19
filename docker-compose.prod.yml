@@ -148,19 +148,31 @@ services:
       dockerfile: src/server/Dockerfile
     restart: always
     environment:
+      NODE_ENV: production
+      SERVER_PORT: "3000"
+      # Postgres
       POSTGRES_DB: crux_mail
       POSTGRES_USER: crux_user
       POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      # Redis
       REDIS_HOST: redis
-      MINIO_ROOT_USER: minio_root
-      MINIO_ROOT_PASSWORD: minio_secret
-    env_file:
-      - ./secrets/secret.env
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      # JWT & Sessions
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
+      SESSION_ENCRYPTION_KEY_FILE: /run/secrets/session_encryption_key
+      # Rate-limiting / security
+      IP_HASH_SALT_FILE: /run/secrets/ip_hash_salt
+      # MinIO (credentials from Docker secrets, not hardcoded)
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
     secrets:
       - jwt_secret
       - jwt_refresh_secret
       - session_encryption_key
       - postgres_password
+      - redis_password
       - ip_hash_salt
       - minio_access_key
       - minio_secret_key
@@ -189,19 +201,31 @@ services:
       dockerfile: src/server/Dockerfile
     restart: always
     environment:
+      NODE_ENV: production
+      SERVER_PORT: "3000"
+      # Postgres via Docker secret (resolved by backend app.config.ts)
       POSTGRES_DB: crux_mail
       POSTGRES_USER: crux_user
       POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      # Redis
       REDIS_HOST: redis
-      MINIO_ROOT_USER: minio_root
-      MINIO_ROOT_PASSWORD: minio_secret
-    env_file:
-      - ./secrets/secret.env
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      # JWT & Sessions via secrets
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
+      SESSION_ENCRYPTION_KEY_FILE: /run/secrets/session_encryption_key
+      # Rate-limiting / security
+      IP_HASH_SALT_FILE: /run/secrets/ip_hash_salt
+      # MinIO via secrets (no hardcode)
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
     secrets:
+      - postgres_password
+      - redis_password
       - jwt_secret
       - jwt_refresh_secret
       - session_encryption_key
-      - postgres_password
       - ip_hash_salt
       - minio_access_key
       - minio_secret_key
