@@ -8,7 +8,7 @@
     ],
     "createdAt": 1779164881285,
     "updatedAt": 1779164881285,
-    "accessCount": 72
+    "accessCount": 83
   },
   {
     "id": "mem-1779164883801-un2a6",
@@ -19,7 +19,7 @@
     ],
     "createdAt": 1779164883801,
     "updatedAt": 1779164883801,
-    "accessCount": 73
+    "accessCount": 84
   },
   {
     "id": "mem-1779165452042-6275h",
@@ -30,7 +30,7 @@
     ],
     "createdAt": 1779165452042,
     "updatedAt": 1779165452042,
-    "accessCount": 72
+    "accessCount": 83
   },
   {
     "id": "mem-1779166271531-orgai",
@@ -41,7 +41,7 @@
     ],
     "createdAt": 1779166271531,
     "updatedAt": 1779166271531,
-    "accessCount": 70
+    "accessCount": 81
   },
   {
     "id": "mem-1779166357453-rnwe1",
@@ -52,7 +52,7 @@
     ],
     "createdAt": 1779166357453,
     "updatedAt": 1779166357453,
-    "accessCount": 68
+    "accessCount": 79
   },
   {
     "id": "mem-1779166387993-dbefi",
@@ -63,7 +63,7 @@
     ],
     "createdAt": 1779166387993,
     "updatedAt": 1779166387993,
-    "accessCount": 68
+    "accessCount": 79
   },
   {
     "id": "mem-1779166448325-wickl",
@@ -74,7 +74,7 @@
     ],
     "createdAt": 1779166448325,
     "updatedAt": 1779166448325,
-    "accessCount": 67
+    "accessCount": 79
   },
   {
     "id": "mem-1779166463931-nc9y7",
@@ -85,7 +85,7 @@
     ],
     "createdAt": 1779166463931,
     "updatedAt": 1779166463931,
-    "accessCount": 67
+    "accessCount": 78
   },
   {
     "id": "mem-1779166579542-h9ois",
@@ -96,7 +96,7 @@
     ],
     "createdAt": 1779166579542,
     "updatedAt": 1779166579542,
-    "accessCount": 64
+    "accessCount": 75
   },
   {
     "id": "mem-1779166609720-j57sn",
@@ -107,7 +107,7 @@
     ],
     "createdAt": 1779166609720,
     "updatedAt": 1779166609720,
-    "accessCount": 67
+    "accessCount": 78
   },
   {
     "id": "mem-1779166843058-xe3f4",
@@ -118,7 +118,7 @@
     ],
     "createdAt": 1779166843058,
     "updatedAt": 1779166843058,
-    "accessCount": 67
+    "accessCount": 78
   },
   {
     "id": "mem-1779169764301-lf51i",
@@ -129,7 +129,7 @@
     ],
     "createdAt": 1779169764301,
     "updatedAt": 1779169764301,
-    "accessCount": 61
+    "accessCount": 72
   },
   {
     "id": "mem-1779169847226-ln9tm",
@@ -140,7 +140,7 @@
     ],
     "createdAt": 1779169847226,
     "updatedAt": 1779169847226,
-    "accessCount": 61
+    "accessCount": 72
   },
   {
     "id": "mem-1779169971614-1mhc9",
@@ -151,7 +151,7 @@
     ],
     "createdAt": 1779169971614,
     "updatedAt": 1779169971614,
-    "accessCount": 56
+    "accessCount": 67
   },
   {
     "id": "mem-1779171064434-9oult",
@@ -162,7 +162,7 @@
     ],
     "createdAt": 1779171064434,
     "updatedAt": 1779171064434,
-    "accessCount": 29
+    "accessCount": 40
   },
   {
     "id": "mem-1779171232666-m32lp",
@@ -173,7 +173,7 @@
     ],
     "createdAt": 1779171232666,
     "updatedAt": 1779171232666,
-    "accessCount": 24
+    "accessCount": 35
   },
   {
     "id": "mem-1779171281177-wfdgk",
@@ -184,7 +184,7 @@
     ],
     "createdAt": 1779171281177,
     "updatedAt": 1779171281177,
-    "accessCount": 24
+    "accessCount": 35
   },
   {
     "id": "mem-1779171618791-010e7",
@@ -195,7 +195,7 @@
     ],
     "createdAt": 1779171618791,
     "updatedAt": 1779171618791,
-    "accessCount": 16
+    "accessCount": 27
   },
   {
     "id": "mem-1779172059822-9q4q8",
@@ -206,7 +206,7 @@
     ],
     "createdAt": 1779172059822,
     "updatedAt": 1779172059822,
-    "accessCount": 11
+    "accessCount": 22
   },
   {
     "id": "mem-1779190081957-o9kha",
@@ -217,7 +217,7 @@
     ],
     "createdAt": 1779190081957,
     "updatedAt": 1779190081957,
-    "accessCount": 8
+    "accessCount": 19
   },
   {
     "id": "mem-1779201222496-2qdw3",
@@ -228,7 +228,7 @@
     ],
     "createdAt": 1779201222496,
     "updatedAt": 1779201222496,
-    "accessCount": 8
+    "accessCount": 19
   },
   {
     "id": "mem-1779201462673-w785u",
@@ -239,6 +239,50 @@
     ],
     "createdAt": 1779201462674,
     "updatedAt": 1779201462674,
+    "accessCount": 11
+  },
+  {
+    "id": "mem-1779201529378-m23xz",
+    "content": "Workspace conventions: test-framework: jest, linter: eslint, build-cmd: npm run build:server && npm run build:web, dev-cmd: concurrently \"npm run dev:server\" \"npm run dev:web\", main-branch: main",
+    "tags": [
+      "workspace",
+      "conventions"
+    ],
+    "createdAt": 1779201529378,
+    "updatedAt": 1779201529378,
+    "accessCount": 10
+  },
+  {
+    "id": "mem-1779201682255-bqsgh",
+    "content": "Workspace conventions: test-framework: jest, linter: eslint, build-cmd: npm run build:server && npm run build:web, dev-cmd: concurrently \"npm run dev:server\" \"npm run dev:web\", main-branch: main",
+    "tags": [
+      "workspace",
+      "conventions"
+    ],
+    "createdAt": 1779201682255,
+    "updatedAt": 1779201682255,
+    "accessCount": 9
+  },
+  {
+    "id": "mem-1779202135150-mojiy",
+    "content": "Workspace conventions: test-framework: jest, linter: eslint, build-cmd: npm run build:server && npm run build:web, dev-cmd: concurrently \"npm run dev:server\" \"npm run dev:web\", main-branch: main",
+    "tags": [
+      "workspace",
+      "conventions"
+    ],
+    "createdAt": 1779202135150,
+    "updatedAt": 1779202135150,
+    "accessCount": 3
+  },
+  {
+    "id": "mem-1779203215457-g9mse",
+    "content": "Workspace conventions: test-framework: jest, linter: eslint, build-cmd: npm run build:server && npm run build:web, dev-cmd: concurrently \"npm run dev:server\" \"npm run dev:web\", main-branch: main",
+    "tags": [
+      "workspace",
+      "conventions"
+    ],
+    "createdAt": 1779203215457,
+    "updatedAt": 1779203215457,
     "accessCount": 0
   }
 ]
