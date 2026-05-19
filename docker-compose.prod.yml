@@ -146,7 +146,7 @@ services:
     build:
       context: ./src/server
       dockerfile: Dockerfile
-    image: "fastify-backend:${CRUX_VERSION:-latest}"
+
     restart: always
     expose:
       - 3000/tcp
@@ -169,7 +169,10 @@ services:
           memory: 2G
 
   crux-server:
-    image: "ghcr.io/crux/server:${CRUX_VERSION:-latest}"
+    image: "crux-server:${CRUX_VERSION:-latest}"
+    build:
+      context: ./src/server
+      dockerfile: Dockerfile
     restart: always
     expose:
       - 5678/tcp
@@ -187,7 +190,8 @@ services:
           memory: 4G
 
   crux-web:
-    image: "ghcr.io/crux/web:${CRUX_VERSION:-latest}"
+    build: src/web
+    image: "crux-web:${CRUX_VERSION:-latest}"
     restart: always
     expose:
       - 80/tcp
@@ -233,7 +237,7 @@ services:
           memory: 2G
 
   dovecot:
-    image: "ghcr.io/crux/dovecot:${CRUX_VERSION:-latest}"
+    image: "dovecot/dovecot:${CRUX_VERSION:-latest}"
     restart: always
     volumes:
       - dovecot_mail:/var/vmail/mailboxes
@@ -248,7 +252,7 @@ services:
           memory: 8G
 
   amavis-virus:
-    image: "ghcr.io/crux/amavis:${CRUX_VERSION:-latest}"
+    image: "tmailco/amavis:${CRUX_VERSION:-latest}"
     restart: always
     volumes:
       - amavis_virus:/var/virus
@@ -262,7 +266,7 @@ services:
           memory: 4G
 
   clamdav:
-    image: "ghcr.io/crux/clamdav:${CRUX_VERSION:-latest}"
+    image: "docker.io/library/clamav:${CRUX_VERSION:-latest}"
     restart: always
     volumes:
       - type: bind
@@ -280,7 +284,7 @@ services:
           memory: 4G
 
   postfix:
-    image: "ghcr.io/crux/postfix:${CRUX_VERSION:-latest}"
+    image: "tmailco/postfix:${CRUX_VERSION:-latest}"
     restart: always
     volumes:
       - type: bind
@@ -298,7 +302,7 @@ services:
           memory: 4G
 
   prometheus:
-    image: "ghcr.io/crux/prometheus:${CRUX_VERSION:-latest}"
+    image: "prom/prometheus:${CRUX_VERSION:-latest}"
     restart: always
     volumes:
       - type: bind
@@ -312,9 +316,8 @@ services:
         limits:
           cpus: "2.0"
           memory: 4G
-
   grafana:
-    image: "ghcr.io/crux/grafana:${CRUX_VERSION:-latest}"
+    image: "grafana/grafana:${CRUX_VERSION:-latest}"
     restart: always
     volumes:
       - grafana_data:/var/lib/grafana
@@ -327,7 +330,7 @@ services:
           memory: 2G
 
   loki:
-    image: "ghcr.io/crux/loki:${CRUX_VERSION:-latest}"
+    image: "grafana/loki:${CRUX_VERSION:-latest}"
     restart: always
     volumes:
       - type: bind
@@ -343,7 +346,7 @@ services:
           memory: 4G
 
   alertmanager:
-    image: "ghcr.io/crux/alertmanager:${CRUX_VERSION:-latest}"
+    image: "grafana/alertmanager:${CRUX_VERSION:-latest}"
     restart: always
     volumes:
       - type: bind
@@ -358,7 +361,7 @@ services:
           memory: 4G
 
   node_exporter:
-    image: "ghcr.io/crux/node-exporter:${CRUX_VERSION:-latest}"
+    image: "quay.io/prometheus/node-exporter:v1.8.2"
     restart: always
     networks:
       monitoring:
