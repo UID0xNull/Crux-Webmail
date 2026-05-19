@@ -147,8 +147,23 @@ services:
       context: .
       dockerfile: src/server/Dockerfile
     restart: always
-    expose:
-      - 3000/tcp
+    environment:
+      POSTGRES_DB: crux_mail
+      POSTGRES_USER: crux_user
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      MINIO_ROOT_USER: minio_root
+      MINIO_ROOT_PASSWORD: minio_secret
+    env_file:
+      - ./secrets/secret.env
+    secrets:
+      - jwt_secret
+      - jwt_refresh_secret
+      - session_encryption_key
+      - postgres_password
+      - ip_hash_salt
+      - minio_access_key
+      - minio_secret_key
     volumes:
       - logs_prod:/logs/app/fastify-backend
     networks:
@@ -173,6 +188,23 @@ services:
       context: .
       dockerfile: src/server/Dockerfile
     restart: always
+    environment:
+      POSTGRES_DB: crux_mail
+      POSTGRES_USER: crux_user
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      MINIO_ROOT_USER: minio_root
+      MINIO_ROOT_PASSWORD: minio_secret
+    env_file:
+      - ./secrets/secret.env
+    secrets:
+      - jwt_secret
+      - jwt_refresh_secret
+      - session_encryption_key
+      - postgres_password
+      - ip_hash_salt
+      - minio_access_key
+      - minio_secret_key
     expose:
       - 5678/tcp
     networks:
