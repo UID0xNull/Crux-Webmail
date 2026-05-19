@@ -2,6 +2,8 @@
 # Crux-Webmail — Docker Compose PRODUCTION
 # Uso: docker compose -f docker-compose.prod.yml up -d
 # ============================================================================
+# Nota: generar secrets con 'cat > ./secrets/*.txt' antes de levantar.
+#       El script deploy-prod.sh verifica que existan todos los .txt files.
 
 networks:
   public:
@@ -76,6 +78,8 @@ secrets:
     file: ./secrets/grafana_admin_password.txt
   otel_api_key:
     file: ./secrets/otel_api_key.txt
+  alertmanager_webhook_url:
+    file: ./secrets/alertmanager_webhook_url.txt
 
 services:
   postgres:
