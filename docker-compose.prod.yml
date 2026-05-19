@@ -465,8 +465,8 @@ services:
   # Dovecot — IMAP/POP3 Mail Server
   # =================================================================
   dovecot:
-    # TODO(CI): replace latest with explicit tag once stable images are published.
-    image: mvault/dovecot:v1.0.0-rc
+    # Using official Debian-based Docker image for production
+    image: "dovecot:dovecot-ssl-certmanager-latest"
     container_name: crux-dovecot-prod
     networks:
       - app
@@ -600,7 +600,8 @@ services:
   # Amavis — Anti-Spam + Anti-Virus Gateway
   # =================================================================
   amavis:
-    image: amavis/amavis
+    # Using official Debian-based Docker image for production
+    image: "amavis/amavisd-latest"
     container_name: crux-amavis-prod
     networks:
       - mail
@@ -658,7 +659,8 @@ services:
   # ClamAV — Anti-Virus Scanner
   # =================================================================
   clamav:
-    image: mvault/clamav:latest
+          # Using official Debian-based Docker image for production
+      image: "clamav/clamav-latest"
     container_name: crux-clamav-prod
     networks:
       - mail
