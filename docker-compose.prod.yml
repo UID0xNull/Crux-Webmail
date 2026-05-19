@@ -143,7 +143,10 @@ services:
           memory: 4G
 
   fastify-backend:
-    image: "ghcr.io/crux/fastify-backend:${CRUX_VERSION:-latest}"
+    build:
+      context: ./src/server
+      dockerfile: Dockerfile
+    image: "fastify-backend:${CRUX_VERSION:-latest}"
     restart: always
     expose:
       - 3000/tcp
