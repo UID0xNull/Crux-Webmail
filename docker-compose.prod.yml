@@ -189,7 +189,9 @@ services:
           memory: 4G
 
   crux-web:
-    build: src/web
+    build:
+      context: .
+      dockerfile: src/web/Dockerfile
     image: "crux-web:${CRUX_VERSION:-latest}"
     restart: always
     expose:

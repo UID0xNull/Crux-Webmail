@@ -1,106 +1,14 @@
 {
-  "todos": [
-    [
-      "1",
-      {
-        "id": "1",
-        "content": "Fix docker-compose.prod.yml - line 114 YAML parse error (missing key after alertmanager_webhook_url)",
-        "status": "completed",
-        "children": [],
-        "createdAt": 1779170400851,
-        "updatedAt": 1779171023821,
-        "completedAt": 1779171023821,
-        "metadata": {}
-      }
-    ],
-    [
-      "2",
-      {
-        "id": "2",
-        "content": "Ensure proper YAML structure with networks, volumes, secrets then services sections",
-        "status": "completed",
-        "children": [],
-        "createdAt": 1779170400851,
-        "updatedAt": 1779171023821,
-        "completedAt": 1779171023821,
-        "metadata": {}
-      }
-    ],
-    [
-      null,
-      {
-        "content": "Fix docker-compose.prod.yml YAML errors (volume quoting + missing # comments)",
-        "status": "completed",
-        "children": [],
-        "createdAt": 1779170459963,
-        "updatedAt": 1779171062615,
-        "completedAt": 1779171062615,
-        "metadata": {}
-      }
-    ],
-    [
-      "3",
-      {
-        "id": "3",
-        "content": "Write corrected file and validate it's parseable by Docker compose",
-        "status": "completed",
-        "children": [],
-        "createdAt": 1779170875575,
-        "updatedAt": 1779171023821,
-        "completedAt": 1779171023821,
-        "metadata": {}
-      }
-    ]
-  ],
+  "todos": [],
   "lists": [
     [
       "default",
       {
         "id": "default",
         "title": "Tasks",
-        "items": [
-          {
-            "id": "1",
-            "content": "Fix docker-compose.prod.yml - line 114 YAML parse error (missing key after alertmanager_webhook_url)",
-            "status": "completed",
-            "children": [],
-            "createdAt": 1779170400851,
-            "updatedAt": 1779171023821,
-            "completedAt": 1779171023821,
-            "metadata": {}
-          },
-          {
-            "id": "2",
-            "content": "Ensure proper YAML structure with networks, volumes, secrets then services sections",
-            "status": "completed",
-            "children": [],
-            "createdAt": 1779170400851,
-            "updatedAt": 1779171023821,
-            "completedAt": 1779171023821,
-            "metadata": {}
-          },
-          {
-            "content": "Fix docker-compose.prod.yml YAML errors (volume quoting + missing # comments)",
-            "status": "completed",
-            "children": [],
-            "createdAt": 1779170459963,
-            "updatedAt": 1779171062615,
-            "completedAt": 1779171062615,
-            "metadata": {}
-          },
-          {
-            "id": "3",
-            "content": "Write corrected file and validate it's parseable by Docker compose",
-            "status": "completed",
-            "children": [],
-            "createdAt": 1779170875575,
-            "updatedAt": 1779171023821,
-            "completedAt": 1779171023821,
-            "metadata": {}
-          }
-        ],
+        "items": [],
         "createdAt": 1778441896917,
-        "updatedAt": 1779171062615
+        "updatedAt": 1779205380769
       }
     ]
   ],
