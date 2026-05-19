@@ -2,7 +2,7 @@
 # Crux-Webmail — Docker Compose PRODUCTION
 # ============================================================================
 # Uso: docker compose -f docker-compose.prod.yml up -d
-#
+
 # Diferencias vs compose dev:
 #   - Imágenes referenciadas desde registry (con fallback a build local)
 #   - Resources: limits + reservations en todos los servicios
@@ -11,14 +11,7 @@
 #   - Logs rotados con max-size menor
 #   - Replicas para alta disponibilidad del backend
 #   - sin dependencias de dev ni tooling de testing
-#   - Postfix + Dovecot + Amavis + ClamAV para mail stack completa
-#   - Monitoring: Prometheus + Grafana + Loki + Alertmanager + Node Exporter
-#   - MinIO para storage de attachments
-# ============================================================================
 
-# ------------------------------------------------------------------
-# NETWORKS
-# ------------------------------------------------------------------
 networks:
   public:
     driver: bridge
@@ -35,9 +28,6 @@ networks:
     driver: bridge
     internal: true
 
-# ------------------------------------------------------------------
-# VOLUMES
-# ------------------------------------------------------------------
 volumes:
   postgres_prod_data:
     driver: local
@@ -69,12 +59,7 @@ volumes:
     driver: local
   alertmanager_data:
     driver: local
-  otel_data:
-    driver: local
 
-# ------------------------------------------------------------------
-# SECRETS
-# ------------------------------------------------------------------
 secrets:
   postgres_password:
     file: ./secrets/postgres_password.txt
@@ -100,928 +85,259 @@ secrets:
     file: ./secrets/grafana_admin_password.txt
   otel_api_key:
     file: ./secrets/otel_api_key.txt
-  loki_admin_password:
-    file: ./secrets/loki_admin_password.txt
-  alertmanager_webhook_url:
-    file: ./secrets/alertmanager_webhook_url.txt
 
-# ------------------------------------------------------------------
-# SERVICES
-# ------------------------------------------------------------------
 services:
-  # =================================================================
-  # Edge Proxy — Nginx (TLS termination + reverse proxy)
-  # =================================================================
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: crux-nginx-prod
-    networks:
-      - public
-      - app
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./infra/nginx/certs:/etc/nginx/certs:ro
-      - logs_prod:/var/log/nginx:rw
-    tmpfs:
-      - /var/cache/nginx:size=128M
-      - /var/run:size=64M
-      - /tmp:size=64M
-    read_only: true
+  postgres:
+    image: "postgres:15-alpine"
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1.0'
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "nginx -t && wget -qO- http://localhost:80/nginx-health || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 15s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE
-      - CHOWN
-      - SETUID
-      - SETGID
-    logging:
-      driver: json-file
-      options:
-        max-size: "25m"
-        max-file: "5"
-    depends_on:
-      fastify-backend:
-        condition: service_healthy
-      nextjs-frontend:
-        condition: service_started
-
-  # =================================================================
-  # Fastify Backend API
-  # =================================================================
-  # TODO (CI): pin this to a semantic tag when images are published. For now, build fallback is used.
-  fastify-backend:
-    image: ghcr.io/crux/crux-server:v1.0.0-rc
-    pull_policy: if_not_present
-    build:
-      context: .
-      dockerfile: src/server/Dockerfile
-      target: runner
-    networks:
-      - app
-      - data
-      - mail
-    expose:
-      - "3000"
     environment:
-      - NODE_ENV=production
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=3000
-      - LOG_LEVEL=info
-
-      # PostgreSQL
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-crux_mail}
-      - POSTGRES_USER=${POSTGRES_USER:-crux_user}
-      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-
-      # Redis
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
-
-      # IMAP/SMTP
-      - DOVECOT_HOST=${DOVECOT_HOST:-dovecot}
-      - DOVECOT_PORT=993
-      - POSTFIX_HOST=${POSTFIX_HOST:-postfix}
-      - POSTFIX_PORT=587
-
-      # Storage
-      - MINIO_HOST=minio
-      - MINIO_PORT=9000
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-crux_storage}
-      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_secret_key
-
-      # OTel
-      - OTLP_ENDPOINT=http://otel-collector:4318
-
-      # JWT & Encryption
-      - JWT_SECRET_FILE=/run/secrets/jwt_secret
-      - JWT_REFRESH_SECRET_FILE=/run/secrets/jwt_refresh_secret
-      - SESSION_ENCRYPTION_KEY_FILE=/run/secrets/session_encryption_key
-      - IP_HASH_SALT_FILE=/run/secrets/ip_hash_salt
-    tmpfs:
-      - /tmp:size=64M
-    read_only: true
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '2.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
+      POSTGRES_USER: crux_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: crux_mail
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - "./secrets/postgres_password.txt" "/run/secrets/postgres_password"
     secrets:
       - postgres_password
-      - redis_password
-      - jwt_secret
-      - jwt_refresh_secret
-      - session_encryption_key
-      - ip_hash_salt
-      - minio_secret_key
-    logging:
-      driver: json-file
-      options:
-        max-size: "25m"
-        max-file: "5"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  # =================================================================
-  # Next.js Frontend
-  # =================================================================
-  nextjs-frontend:
-    # TODO(CI): replace latest with explicit semantic version when tags are available.
-    image: ghcr.io/crux/crux-web:latest
-    pull_policy: if_not_present
-    build:
-      context: .
-      dockerfile: src/web/Dockerfile
-      target: runner
     networks:
-      - app
-    expose:
-      - "3001"
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://fastify-backend:3000
-      - NEXT_TELEMETRY_DISABLED=1
-      - HOSTNAME=0.0.0.0
-      - PORT=3001
-    tmpfs:
-      - /tmp:size=32M
-    read_only: true
+      app:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: "redis:7-alpine"
     restart: always
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      app:
+    secrets:
+      - redis_password
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  minio:
+    image: "minio/minio:latest"
+    restart: always
+    volumes:
+      - minio_data:/data
+    networks:
+      data:
+        aliases:
+          - storage.local
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+
+  fastify-backend:
+    image: "ghcr.io/crux/fastify-backend:${CRUX_VERSION:-latest}"
+    restart: always
+    expose:
+      - 3000/tcp
+    volumes:
+      - logs_prod:/logs/app/fastify-backend
+    networks:
+      app:
+      data:
+      public:
+        aliases:
+          - backend.local
     deploy:
       replicas: 2
       resources:
         limits:
-          memory: 512M
-          cpus: '1.0'
+          cpus: "4.0"
+          memory: 8G
         reservations:
-          memory: 256M
-          cpus: '0.25'
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
-        window: 60s
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:3001/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 45s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    logging:
-      driver: json-file
-      options:
-        max-size: "15m"
-        max-file: "3"
-    depends_on:
-      fastify-backend:
-        condition: service_healthy
-
-  # =================================================================
-  # PostgreSQL
-  # =================================================================
-  postgres:
-    image: postgres:17-alpine
-    container_name: crux-postgres-prod
-    networks:
-      - data
-    expose:
-      - "5432"
-    volumes:
-      - postgres_prod_data:/var/lib/postgresql/data:rw
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-crux_mail}
-      - POSTGRES_USER=${POSTGRES_USER:-crux_user}
-      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
-      - POSTGRES_INITDB_ARGS=--data-checksums
-    tmpfs:
-      - /tmp:size=64M
-      - /var/run/postgresql:size=32M
-    read_only: true
-    restart: always
-    deploy:
-      resources:
-        limits:
+          cpus: "1.0"
           memory: 2G
-          cpus: '2.0'
-        reservations:
-          memory: 1G
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETGID
-      - SETUID
-      - CHOWN
-    secrets:
-      - postgres_password
-    logging:
-      driver: json-file
-      options:
-        max-size: "25m"
-        max-file: "5"
 
-  # =================================================================
-  # Redis
-  # =================================================================
-  redis:
-    image: redis:7-alpine
-    container_name: crux-redis-prod
-    networks:
-      - app
-      - data
-    expose:
-      - "6379"
-    volumes:
-      - redis_prod_data:/data:rw
-    command: >
-      sh -c "redis-server --requirepass $(cat /run/secrets/redis_password)"
-    tmpfs:
-      - /tmp:size=32M
-      - /run:size=32M
-    read_only: true
+  crux-server:
+    image: "ghcr.io/crux/server:${CRUX_VERSION:-latest}"
     restart: always
+    expose:
+      - 5678/tcp
+    networks:
+      app:
+      data:
     deploy:
+      replicas: 1
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          cpus: "4.0"
+          memory: 8G
         reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a $(cat /run/secrets/redis_password) ping | grep -q PONG"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    secrets:
-      - redis_password
-    logging:
-      driver: json-file
-      options:
-        max-size: "15m"
-        max-file: "3"
+          cpus: "2.0"
+          memory: 4G
 
-  # =================================================================
-  # MinIO — S3-Compatible Object Storage (Attachments)
-  # =================================================================
-  minio:
-    # Pinned to a stable release; update when verified in your registry.
-    image: "minio/minio:RELEASE.2024-06-07T21-05-39Z"
-    container_name: crux-minio-prod
-    networks:
-      - data
-    expose:
-      - "9000"
-      - "9001"
-    environment:
-      - MINIO_ROOT_USER_FILE=/run/secrets/minio_access_key
-      - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_secret_key
-      - MINIO_PROMETHEUS_AUTH_TYPE=public
-    volumes:
-      - minio_data:/data:rw
-    command: server /data --console-address ":9001"
-    read_only: true
-    tmpfs:
-      - /tmp:size=32M
+  crux-web:
+    image: "ghcr.io/crux/web:${CRUX_VERSION:-latest}"
     restart: always
+    expose:
+      - 80/tcp
+    networks:
+      app:
+      public:
+        aliases:
+          - frontend.local
     deploy:
+      replicas: 1
       resources:
         limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    secrets:
-      - minio_access_key
-      - minio_secret_key
-    logging:
-      driver: json-file
-      options:
-        max-size: "25m"
-        max-file: "5"
+          cpus: "2.0"
+          memory: 4G
 
-  # =================================================================
-  # Dovecot — IMAP/POP3 Mail Server
-  # =================================================================
-  dovecot:
-    # Using official Debian-based Docker image for production
-    image: "dovecot:dovecot-ssl-certmanager-latest"
-    container_name: crux-dovecot-prod
-    networks:
-      - app
-      - mail
-    expose:
-      - 143
-      - 993
-      - 110
-      - 995
-    environment:
-      SSL=required
-      SSL_CERT=/etc/dovecot/dovecot.pem
-      SSL_KEY=/etc/dovecot/private/dovecot.key
-      MAIL_LOCATION=maildir:/var/mail/vhosts/%d/%n/
-      PASSWD_FIELDS=uid:gid:home
-      DOVECOT_MASTER_USER=crux_master
-      DOVECOT_MASTER_PASSWORD_FILE=/run/secrets/dovecot_master_password
-      LOG_PATH=/var/log/dovecot/dovecot.log
-    volumes:
-      - dovecot_mail:/var/mail/vhosts:rw
-      - dovecot_sieve:/var/mail/sieve:rw
-      - ./infra/dovecot/dovecot-local.conf:/etc/dovecot/conf.d/99-local.conf:ro
+  nginx-proxy:
+    image: "nginx:1.25-alpine"
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "doveconf -n > /dev/null 2>&1 || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    secrets:
-      - dovecot_master_password
-    logging:
-      driver: json-file
-      options:
-        max-size: "25m"
-        max-file: "5"
-    cap_drop:
-      - ALL
-    cap_add:
-      - SETGID
-      - SETUID
-      - DAC_OVERRIDE
-      - FOWNER
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=64M
-      - /var/run/dovecot:size=64M
-
-  # =================================================================
-  # Postfix — Mail Transfer Agent (SMTP)
-  # =================================================================
-  postfix:
-    image: mvault/postfix:latest
-    container_name: crux-postfix-prod
-    networks:
-      - app
-      - mail
+    volumes:
+      - type: bind
+        source: "./config/nginx/conf.d"
+        target: /etc/nginx/conf.d
     ports:
-      - "25:25"
-      - "587:587"
-    environment:
-      - MAILNAME=${MAILNAME:-mail.crux.local}
-      - POSTFIX_mydestination=${POSTFIX_MYDESTINATION:-mail.crux.local, localhost}
-      - RELAYHOST=${RELAYHOST:-[amavis]:10024}
-      - SIZELIMIT=${SIZELIMIT:-25600000}
-      - VIRTUAL=${VIRTUAL:-yes}
-      - ENABLE_SPAMASSASSIN=${ENABLE_SPAMASSASSIN:-no}
-      - DOVECOT_HOST=${DOVECOT_HOST:-dovecot}
-      - ENABLE_CLAMAV=${ENABLE_CLAMAV:-yes}
-      - ENABLE_SASLAUTHD=${ENABLE_SASLAUTHD:-no}
-      - SMTP_USER=${SMTP_USER:-crux_smtp}
-      - SMTP_PASSWORD_FILE=/run/secrets/postfix_smtp_password
-      - LOG_PATH=/var/log/mail.log
-    volumes:
-      - postfix_data:/etc/postfix:rw
-      - postfix_queue:/var/spool/postfix:rw
-      - ./infra/postfix/postfix-main.cf:/etc/postfix/conf.d/main.cf:ro
-      - ./infra/postfix/postfix-master.cf:/etc/postfix/conf.d/master.cf:ro
-    tmpfs:
-      - /tmp:size=32M
-    read_only: true
-    depends_on:
-      dovecot:
-        condition: service_started
-      amavis:
-        condition: service_healthy
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 768M
-          cpus: '1.0'
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "postconf -n > /dev/null 2>&1 || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    secrets:
-      - postfix_smtp_password
-    logging:
-      driver: json-file
-      options:
-        max-size: "25m"
-        max-file: "5"
-    cap_drop:
-      - ALL
-    cap_add:
-      - SETGID
-      - SETUID
-      - NET_BIND_SERVICE
-      - DAC_OVERRIDE
-      - FOWNER
-      - SYS_CHROOT
-      - AUDIT_WRITE
-    security_opt:
-      - no-new-privileges:true
-
-  # =================================================================
-  # Amavis — Anti-Spam + Anti-Virus Gateway
-  # =================================================================
-  amavis:
-    # Using official Debian-based Docker image for production
-    image: "amavis/amavisd-latest"
-    container_name: crux-amavis-prod
+      - published: "80"
+        target: 80/tcp
+      - published: "443"
+        target: 443/tcp
+      - published: "25"
+        target: 25/tcp
+      - published: "143"
+        target: 143/tcp
     networks:
-      - mail
-    expose:
-      - "10024"
-      - "10025"
-    environment:
-      - WORKER_CHILDREN=${WORKER_CHILDREN:-4}
-      - SOFT_BOUNCE=${SOFT_BOUNCE:-1}
-      - CLAMDADDR=${CLAMDADDR:-[clamav]:3310}
-      - VIRUSMAILNAME=${VIRUSMAILNAME:-VIRUS-QUARANTINE}
-      - BANNEDMAILNAME=${BANNEDMAILNAME:-BANNED-ATTACHMENT}
-      - SPAMMAILNAME=${SPAMMAILNAME:-SPAM-QUARANTINE}
-      - QUARANTINEDIR=${QUARANTINEDIR:-/var/lib/amavis/quarantine/}
-      - DO_SPHINX=${DO_SPHINX:-no}
-      - DO_SPAMASSASSIN=${DO_SPAMASSASSIN:-no}
-      - DO_MILTER=${DO_MILTER:-yes}
-      - DO_VIRUSSCAN=${DO_VIRUSSCAN:-yes}
-      - LOG_PATH=/var/log/amavis/amavis.log
-    volumes:
-      - amavis_virus:/var/lib/amavis/virusmails:rw
-      - ./infra/amavis/amavis-extra.conf:/etc/amavis/conf.d/99-custom.conf:ro
-    depends_on:
-      - clamav
-    restart: always
+      public:
+      app:
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: '1.5'
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "supervisorctl status amavisd | grep -q RUNNING || exit 1"]
-      interval: 20s
-      timeout: 5s
-      retries: 3
-      start_period: 45s
-    logging:
-      driver: json-file
-      options:
-        max-size: "25m"
-        max-file: "5"
-    cap_drop:
-      - ALL
-    cap_add:
-      - SETGID
-      - SETUID
-      - DAC_OVERRIDE
-      - FOWNER
-    security_opt:
-      - no-new-privileges:true
-
-  # =================================================================
-  # ClamAV — Anti-Virus Scanner
-  # =================================================================
-  clamav:
-    # Using official Debian-based Docker image for production
-    image: "clamav/clamav-latest"
-    container_name: crux-clamav-prod
-    networks:
-      - mail
-    expose:
-      - "3310"
-    environment:
-      - CLAMD_FOREGROUND=yes
-      - CLAMD_TCP=yes
-      - CLAMD_ALLOW_DOWNLOAD_FRESHCLAM=yes
-      - CLAMD_FRESHCLAM_DBS_DOWNLOAD=yes
-      - CLAMD_FRESHCLAM_FRESHTIME=${CLAMD_FRESHCLAM_FRESHTIME:-1}
-      - CLAMD_NOTIFY_CLAMD=yes
-      - CLAMD_CLAMD_SCAN=yes
-      - CLAMD_CLAMD_LOCAL_SOCKET=/var/run/clamav/clamd.sock
-      - CLAMD_LOCAL_IP=0.0.0.0
-      - MAX_CONNECTIONS_PER_CHILD=${MAX_CONNECTIONS_PER_CHILD:-100}
-      - CLAMD_RECEIPT=yes
-    volumes:
-      - clamav_database:/var/lib/clamav:rw
-      - clamav_persistent:/tmp/clamav:rw
-    restart: always
-    deploy:
-      resources:
-        limits:
+          cpus: "2.0"
           memory: 2G
-          cpus: '2.0'
-        reservations:
-          memory: 1G
-    healthcheck:
-      test: ["CMD-SHELL", "supervisorctl status clamd | grep -q RUNNING || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-    logging:
-      driver: json-file
-      options:
-        max-size: "15m"
-        max-file: "3"
-    cap_drop:
-      - ALL
-    cap_add:
-      - SETGID
-      - SETUID
-      - DAC_OVERRIDE
-      - FOWNER
-    security_opt:
-      - no-new-privileges:true
 
-  # =================================================================
-  # OpenTelemetry Collector — Telemetry Aggregation
-  # =================================================================
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.106.1
-    container_name: crux-otel-prod
-    networks:
-      - app
-      - data
-      - monitoring
-    expose:
-      - "4317"
-      - "4318"
-    volumes:
-      - ./infra/otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
-      - otel_data:/var/lib/otel:rw
-    command: --config /etc/otelcol-contrib/config.yaml
-    depends_on:
-      prometheus:
-        condition: service_started
-      loki:
-        condition: service_started
+# -------------------------------------------------------------------
+# MAIL STACK (SMTP)
+# Postfix, Dovecot, Amavis y ClamAV para gestión de correo electrónico
+# -------------------------------------------------------------------
+
+  postfix:
+    image: "ghcr.io/crux/postfix:${CRUX_VERSION:-latest}"
     restart: always
+    volumes:
+      - postfix_data:/etc/postfix/main.cf
+      - postfix_queue:/var/spool/vmail
+      - logs_prod:/logs/app/postfix
+    networks:
+      mail:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 128M
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:13133/ | grep -q OK || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    logging:
-      driver: json-file
-      options:
-        max-size: "15m"
-        max-file: "3"
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    secrets:
-      - otel_api_key
+          cpus: "4.0"
+          memory: 4G
 
-  # =================================================================
-  # Prometheus — Metrics Collection
-  # ==========================================================================
+  dovecot:
+    image: "ghcr.io/crux/dovecot:${CRUX_VERSION:-latest}"
+    restart: always
+    volumes:
+      - dovecot_mail:/var/vmail/mailboxes
+      - dovecot_sieve:/etc/sieve/conf.d
+      - logs_prod:/logs/app/dovecot
+    networks:
+      mail:
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8G
+
+# -------------------------------------------------------------------
+# MONITORING STACK
+# Observabilidad: Prometheus + Grafana + Loki + Alertmanager + Node Exporter
+# -------------------------------------------------------------------
+
   prometheus:
-    # Prompts the registry for the latest prometheus version.
-    image: "prom/prometheus"
-    container_name: crux-prometheus-prod
-    networks:
-      - monitoring
-    expose:
-      - "9090"
-    volumes:
-      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./infra/monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
-      - prometheus_data:/prometheus:rw
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=15d"
-      - "--storage.tsdb.retention.size=10GB"
-      - "--web.enable-lifecycle"
-      - "--web.enable-admin-api=false"
+    image: "ghcr.io/crux/prometheus:${CRUX_VERSION:-latest}"
     restart: always
+    volumes:
+      - type: bind
+        source: "./config/prometheus/conf.d"
+        target: /etc/prometheus/
+      - prometheus_data:/prometheus/data
+    networks:
+      monitoring:
     deploy:
       resources:
         limits:
-          memory: 2G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy | grep -q 'Prometheus Server is Healthy' || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    logging:
-      driver: json-file
-      options:
-        max-size: "15m"
-        max-file: "3"
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+          cpus: "2.0"
+          memory: 4G
 
-  # =================================================================
-  # Grafana — Dashboards & Visualization
-  # =================================================================
   grafana:
-    image: grafana/grafana:11.2.0
-    container_name: crux-grafana-prod
-    networks:
-      - monitoring
-      - public
-    expose:
-      - "3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://grafana.${MAILNAME:-mail.crux.local}
-      - GF_LOG_LEVEL=warn
-      - GF_ANALYTICS_REPORTING_ENABLED=false
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-    volumes:
-      - grafana_data:/var/lib/grafana:rw
-      - ./infra/monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - ./infra/monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
-    depends_on:
-      prometheus:
-        condition: service_healthy
-      loki:
-        condition: service_started
+    image: "ghcr.io/crux/grafana:${CRUX_VERSION:-latest}"
     restart: always
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      monitoring:
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q 'OK' || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    secrets:
-      - grafana_admin_password
-    logging:
-      driver: json-file
-      options:
-        max-size: "15m"
-        max-file: "3"
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+          cpus: "4.0"
+          memory: 2G
 
-  # =================================================================
-  # Loki — Log Aggregation
-  # =================================================================
   loki:
-    image: grafana/loki:2.9.8
-    container_name: crux-loki-prod
-    networks:
-      - monitoring
-    expose:
-      - "3100"
-    volumes:
-      - ./infra/monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
-      - loki_data:/loki:rw
-    command: "-config.file=/etc/loki/local-config.yaml -config.expand-env=true"
+    image: "ghcr.io/crux/loki:${CRUX_VERSION:-latest}"
     restart: always
+    volumes:
+      - type: bind
+        source: "./config/loki/conf.d"
+        target: /etc/loki/
+      - loki_data:/loki/data
+    networks:
+      monitoring:
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready | grep -q 'Serving' || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    logging:
-      driver: json-file
-      options:
-        max-size: "15m"
-        max-file: "3"
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+          cpus: "4.0"
+          memory: 4G
 
-  # =================================================================
-  # Alertmanager — Alerting & Notifications
-  # =================================================================
   alertmanager:
-    # Pinned to stable release; update only after validation.
-    image: "prom/alertmanager:v0.27.0"
-    container_name: crux-alertmanager-prod
-    networks:
-      - monitoring
-    expose:
-      - "9093"
-    volumes:
-      - ./infra/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - alertmanager_data:/alertmanager:rw
-    command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
-      - "--storage.path=/alertmanager"
-      - "--web.listen-address=:9093"
-    secrets:
-      - alertmanager_webhook_url
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.25'
-        reservations:
-          memory: 64M
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy | grep -q OK || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-
-  # =================================================================
-  # Node Exporter — Host Metrics
-  # =================================================================
-  node-exporter:
-    image: prom/node-exporter:v1.8.2
-    container_name: crux-node-exporter-prod
-    networks:
-      - monitoring
-    expose:
-      - "9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--path.rootfs=/rootfs"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    image: "ghcr.io/crux/alertmanager:${CRUX_VERSION:-latest}"
     restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.1'
-        reservations:
-          memory: 64M
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9100/metrics | grep -q node_uname_info || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-
-  # =================================================================
-  # cAdvisor — Container Metrics
-  # =================================================================
-  cadvisor:
-    # Pinned for reproducibility; update after validation.
-    image: gcr.io/cadvisor/cadvisor:v0.50.0
-    container_name: crux-cadvisor-prod
-    networks:
-      - monitoring
-    expose:
-      - "8080"
     volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    restart: always
+      - type: bind
+        source: "./config/alertmanager/conf.d"
+        target: /etc/alertmanager/
+    networks:
+      monitoring:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.25'
-        reservations:
-          memory: 64M
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1.3/containers | grep -q 'name' || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
-    cap_drop:
-      - ALL
-    cap_add:
-      - SYS_ADMIN
-      - SYS_TIME
-    security_opt:
-      - no-new-privileges:true
+          cpus: "2.0"
+          memory: 4G
+
+  node_exporter:
+    image: "ghcr.io/crux/node-exporter:${CRUX_VERSION:-latest}"
+    restart: always
+    networks:
+      monitoring:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1G
