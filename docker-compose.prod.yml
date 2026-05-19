@@ -525,6 +525,10 @@ services:
       - FOWNER
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+      - /var/run/dovecot:size=64M
 
   # =================================================================
   # Postfix — Mail Transfer Agent (SMTP)
@@ -556,9 +560,14 @@ services:
       - postfix_queue:/var/spool/postfix:rw
       - ./infra/postfix/postfix-main.cf:/etc/postfix/conf.d/main.cf:ro
       - ./infra/postfix/postfix-master.cf:/etc/postfix/conf.d/master.cf:ro
+    tmpfs:
+      - /tmp:size=32M
+    read_only: true
     depends_on:
-      - dovecot
-      - amavis
+      dovecot:
+        condition: service_started
+      amavis:
+        condition: service_healthy
     restart: always
     deploy:
       resources:
@@ -866,7 +875,7 @@ services:
     volumes:
       - ./infra/monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki:rw
-    command: -config.file=/etc/loki/local-config.yaml -config.expand-env=true
+    command: "-config.file=/etc/loki/local-config.yaml -config.expand-env=true"
     restart: always
     deploy:
       resources:
@@ -905,17 +914,12 @@ services:
     volumes:
       - ./infra/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager:rw
-    secrets:
-      - alertmanager_webhook_url
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
       - "--web.listen-address=:9093"
     secrets:
       - alertmanager_webhook_url
-    depends_on:
-      - prometheus
-    restart: always
     deploy:
       resources:
         limits:
@@ -1008,7 +1012,7 @@ services:
         reservations:
           memory: 64M
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1.3/containers | grep -q -c name || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1.3/containers | grep -q 'name' || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
