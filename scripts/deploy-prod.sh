@@ -60,9 +60,24 @@ if [[ ! -f "$COMPOSE_FILE" ]]; then
 fi
 log_info "Compose file found: $COMPOSE_FILE"
 
-# Check secrets exist
+# Check secrets exist (all required by docker-compose.prod.yml)
 MISSING_SECRETS=0
-for secret_file in ./secrets/postgres_password.txt ./secrets/redis_password.txt ./secrets/jwt_secret.txt ./secrets/jwt_refresh_secret.txt; do
+REQUIRED_SECRETS=(
+  ./secrets/postgres_password.txt
+  ./secrets/redis_password.txt
+  ./secrets/jwt_secret.txt
+  ./secrets/jwt_refresh_secret.txt
+  ./secrets/session_encryption_key.txt
+  ./secrets/ip_hash_salt.txt
+  ./secrets/minio_access_key.txt
+  ./secrets/minio_secret_key.txt
+  ./secrets/dovecot_master_password.txt
+  ./secrets/postfix_smtp_password.txt
+  ./secrets/grafana_admin_password.txt
+  ./secrets/otel_api_key.txt
+  ./secrets/alertmanager_webhook_url.txt
+)
+for secret_file in "${REQUIRED_SECRETS[@]}"; do
   if [[ ! -f "$secret_file" ]]; then
     log_error "Missing secret file: $secret_file"
     MISSING_SECRETS=1
@@ -70,10 +85,10 @@ for secret_file in ./secrets/postgres_password.txt ./secrets/redis_password.txt 
 done
 
 if [[ $MISSING_SECRETS -eq 1 ]]; then
-  log_error "Required secret files are missing. Copy from .env.example and generate."
+  log_error "Required secret files are missing. Create them from .env.example or documentation."
   exit 1
 fi
-log_info "All secret files present"
+log_info "All required secret files present"
 
 # ============================================================================
 # ROLLBACK MODE
@@ -203,20 +218,28 @@ docker compose -f "$COMPOSE_FILE" up -d
 log_info "Waiting for all services to become healthy..."
 sleep 15
 
-# Check all containers
-HEALTHY=0
-UNHEALTHY=0
+# Check all containers using plain ps output (avoid fragile JSON + grep)
+ATTEMPTS=$HEALTH_CHECK_RETRIES
 while true; do
-  HEALTHY=$(docker compose -f "$COMPOSE_FILE" ps --format json 2>/dev/null | grep -c "running" || echo "0")
-  TOTAL=$(docker compose -f "$COMPOSE_FILE" ps --format json 2>/dev/null | grep -c "Service\|running\|started" || echo "0")
+  PS_OUT=$(docker compose -f "$COMPOSE_FILE" ps --quiet 2>/dev/null || true)
+  # Count only non-empty lines => running containers with --quiet
+  if [[ -z "$PS_OUT" ]]; then
+    RUNNING=0
+  else
+    RUNNING=$(echo "$PS_OUT" | wc -l | tr -d ' ')
+  fi
 
-  log_info "Status: $HEALTHY/$TOTAL containers healthy"
+  TOTAL=$(docker compose -f "$COMPOSE_FILE" ps --format "{{.Name}} {{.Status}}" 2>/dev/null \
+    | awk '$1!="NAME"' | wc -l | tr -d ' ')
 
-  if [[ $TOTAL -gt 0 ]] && [[ $HEALTHY -ge $TOTAL ]]; then
+  log_info "Status: $RUNNING/$TOTAL containers running"
+
+  if [[ "$TOTAL" -gt 0 ]] && [[ "$RUNNING" -ge "$TOTAL" ]]; then
     break
   fi
 
-  if [[ $((HEALTH_CHECK_RETRIES -= 1)) -le 0 ]]; then
+  ATTEMPTS=$((ATTEMPTS - 1))
+  if [[ $ATTEMPTS -le 0 ]]; then
     log_warn "Not all services healthy — proceeding with caution"
     break
   fi

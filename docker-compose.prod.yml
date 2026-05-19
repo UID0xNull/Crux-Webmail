@@ -224,7 +224,6 @@ services:
     read_only: true
     restart: always
     deploy:
-      replicas: 2
       resources:
         limits:
           memory: 1G
@@ -232,11 +231,6 @@ services:
         reservations:
           memory: 512M
           cpus: '0.5'
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
-        window: 60s
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1"]
       interval: 15s
@@ -606,7 +600,7 @@ services:
   # Amavis — Anti-Spam + Anti-Virus Gateway
   # =================================================================
   amavis:
-    image: mvault/amavis:latest
+    image: amavis/amavis
     container_name: crux-amavis-prod
     networks:
       - mail
