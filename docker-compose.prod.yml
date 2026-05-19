@@ -87,7 +87,6 @@ services:
       POSTGRES_DB: crux_mail
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
-      - "./secrets/postgres_password.txt" "/run/secrets/postgres_password"
     secrets:
       - postgres_password
     networks:
