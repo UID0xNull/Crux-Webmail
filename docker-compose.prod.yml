@@ -472,19 +472,19 @@ services:
       - app
       - mail
     expose:
-      - "143"
-      - "993"
-      - "110"
-      - "995"
+      - 143
+      - 993
+      - 110
+      - 995
     environment:
-      - SSL=required
-      - SSL_CERT=/etc/dovecot/dovecot.pem
-      - SSL_KEY=/etc/dovecot/private/dovecot.key
-      - MAIL_LOCATION=maildir:/var/mail/vhosts/%d/%n/
-      - PASSWD_FIELDS=uid:gid:home
-      - DOVECOT_MASTER_USER=crux_master
-      - DOVECOT_MASTER_PASSWORD_FILE=/run/secrets/dovecot_master_password
-      - LOG_PATH=/var/log/dovecot/dovecot.log
+      SSL=required
+      SSL_CERT=/etc/dovecot/dovecot.pem
+      SSL_KEY=/etc/dovecot/private/dovecot.key
+      MAIL_LOCATION=maildir:/var/mail/vhosts/%d/%n/
+      PASSWD_FIELDS=uid:gid:home
+      DOVECOT_MASTER_USER=crux_master
+      DOVECOT_MASTER_PASSWORD_FILE=/run/secrets/dovecot_master_password
+      LOG_PATH=/var/log/dovecot/dovecot.log
     volumes:
       - dovecot_mail:/var/mail/vhosts:rw
       - dovecot_sieve:/var/mail/sieve:rw
@@ -659,8 +659,8 @@ services:
   # ClamAV — Anti-Virus Scanner
   # =================================================================
   clamav:
-          # Using official Debian-based Docker image for production
-      image: "clamav/clamav-latest"
+    # Using official Debian-based Docker image for production
+    image: "clamav/clamav-latest"
     container_name: crux-clamav-prod
     networks:
       - mail

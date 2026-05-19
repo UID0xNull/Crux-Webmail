@@ -8,7 +8,7 @@
     ],
     "createdAt": 1779164881285,
     "updatedAt": 1779164881285,
-    "accessCount": 7
+    "accessCount": 14
   },
   {
     "id": "mem-1779164883801-un2a6",
@@ -19,7 +19,7 @@
     ],
     "createdAt": 1779164883801,
     "updatedAt": 1779164883801,
-    "accessCount": 6
+    "accessCount": 12
   },
   {
     "id": "mem-1779165452042-6275h",
@@ -30,7 +30,7 @@
     ],
     "createdAt": 1779165452042,
     "updatedAt": 1779165452042,
-    "accessCount": 5
+    "accessCount": 11
   },
   {
     "id": "mem-1779166271531-orgai",
@@ -41,7 +41,7 @@
     ],
     "createdAt": 1779166271531,
     "updatedAt": 1779166271531,
-    "accessCount": 3
+    "accessCount": 9
   },
   {
     "id": "mem-1779166357453-rnwe1",
@@ -52,7 +52,7 @@
     ],
     "createdAt": 1779166357453,
     "updatedAt": 1779166357453,
-    "accessCount": 1
+    "accessCount": 7
   },
   {
     "id": "mem-1779166387993-dbefi",
@@ -63,7 +63,7 @@
     ],
     "createdAt": 1779166387993,
     "updatedAt": 1779166387993,
-    "accessCount": 1
+    "accessCount": 7
   },
   {
     "id": "mem-1779166448325-wickl",
@@ -74,7 +74,7 @@
     ],
     "createdAt": 1779166448325,
     "updatedAt": 1779166448325,
-    "accessCount": 0
+    "accessCount": 6
   },
   {
     "id": "mem-1779166463931-nc9y7",
@@ -85,7 +85,7 @@
     ],
     "createdAt": 1779166463931,
     "updatedAt": 1779166463931,
-    "accessCount": 0
+    "accessCount": 6
   },
   {
     "id": "mem-1779166579542-h9ois",
@@ -96,7 +96,7 @@
     ],
     "createdAt": 1779166579542,
     "updatedAt": 1779166579542,
-    "accessCount": 0
+    "accessCount": 6
   },
   {
     "id": "mem-1779166609720-j57sn",
@@ -107,6 +107,39 @@
     ],
     "createdAt": 1779166609720,
     "updatedAt": 1779166609720,
+    "accessCount": 6
+  },
+  {
+    "id": "mem-1779166843058-xe3f4",
+    "content": "Workspace conventions: test-framework: jest, linter: eslint, build-cmd: npm run build:server && npm run build:web, dev-cmd: concurrently \"npm run dev:server\" \"npm run dev:web\", main-branch: main",
+    "tags": [
+      "workspace",
+      "conventions"
+    ],
+    "createdAt": 1779166843058,
+    "updatedAt": 1779166843058,
+    "accessCount": 6
+  },
+  {
+    "id": "mem-1779169764301-lf51i",
+    "content": "Error pattern: \"## RUNTIME ENVIRONMENT\n- **Operating System:** Windows\n- **Home directory:** `C:\" → Fix: edit_file on docker-compose.prod.yml: replaced \"    # Using official Debian-based Docker\"",
+    "tags": [
+      "error-pattern",
+      "project-fix"
+    ],
+    "createdAt": 1779169764301,
+    "updatedAt": 1779169764301,
+    "accessCount": 3
+  },
+  {
+    "id": "mem-1779169847226-ln9tm",
+    "content": "Workspace conventions: test-framework: jest, linter: eslint, build-cmd: npm run build:server && npm run build:web, dev-cmd: concurrently \"npm run dev:server\" \"npm run dev:web\", main-branch: main",
+    "tags": [
+      "workspace",
+      "conventions"
+    ],
+    "createdAt": 1779169847226,
+    "updatedAt": 1779169847226,
     "accessCount": 0
   }
 ]
