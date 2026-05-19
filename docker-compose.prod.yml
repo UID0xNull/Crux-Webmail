@@ -760,8 +760,8 @@ services:
   # Prometheus — Metrics Collection
   # ==========================================================================
   prometheus:
-    # Pinned to stable release; update only after validation.
-    image: "prom/prometheus:v2.51.0"
+    # Prompts the registry for the latest prometheus version.
+    image: "prom/prometheus"
     container_name: crux-prometheus-prod
     networks:
       - monitoring
