@@ -282,7 +282,7 @@ services:
           memory: 4G
 
   nginx-proxy:
-    image: "nginx:1.25-alpine"
+    image: "nginx:stable-alpine"
     restart: always
     volumes:
       - type: bind
@@ -311,7 +311,7 @@ services:
           memory: 2G
 
   dovecot:
-    image: "dovecot/dovecot:${CRUX_VERSION:-latest}"
+    image: "dovecot/dovecot:v2.3.19"
     restart: always
     volumes:
       - dovecot_mail:/var/vmail/mailboxes
@@ -326,10 +326,10 @@ services:
           memory: 8G
 
   amavis-virus:
-    image: "tmailco/amavis:${CRUX_VERSION:-latest}"
+    image: "vednil/amavis:latest"
     restart: always
     volumes:
-      - amavis_virus:/var/virus
+      - amavis_virus:/var/lib/amavis
       - logs_prod:/logs/app/amavis
     networks:
       mail:
@@ -339,8 +339,8 @@ services:
           cpus: "2.0"
           memory: 4G
 
-  clamdav:
-    image: "docker.io/library/clamav:${CRUX_VERSION:-latest}"
+  clamav:
+    image: "linuxserver/clamav:latest"
     restart: always
     volumes:
       - type: bind
@@ -358,7 +358,7 @@ services:
           memory: 4G
 
   postfix:
-    image: "tmailco/postfix:${CRUX_VERSION:-latest}"
+    image: "ricariel/postfix:latest"
     restart: always
     volumes:
       - type: bind
