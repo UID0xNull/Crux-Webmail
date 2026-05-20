@@ -133,7 +133,6 @@ services:
         reservations:
           cpus: "0.5"
           memory: 512M
-
   minio:
     image: "minio/minio:latest"
     restart: always
@@ -145,10 +144,9 @@ services:
     command: ["server", "/data", "--console-address=:9001"]
     entrypoint: |
       /bin/sh -ec '
-        export MINIO_ROOT_USER="$$(cat /run/secrets/minio_access_key)"
-        export MINIO_ROOT_PASSWORD="$$(cat /run/secrets/minio_secret_key)"
-        exec /usr/bin/docker-entrypoint.sh "$${@}"'
-      --
+        export MINIO_ROOT_USER="$(cat /run/secrets/minio_access_key)"
+        export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)"
+        exec /usr/bin/docker-entrypoint.sh "$@"'
     networks:
       data:
         aliases:
@@ -200,6 +198,8 @@ services:
       - minio_secret_key
     volumes:
       - logs_prod:/logs/app/fastify-backend
+    expose:
+      - "3000/tcp"
     networks:
       app:
       data:
@@ -278,14 +278,14 @@ services:
     image: "crux-web:${CRUX_VERSION:-latest}"
     restart: always
     expose:
-      - 3001/tcp
+      - 3000/tcp
     networks:
       app:
       public:
         aliases:
           - frontend.local
     healthcheck:
-      test: ["CMD-SHELL", "curl -f -s http://localhost:3001/ >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "curl -f -s http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -432,7 +432,7 @@ services:
     image: "grafana/loki:latest"
     restart: always
     command: >-
-      --config.file=/etc/loki/loki-config.yaml
+      -config.file=/etc/loki/loki-config.yaml
     volumes:
       - type: bind
         source: "./infra/monitoring/loki/loki-config.yaml"
