@@ -20,6 +20,9 @@ networks:
   monitoring:
     driver: bridge
     internal: true
+  security-updates:
+    driver: bridge
+    # Not internal — allows sa-update and freshclam to reach the internet
 
 volumes:
   postgres_prod_data:
@@ -33,6 +36,8 @@ volumes:
   dovecot_sieve:
     driver: local
   amavis_virus:
+    driver: local
+  spamassassin_data:
     driver: local
   clamav_database:
     driver: local
@@ -353,12 +358,14 @@ services:
       WORKERS_COUNT: 1
     volumes:
       - amavis_virus:/var/lib/amavis
+      - spamassassin_data:/var/lib/spamassassin
       - logs_prod:/logs/app/amavis
       - type: bind
         source: "./infra/amavis/amavis-extra.conf"
-        target: /etc/amavis/conf.d/60-custom.conf
+        target: /etc/amavis/conf.d/60-user-custom
     networks:
       mail:
+      security-updates:
     deploy:
       resources:
         limits:
@@ -380,6 +387,7 @@ services:
       - logs_prod:/logs/app/clamdav
     networks:
       mail:
+      security-updates:
     deploy:
       resources:
         limits:
