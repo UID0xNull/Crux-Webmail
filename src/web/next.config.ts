@@ -13,8 +13,6 @@
 import type { NextConfig } from 'next';
 import path from 'path';
 
-const isProd = process.env.NODE_ENV === 'production';
-
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
@@ -97,21 +95,24 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: `
-              default-src 'self';
-              script-src 'self' 'strict-dynamic';
-              style-src 'self' 'unsafe-inline';
-              img-src 'self' data: blob:;
-              font-src 'self';
-              connect-src 'self' https://api.crux.internal;
-              frame-src 'none';
-              object-src 'none';
-              base-uri 'self';
-              form-action 'self';
-              media-src 'self';
-              worker-src 'self';
-              child-src 'self';
-            `.replace(/\s+/g, ' ').trim(),
+            value: [
+              "default-src 'self'",
+              // 'unsafe-inline' required for Next.js hydration scripts.
+              // 'strict-dynamic' without nonces blocks ALL scripts in Chrome 54+.
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob:",
+              "font-src 'self'",
+              // api.ipify.org is used by the login page for IP detection
+              "connect-src 'self' https://api.ipify.org",
+              "frame-src 'none'",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "media-src 'self'",
+              "worker-src 'self'",
+              "child-src 'self'",
+            ].join('; '),
           },
         ],
       },
