@@ -40,7 +40,6 @@ function resolveEnvWithFile(): Record<string, string | undefined> {
 
   return resolved;
 }
-}
 
 // ------------------------------------------------------------------
 // Schema de Validación Estricto para Env Vars
