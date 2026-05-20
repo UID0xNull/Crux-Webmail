@@ -141,7 +141,7 @@ services:
     secrets:
       - minio_access_key
       - minio_secret_key
-    command: >-
+    entrypoint: >-
       sh -c '
         export MINIO_ROOT_USER="$(cat /run/secrets/minio_access_key)"
         export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)"
