@@ -276,13 +276,15 @@ services:
     restart: always
     expose:
       - 3000/tcp
+    environment:
+      - PORT=3000
     networks:
       app:
       public:
         aliases:
           - frontend.local
     healthcheck:
-      test: ["CMD-SHELL", "curl -f -s http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:3000/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -363,8 +365,11 @@ services:
     restart: always
     volumes:
       - type: bind
-        source: "./infra/clamav/conf.d"
-        target: /etc/clamav/
+        source: "./infra/clamav/conf.d/clamd.conf"
+        target: /etc/clamav/clamd.conf
+      - type: bind
+        source: "./infra/clamav/conf.d/freshclam.conf"
+        target: /etc/clamav/freshclam.conf
       - clamav_database:/var/lib/clamav/db
       - clamav_persistent:/var/lib/clamav/persistent
       - logs_prod:/logs/app/clamdav
