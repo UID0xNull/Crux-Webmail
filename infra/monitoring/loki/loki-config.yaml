@@ -1,21 +1,15 @@
 # ============================================================================
 # Loki Configuration — Log aggregation for Zero-Trust telemetry
+# Compatible with grafana/loki:latest (v3.x)
 # ============================================================================
 
 auth_enabled: false
 
 server:
   http_listen_port: 3100
-  grpc_listen_port: 9096
-  grpc_server_max_recv_msg_size: 0
 
 common:
-  instance_label: crux-webmail-loki
   path_prefix: /loki
-  storage:
-    filesystem:
-      chunks_directory: /loki/chunks
-      rules_directory: /loki/rules
   replication_factor: 1
   ring:
     kvstore:
@@ -24,14 +18,30 @@ common:
 query_range:
   results_cache:
     cache:
-      embedded_cache:
+        # Simple, supported pattern for v3.x: disable if not needed
+        # or configure via loki-distributor/ingester if present.
         enabled: true
-        max_freshness: 5m
-        max_size_mb: 24
-        max_items_in_memory: 1024
 
-codecs:
-  server_log: json
+schema_config:
+  configs:
+    - from: "2024-01-01"
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  filesystem:
+    directory: /loki/chunks
+
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
 
 limits_config:
   reject_old_samples: true
@@ -41,25 +51,5 @@ limits_config:
   ingestion_rate_mb: 50
   ingestion_burst_size_mb: 100
 
-storage_config:
-  filesystem:
-    directory: /loki/chunks
-
-schema_config:
-  configs:
-    - from: 2024-01-01
-      store: tsdb
-      object_store: filesystem
-      schema: v13
-      index:
-        prefix: index_
-        period: 24h
-
-compactor:
-  working_directory: /loki/compactor
-  retention_enabled: true
-  retention_delete_delay: 2h
-  retention_delete_worker_count: 150
-  compaction_interval: 10m
-
-compactor: compactor
+analytics:
+  reporting_enabled: false
