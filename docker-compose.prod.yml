@@ -145,9 +145,9 @@ services:
     command: ["server", "/data", "--console-address=:9001"]
     entrypoint: |
       /bin/sh -ec '
-        export MINIO_ROOT_USER="$(cat /run/secrets/minio_access_key)"
-        export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)"
-        exec /usr/bin/docker-entrypoint.sh "${@}"'
+        export MINIO_ROOT_USER="$$(cat /run/secrets/minio_access_key)"
+        export MINIO_ROOT_PASSWORD="$$(cat /run/secrets/minio_secret_key)"
+        exec /usr/bin/docker-entrypoint.sh "$${@}"'
       --
     networks:
       data:
@@ -463,4 +463,3 @@ services:
         limits:
           cpus: "0.5"
           memory: 1G
-          
