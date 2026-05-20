@@ -147,9 +147,7 @@ services:
         export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)"
         exec minio server /data --console-address=:9001'
     networks:
-      data:
-        aliases:
-          - storage.local
+      - data
     deploy:
       resources:
         limits:
