@@ -278,13 +278,14 @@ services:
       - 3000/tcp
     environment:
       - PORT=3000
+      - HOSTNAME=0.0.0.0
     networks:
       app:
       public:
         aliases:
           - frontend.local
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:3000/ || exit 1"]
+      test: ["CMD-SHELL", "node -e \"require('http').request({host:'127.0.0.1',port:3000,path:'/'}, (r)=>{process.exit(0)}).on('error',()=>process.exit(1)).end()\""]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -346,8 +347,9 @@ services:
     hostname: mail.crux.local
     restart: always
     environment:
-      DOMAIN_NAME: mail.crux.local
-      MYNETWORKS: "172.21.0.0 172.22.0.0 172.23.0.0"
+      DOMAIN: mail.crux.local
+      CLAMAV_HOST: clamav
+      POSTFIX_HOST: postfix
       WORKERS_COUNT: 1
     volumes:
       - amavis_virus:/var/lib/amavis
