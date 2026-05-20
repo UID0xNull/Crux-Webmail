@@ -414,10 +414,13 @@ services:
   loki:
     image: "grafana/loki:latest"
     restart: always
+    command: >-
+      --config.file=/etc/loki/loki-config.yaml
     volumes:
       - type: bind
-        source: "./config/loki/conf.d"
-        target: /etc/loki/
+        source: "./infra/monitoring/loki/loki-config.yaml"
+        target: /etc/loki/loki-config.yaml
+        read_only: true
       - loki_data:/loki/data
     networks:
       monitoring:
@@ -430,10 +433,15 @@ services:
   alertmanager:
     image: "prom/alertmanager:latest"
     restart: always
+    command: >-
+      --config.file=/etc/alertmanager/alertmanager.yml
+      --storage.path=/alertmanager
     volumes:
       - type: bind
-        source: "./config/alertmanager/conf.d"
-        target: /etc/alertmanager/
+        source: "./infra/monitoring/alertmanager/alertmanager.yml"
+        target: /etc/alertmanager/alertmanager.yml
+        read_only: true
+      - alertmanager_data:/alertmanager
     networks:
       monitoring:
     deploy:
