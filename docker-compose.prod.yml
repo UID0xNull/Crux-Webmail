@@ -341,10 +341,11 @@ services:
 
   amavis-virus:
     image: "vednil/amavis:latest"
+    hostname: mail.crux.local
     restart: always
     environment:
       DOMAIN_NAME: mail.crux.local
-      MYNETWORKS: "172.21.0.0/24;172.22.0.0/24;172.23.0.0/24"
+      MYNETWORKS: "172.21.0.0 172.22.0.0 172.23.0.0"
       WORKERS_COUNT: 1
     volumes:
       - amavis_virus:/var/lib/amavis
@@ -377,11 +378,12 @@ services:
 
   postfix:
     image: "vednil/postfix:latest"
+    hostname: mail.crux.local
     restart: always
     environment:
       DOMAIN_NAME: mail.crux.local
-      MAILNAME: crux-webmail-postfix-1
-      INET_MYNETWORKS: "172.21.0.0/24 172.22.0.0/24"
+      MAILNAME: mail.crux.local
+      INET_MYNETWORKS: "172.21.0.0 172.22.0.0"
     volumes:
       - type: bind
         source: "./infra/postfix"

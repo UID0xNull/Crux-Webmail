@@ -1,0 +1,5 @@
+hosts = postgres
+user = crux_user
+password =
+dbname = crux_mail
+query = SELECT 1 FROM virtual_domains WHERE name='%s'

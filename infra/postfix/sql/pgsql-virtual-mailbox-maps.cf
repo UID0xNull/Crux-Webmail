@@ -1,0 +1,5 @@
+hosts = postgres
+user = crux_user
+password =
+dbname = crux_mail
+query = SELECT maildir FROM virtual_users WHERE email='%s'
