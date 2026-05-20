@@ -25,8 +25,9 @@ smtpd_client_connection_count_limit = 50
 default_process_limit = 100
 
 # Message size limits
-mailbox_size_limit = 52428800        # 50MB per mailbox
-message_size_limit = 26214400        # 25MB per message
+# 50MB per mailbox, 25MB per message
+mailbox_size_limit = 52428800
+message_size_limit = 26214400
 
 # ----------------------------------------------------------------------------
 # TLS 1.3 — Strict Encryption (Zero-Trust)
