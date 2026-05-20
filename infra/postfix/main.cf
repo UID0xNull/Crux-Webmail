@@ -143,6 +143,12 @@ postlog_track_unused_luusers = yes
 notify_classes = resource, software
 
 # ----------------------------------------------------------------------------
+# MILTERS — default accept so unavailable DKIM/DMARC services don't block mail
+# ----------------------------------------------------------------------------
+milter_default_action = accept
+milter_protocol = 6
+
+# ----------------------------------------------------------------------------
 # COMPATIBILITY
 # ----------------------------------------------------------------------------
 compatibility_level = 3

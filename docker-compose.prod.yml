@@ -399,9 +399,15 @@ services:
     hostname: mail.crux.local
     restart: always
     environment:
-      DOMAIN_NAME: mail.crux.local
-      MAILNAME: mail.crux.local
-      INET_MYNETWORKS: "172.21.0.0 172.22.0.0"
+      DOMAIN: mail.crux.local
+      DOVECOT_HOST: dovecot
+      AMAVIS_HOST: amavis-virus
+      OPENDKIM_HOST: "127.0.0.1"
+      OPENDMARC_HOST: "127.0.0.1"
+      DB_HOST: postgres
+      DB_USER: crux_user
+      DB_PASSWORD: ""
+      DB_NAME: crux_mail
     volumes:
       - type: bind
         source: "./infra/postfix"
