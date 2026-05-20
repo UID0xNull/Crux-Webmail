@@ -354,6 +354,9 @@ services:
     volumes:
       - amavis_virus:/var/lib/amavis
       - logs_prod:/logs/app/amavis
+      - type: bind
+        source: "./infra/amavis/amavis-extra.conf"
+        target: /etc/amavis/conf.d/60-custom.conf
     networks:
       mail:
     deploy:
