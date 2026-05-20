@@ -7,7 +7,8 @@
 
 global:
   resolve_timeout: 5m
-  smtp_smarthost: '${SMTP_SMARTHOST:-localhost:587}'
+  # Set SMTP via envsubst at deploy time or update directly in production:
+  smtp_smarthost: 'smtp.crux.local:587'
   smtp_from: 'crux-alerts@crux.local'
   smtp_require_tls: false
 
