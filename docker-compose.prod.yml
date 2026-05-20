@@ -133,7 +133,6 @@ services:
           memory: 2G
         reservations:
           cpus: "0.5"
-          memory: 512M
   minio:
     image: "minio/minio:latest"
     restart: always
@@ -142,12 +141,11 @@ services:
     secrets:
       - minio_access_key
       - minio_secret_key
-    command: ["server", "/data", "--console-address=:9001"]
-    entrypoint: |
-      /bin/sh -ec '
+    command: >-
+      sh -c '
         export MINIO_ROOT_USER="$(cat /run/secrets/minio_access_key)"
         export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)"
-        exec /usr/bin/docker-entrypoint.sh "$@"'
+        exec minio server /data --console-address=:9001'
     networks:
       data:
         aliases:

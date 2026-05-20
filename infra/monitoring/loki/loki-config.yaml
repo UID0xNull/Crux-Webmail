@@ -15,12 +15,7 @@ common:
     kvstore:
       store: inmemory
 
-query_range:
-  results_cache:
-    cache:
-        # Simple, supported pattern for v3.x: disable if not needed
-        # or configure via loki-distributor/ingester if present.
-        enabled: true
+query_range: {}
 
 schema_config:
   configs:
