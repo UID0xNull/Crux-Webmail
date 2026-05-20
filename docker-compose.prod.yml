@@ -89,6 +89,7 @@ services:
       POSTGRES_USER: crux_user
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_DB: crux_mail
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
     secrets:

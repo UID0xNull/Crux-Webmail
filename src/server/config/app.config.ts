@@ -13,7 +13,6 @@ import * as path from 'node:path';
 // ------------------------------------------------------------------
 // Docker Secrets Resolver — soporta *_FILE pattern
 // Si VAR_FILE=/run/secrets/foo.txt → lee el archivo y usa su contenido como VAR
-// ------------------------------------------------------------------
 function resolveEnvWithFile(): Record<string, string | undefined> {
   const resolved = { ...process.env };
 
@@ -21,20 +20,26 @@ function resolveEnvWithFile(): Record<string, string | undefined> {
     if (key.endsWith('_FILE') && resolved[key]) {
       const baseKey = key.replace(/_FILE$/, '');
       try {
-        const fileContent = fs.readFileSync(resolved[key] as string, 'utf8').trim();
-        if (!resolved[baseKey]) {
-          resolved[baseKey] = fileContent;
+        const raw = fs.readFileSync(resolved[key] as string, 'utf8');
+        let value: string | undefined = raw
+          .replace(/^\uFEFF/, '')        // remove UTF-8 BOM if present
+          .replace(/[\r]/g, '')         // normalize line endings
+          .trim()
+          .replace(/^["']|["']$/g, '');  // strip surrounding quotes
+        if (value) {
+          resolved[baseKey] = value;
         }
       } catch {
-        // File no existe o no es legible — usar valor directo si existe
-        if (resolved[baseKey]) {
-          // Keep the direct value
+        // File no existe o no es legible — mantener valor directo si ya está
+        if (!resolved[baseKey]) {
+          delete resolved[key];
         }
       }
     }
   }
 
   return resolved;
+}
 }
 
 // ------------------------------------------------------------------
