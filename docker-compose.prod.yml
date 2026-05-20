@@ -340,7 +340,7 @@ services:
           memory: 4G
 
   clamav:
-    image: "linuxserver/clamav:latest"
+    image: "clamav/clamav:latest"
     restart: always
     volumes:
       - type: bind
@@ -358,7 +358,7 @@ services:
           memory: 4G
 
   postfix:
-    image: "ricariel/postfix:latest"
+    image: "vednil/postfix:latest"
     restart: always
     volumes:
       - type: bind
@@ -376,7 +376,7 @@ services:
           memory: 4G
 
   prometheus:
-    image: "prom/prometheus:v2.53.0"
+    image: "prom/prometheus:latest"
     restart: always
     volumes:
       - type: bind
@@ -405,7 +405,7 @@ services:
           memory: 2G
 
   loki:
-    image: "grafana/loki:3.0.0"
+    image: "grafana/loki:latest"
     restart: always
     volumes:
       - type: bind
@@ -421,7 +421,7 @@ services:
           memory: 4G
 
   alertmanager:
-    image: "grafana/alertmanager:v0.27.0"
+    image: "grafana/alertmanager:latest"
     restart: always
     volumes:
       - type: bind
