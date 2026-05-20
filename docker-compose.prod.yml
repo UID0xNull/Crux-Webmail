@@ -139,6 +139,13 @@ services:
     restart: always
     volumes:
       - minio_data:/data
+    secrets:
+      - minio_access_key
+      - minio_secret_key
+    command: >-
+      sh -c 'export MINIO_ROOT_USER="$(cat /run/secrets/minio_access_key)"
+             export MINIO_ROOT_PASSWORD="$(cat /run/secrets/minio_secret_key)"
+             exec minio server /data --console-address ":9001"'
     networks:
       data:
         aliases:
@@ -421,7 +428,7 @@ services:
           memory: 4G
 
   alertmanager:
-    image: "grafana/alertmanager:latest"
+    image: "prom/alertmanager:latest"
     restart: always
     volumes:
       - type: bind
