@@ -364,7 +364,7 @@ services:
     restart: always
     volumes:
       - type: bind
-        source: "./config/clamav/conf.d"
+        source: "./infra/clamav/conf.d"
         target: /etc/clamav/
       - clamav_database:/var/lib/clamav/db
       - clamav_persistent:/var/lib/clamav/persistent
