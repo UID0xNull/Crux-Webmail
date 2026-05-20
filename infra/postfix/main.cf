@@ -146,3 +146,4 @@ notify_classes = resource, software
 # COMPATIBILITY
 # ----------------------------------------------------------------------------
 compatibility_level = 3.6
+virtual_transport = lmtp:unix:private/dovecot-lmtp

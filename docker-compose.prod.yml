@@ -320,6 +320,7 @@ services:
     networks:
       public:
       app:
+      mail:
     deploy:
       resources:
         limits:
