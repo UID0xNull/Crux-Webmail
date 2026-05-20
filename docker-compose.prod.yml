@@ -409,11 +409,29 @@ services:
       DB_PASSWORD: ""
       DB_NAME: crux_mail
     volumes:
+      # Mount individual config files — do NOT mount the whole directory.
+      # Mounting ./infra/postfix → /etc/postfix/ hides postfix-files, which
+      # prevents post-install from initialising the spool queue subdirs.
       - type: bind
-        source: "./infra/postfix"
-        target: /etc/postfix/
-      - postfix_data:/var/lib/postfix/data
-      - postfix_queue:/var/lib/postfix/queue
+        source: "./infra/postfix/main.cf"
+        target: /etc/postfix/main.cf
+      - type: bind
+        source: "./infra/postfix/master.cf"
+        target: /etc/postfix/master.cf
+        read_only: true
+      - type: bind
+        source: "./infra/postfix/header_checks"
+        target: /etc/postfix/header_checks
+        read_only: true
+      - type: bind
+        source: "./infra/postfix/body_checks"
+        target: /etc/postfix/body_checks
+        read_only: true
+      - type: bind
+        source: "./infra/postfix/sql"
+        target: /etc/postfix/sql
+      - postfix_data:/var/lib/postfix
+      - postfix_queue:/var/spool/postfix
       - logs_prod:/logs/app/postfix
     networks:
       mail:
