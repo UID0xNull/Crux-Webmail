@@ -27,10 +27,12 @@ export default function HomePage() {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0a1a]">
+    <div className="flex min-h-screen items-center justify-center bg-[#020817]">
       <div className="text-center">
-        <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-2 border-violet-500/30 border-t-violet-500" />
-        <p className="animate-pulse text-sm text-white/30">Redirigiendo…</p>
+        <div
+          aria-label="Loading"
+          className="mx-auto mb-5 h-9 w-9 animate-spin rounded-full border-[3px] border-violet-400/15 border-t-violet-400" />
+        <p className="text-xs tracking-wide text-slate-400">Redirigiendo…</p>
       </div>
     </div>
   );
