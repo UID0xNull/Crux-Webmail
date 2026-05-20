@@ -9,10 +9,7 @@ types {
     font/woff2             woff2;
     font/ttf               ttf;
     application/javascript js mjs cjs;
-    text/javascript        js;
     application/json       json;
     text/plain             txt text log conf cfg ini env;
     application/pdf        pdf;
 }
-
-default_type  application/octet-stream;
