@@ -135,7 +135,6 @@ services:
           memory: 512M
 
   minio:
-  minio:
     image: "minio/minio:latest"
     restart: always
     volumes:
