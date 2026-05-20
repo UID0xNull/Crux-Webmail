@@ -293,8 +293,8 @@ services:
     restart: always
     volumes:
       - type: bind
-        source: "./config/nginx/conf.d"
-        target: /etc/nginx/conf.d
+        source: "./infra/nginx"
+        target: /etc/nginx
     ports:
       - published: "80"
         target: 80
@@ -369,7 +369,7 @@ services:
     restart: always
     volumes:
       - type: bind
-        source: "./config/postfix/conf.d"
+        source: "./infra/postfix"
         target: /etc/postfix/
       - postfix_data:/var/lib/postfix/data
       - postfix_queue:/var/lib/postfix/queue
@@ -387,8 +387,8 @@ services:
     restart: always
     volumes:
       - type: bind
-        source: "./config/prometheus/conf.d"
-        target: /etc/prometheus/
+        source: "./infra/monitoring/prometheus"
+        target: /etc/prometheus
       - prometheus_data:/prometheus/data
     networks:
       monitoring:
