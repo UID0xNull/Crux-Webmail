@@ -433,8 +433,7 @@ services:
   loki:
     image: "grafana/loki:latest"
     restart: always
-    command: >-
-      -config.file=/etc/loki/loki-config.yaml
+    command: "-config.file=/etc/loki/loki-config.yaml"
     volumes:
       - type: bind
         source: "./infra/monitoring/loki/loki-config.yaml"
