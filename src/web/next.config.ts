@@ -103,8 +103,8 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              // api.ipify.org is used by the login page for IP detection
-              "connect-src 'self' https://api.ipify.org",
+              // Allow same-origin plus local dev API and ipify (for IP hint)
+              "connect-src 'self' http://localhost:* http://127.0.0.1:* https://api.ipify.org",
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",
