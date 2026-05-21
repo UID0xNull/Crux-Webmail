@@ -207,6 +207,9 @@ services:
       # MinIO (credentials from Docker secrets, not hardcoded)
       MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
+      # CORS / Frontend
+      FRONTEND_URL: https://mail.cruxhost.com
+      WEBSOCKET_URL: wss://mail.cruxhost.com
     secrets:
       - jwt_secret
       - jwt_refresh_secret
@@ -271,6 +274,9 @@ services:
       # MinIO via secrets (no hardcode)
       MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
+      # CORS / Frontend
+      FRONTEND_URL: https://mail.cruxhost.com
+      WEBSOCKET_URL: wss://mail.cruxhost.com
     secrets:
       - postgres_password
       - redis_password
