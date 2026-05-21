@@ -305,16 +305,22 @@ services:
     volumes:
       - clamav_db:/var/lib/clamav:rw
       - logs_shared:/var/log/clamav
+      - ./infra/clamav/conf.d/clamd.conf:/etc/clamav/clamd.conf:ro
     tmpfs:
       - /tmp:size=256M
+      - /run/clamav:size=16M
+      - /var/run/clamav:size=16M
     read_only: true
     restart: unless-stopped
+    environment:
+      - TZ=UTC
+      - CLAMD_STARTUP_TIMEOUT=1800
     healthcheck:
-      test: ["CMD-SHELL", "clamd --version || ss -tlnp | grep -q ':3310 '"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+      test: ["CMD-SHELL", "ss -tlnp | grep -q ':3310 ' || clamdscan --version"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -325,8 +331,6 @@ services:
       - FOWNER
       - SETGID
       - SETUID
-    environment:
-      - TZ=UTC
     deploy:
       resources:
         limits:
