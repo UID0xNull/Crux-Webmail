@@ -104,7 +104,25 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob:",
               "font-src 'self'",
               // Allow same-origin plus local dev API and ipify (for IP hint)
-              "connect-src 'self' http://localhost:* http://127.0.0.1:* https://api.ipify.org",
+              // Derive allowed API origin from NEXT_PUBLIC_API_URL so it works
+      // when the stack runs in a VM and is reached over LAN.
+      (() => {
+        const raw = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\s+/g, '');
+        let apiOrigins = "'self'";
+
+        if (raw) {
+          try {
+            // Use only scheme + host (no path), e.g. http://192.168.0.5:3000
+            const u = new URL(raw.startsWith('http') ? raw : `http://${raw}`);
+            apiOrigins += ' ' + u.origin;
+          } catch {
+            // If we can't parse it, fall back to same-origin only.
+            void 0;
+          }
+        }
+
+        return `connect-src ${apiOrigins} https://api.ipify.org`;
+      })() as string,
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",
