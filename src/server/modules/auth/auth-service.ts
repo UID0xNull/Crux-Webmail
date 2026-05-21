@@ -72,10 +72,15 @@ export interface AuthResult {
   requiresMFA?: boolean;
   mfaSessionId?: string;
   user_id?: string;
+  // Internal session manager fields
   token?: string;
   refreshToken?: string;
-  session_id?: string;
   fingerprint?: string;
+  // Client-facing OAuth2 fields
+  access_token?: string;
+  refresh_token?: string;
+  session_id?: string;
+  expires_in?: number;
   error?: string;
   message?: string;
 }

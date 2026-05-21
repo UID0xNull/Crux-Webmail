@@ -144,9 +144,15 @@ export interface AuthResult {
   success: boolean;
   token?: string;
   refreshToken?: string;
-  error?: string;
-  session_id?: string;
   fingerprint?: string;
+  access_token?: string;
+  refresh_token?: string;
+  session_id?: string;
+  expires_in?: number;
+  error?: string;
+  message?: string;
+  requiresMFA?: boolean;
+  mfaSessionId?: string;
 }
 
 // ------------------------------------------------------------------
