@@ -138,7 +138,7 @@ export function initAuditLogModel(sequelize: any): typeof AuditLogModel {
     tableName: 'audit_logs',
     timestamps: false,
     hooks: {
-      beforeCreate: (log: AuditLogModel) => {
+      beforeValidate: (log: AuditLogModel) => {
         log.setDataValue('integrity_hash', computeIntegrityHash(log.dataValues));
       },
     },
