@@ -571,7 +571,8 @@ services:
     image: "prom/prometheus:latest"
     restart: always
     entrypoint: ["/bin/sh", "-c"]
-    command: "/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus/data --web.console.libraries=/usr/share/prometheus/console_libraries --web.console.templates=/usr/share/prometheus/consoles 2>&1 | tee -a /var/log/prometheus/prometheus.log"
+    command:
+      - "/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus/data --web.console.libraries=/usr/share/prometheus/console_libraries --web.console.templates=/usr/share/prometheus/consoles 2>&1 | tee -a /var/log/prometheus/prometheus.log"
     volumes:
       - type: bind
         source: "./infra/monitoring/prometheus"
@@ -640,7 +641,8 @@ services:
     image: "grafana/loki:latest"
     restart: always
     entrypoint: ["/bin/sh", "-c"]
-    command: "/usr/bin/loki -config.file=/etc/loki/loki-config.yaml 2>&1 | tee -a /var/log/loki/loki.log"
+    command:
+      - "/usr/bin/loki -config.file=/etc/loki/loki-config.yaml 2>&1 | tee -a /var/log/loki/loki.log"
     volumes:
       - type: bind
         source: "./infra/monitoring/loki/loki-config.yaml"
@@ -669,7 +671,8 @@ services:
     image: "prom/alertmanager:latest"
     restart: always
     entrypoint: ["/bin/sh", "-c"]
-    command: "/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager 2>&1 | tee -a /var/log/alertmanager/alertmanager.log"
+    command:
+      - "/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager 2>&1 | tee -a /var/log/alertmanager/alertmanager.log"
     volumes:
       - type: bind
         source: "./infra/monitoring/alertmanager/alertmanager.yml"
@@ -698,7 +701,8 @@ services:
     image: "quay.io/prometheus/node-exporter:v1.8.2"
     restart: always
     entrypoint: ["/bin/sh", "-c"]
-    command: "/bin/node_exporter 2>&1 | tee -a /var/log/node_exporter/node_exporter.log"
+    command:
+      - "/bin/node_exporter 2>&1 | tee -a /var/log/node_exporter/node_exporter.log"
     volumes:
       - type: bind
         source: "./logs/app/node_exporter"
