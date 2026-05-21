@@ -29,6 +29,8 @@ volumes:
     driver: local
   redis_prod_data:
     driver: local
+  # logs_prod kept as fallback/shared if some service prefers a volume.
+  # But real persistence is via direct bind mounts under ./logs/app/*.
   logs_prod:
     driver: local
   dovecot_mail:
@@ -97,6 +99,11 @@ services:
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
+      # Logs en ./logs/app/postgres dentro del proyecto
+      - type: bind
+        source: "./logs/app/postgres"
+        target: /var/log/postgresql
+        read_only: false
     secrets:
       - postgres_password
     networks:
@@ -120,6 +127,11 @@ services:
     restart: always
     volumes:
       - redis_prod_data:/data
+      # Logs en ./logs/app/redis
+      - type: bind
+        source: "./logs/app/redis"
+        target: /var/log/redis
+        read_only: false
     networks:
       app:
     secrets:
@@ -138,11 +150,17 @@ services:
           memory: 2G
         reservations:
           cpus: "0.5"
+
   minio:
     image: "minio/minio:latest"
     restart: always
     volumes:
       - minio_data:/data
+      # Logs en ./logs/app/minio
+      - type: bind
+        source: "./logs/app/minio"
+        target: /minio/logs
+        read_only: false
     secrets:
       - minio_access_key
       - minio_secret_key
@@ -199,7 +217,11 @@ services:
       - minio_access_key
       - minio_secret_key
     volumes:
-      - logs_prod:/logs/app/fastify-backend
+      # Logs en ./logs/app/fastify-backend
+      - type: bind
+        source: "./logs/app/fastify-backend"
+        target: /logs/app/fastify-backend
+        read_only: false
     expose:
       - "3000/tcp"
     networks:
@@ -258,6 +280,12 @@ services:
       - ip_hash_salt
       - minio_access_key
       - minio_secret_key
+    volumes:
+      # Logs en ./logs/app/crux-server (si la app escribe ahí; si no, usa stdout)
+      - type: bind
+        source: "./logs/app/crux-server"
+        target: /logs/app/crux-server
+        read_only: false
     expose:
       - 5678/tcp
     networks:
@@ -285,6 +313,12 @@ services:
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - API_INTERNAL_URL=http://fastify-backend:3000
+    volumes:
+      # Logs en ./logs/app/crux-web (opcional si la app lo usa)
+      - type: bind
+        source: "./logs/app/crux-web"
+        target: /logs/app/crux-web
+        read_only: false
     networks:
       app:
       public:
@@ -310,6 +344,11 @@ services:
       - type: bind
         source: "./infra/nginx"
         target: /etc/nginx
+      # Logs de Nginx en ./logs/app/nginx (access/error logs)
+      - type: bind
+        source: "./logs/app/nginx"
+        target: /var/log/nginx
+        read_only: false
     ports:
       - published: "80"
         target: 80
@@ -339,7 +378,11 @@ services:
     volumes:
       - dovecot_mail:/var/vmail/mailboxes
       - dovecot_sieve:/etc/sieve/conf.d
-      - logs_prod:/logs/app/dovecot
+      # Logs en ./logs/app/dovecot
+      - type: bind
+        source: "./logs/app/dovecot"
+        target: /logs/app/dovecot
+        read_only: false
     networks:
       mail:
     deploy:
@@ -360,7 +403,11 @@ services:
     volumes:
       - amavis_virus:/var/lib/amavis
       - spamassassin_data:/var/lib/spamassassin
-      - logs_prod:/logs/app/amavis
+      # Logs en ./logs/app/amavis
+      - type: bind
+        source: "./logs/app/amavis"
+        target: /logs/app/amavis
+        read_only: false
       - type: bind
         source: "./infra/amavis/amavis-extra.conf"
         target: /etc/amavis/conf.d/60-user-custom
@@ -385,7 +432,11 @@ services:
         target: /etc/clamav/freshclam.conf
       - clamav_database:/var/lib/clamav/db
       - clamav_persistent:/var/lib/clamav/persistent
-      - logs_prod:/logs/app/clamdav
+      # Logs en ./logs/app/clamdav
+      - type: bind
+        source: "./logs/app/clamdav"
+        target: /logs/app/clamdav
+        read_only: false
     networks:
       mail:
       security-updates:
@@ -433,7 +484,11 @@ services:
         target: /etc/postfix/sql
       - postfix_data:/var/lib/postfix
       - postfix_queue:/var/spool/postfix
-      - logs_prod:/logs/app/postfix
+      # Logs en ./logs/app/postfix
+      - type: bind
+        source: "./logs/app/postfix"
+        target: /logs/app/postfix
+        read_only: false
     networks:
       mail:
     deploy:
@@ -450,6 +505,11 @@ services:
         source: "./infra/monitoring/prometheus"
         target: /etc/prometheus
       - prometheus_data:/prometheus/data
+      # Logs en ./logs/app/prometheus (si usa directorio local)
+      - type: bind
+        source: "./logs/app/prometheus"
+        target: /var/log/prometheus
+        read_only: false
     networks:
       monitoring:
     deploy:
@@ -463,6 +523,11 @@ services:
     restart: always
     volumes:
       - grafana_data:/var/lib/grafana
+      # Logs en ./logs/app/grafana (si lo utiliza o configuras ahí)
+      - type: bind
+        source: "./logs/app/grafana"
+        target: /var/log/grafana
+        read_only: false
     environment:
       GF_SERVER_ROOT_URL: https://mail.cruxhost.com/grafana
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
@@ -497,6 +562,11 @@ services:
         target: /etc/loki/loki-config.yaml
         read_only: true
       - loki_data:/loki/data
+      # Logs en ./logs/app/loki
+      - type: bind
+        source: "./logs/app/loki"
+        target: /var/log/loki
+        read_only: false
     networks:
       monitoring:
     deploy:
@@ -517,6 +587,11 @@ services:
         target: /etc/alertmanager/alertmanager.yml
         read_only: true
       - alertmanager_data:/alertmanager
+      # Logs en ./logs/app/alertmanager (si se configura)
+      - type: bind
+        source: "./logs/app/alertmanager"
+        target: /var/log/alertmanager
+        read_only: false
     networks:
       monitoring:
     deploy:
