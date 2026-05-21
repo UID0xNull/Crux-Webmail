@@ -570,18 +570,11 @@ services:
   prometheus:
     image: "prom/prometheus:latest"
     restart: always
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - "/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus/data --web.console.libraries=/usr/share/prometheus/console_libraries --web.console.templates=/usr/share/prometheus/consoles 2>&1 | tee -a /var/log/prometheus/prometheus.log"
     volumes:
       - type: bind
         source: "./infra/monitoring/prometheus"
         target: /etc/prometheus
       - prometheus_data:/prometheus/data
-      - type: bind
-        source: "./logs/app/prometheus"
-        target: /var/log/prometheus
-        read_only: false
     networks:
       monitoring:
     logging:
@@ -640,19 +633,13 @@ services:
   loki:
     image: "grafana/loki:latest"
     restart: always
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - "/usr/bin/loki -config.file=/etc/loki/loki-config.yaml 2>&1 | tee -a /var/log/loki/loki.log"
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
     volumes:
       - type: bind
         source: "./infra/monitoring/loki/loki-config.yaml"
         target: /etc/loki/loki-config.yaml
         read_only: true
       - loki_data:/loki/data
-      - type: bind
-        source: "./logs/app/loki"
-        target: /var/log/loki
-        read_only: false
     networks:
       monitoring:
     logging:
