@@ -21,7 +21,7 @@ export async function adminAuthPreHandler(
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const sessionManager = getSessionManager();
+    const sessionManager = await getSessionManager();
     const result = await sessionManager.verifySession(token);
 
     if (!result.valid || !result.user_id) {

@@ -133,6 +133,9 @@ export function initDraftModel(sequelize: any): typeof DraftModel {
     tableName: 'drafts',
     timestamps: true,
     paranoid: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    deletedAt: 'deleted_at',
     hooks: {
       beforeUpdate: (draft: DraftModel) => {
         draft.updated_at = new Date().toISOString();

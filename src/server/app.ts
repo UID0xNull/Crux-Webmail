@@ -208,7 +208,7 @@ fastify.addHook('preHandler', async (request, reply) => {
   }
 
   try {
-    const sessionManager = (await import('./modules/auth/session-manager')).getSessionManager();
+    const sessionManager = await (await import('./modules/auth/session-manager')).getSessionManager();
     const result = await sessionManager.verifySession(authHeader.replace('Bearer ', ''));
 
     if (!result.valid) {

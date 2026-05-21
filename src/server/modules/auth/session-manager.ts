@@ -562,10 +562,23 @@ export class SecureSessionManager {
 // Singleton export
 // ------------------------------------------------------------------
 let _sessionManager: SecureSessionManager | null = null;
+let _initPromise: Promise<SecureSessionManager> | null = null;
 
-export function getSessionManager(): SecureSessionManager {
-  if (!_sessionManager) {
-    _sessionManager = new SecureSessionManager();
-  }
+export async function getSessionManager(): Promise<SecureSessionManager> {
+  if (_sessionManager) return _sessionManager;
+  if (_initPromise) return _initPromise;
+
+  _initPromise = (async () => {
+    const mgr = new SecureSessionManager();
+    await mgr.init();
+    _sessionManager = mgr;
+    return mgr;
+  })();
+
+  return _initPromise;
+}
+
+export function getSessionManagerSync(): SecureSessionManager {
+  if (!_sessionManager) throw new Error('SessionManager not initialized yet');
   return _sessionManager;
 }

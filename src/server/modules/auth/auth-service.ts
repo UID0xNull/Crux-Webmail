@@ -294,9 +294,10 @@ export class AuthService {
         fingerprint: authResult.fingerprint,
       };
     } catch (err) {
+      const e = err as Error;
       auditLogger.error('Login process error', {
         client_ip: clientIp,
-        metadata: { error: (err as Error).message },
+        metadata: { error: e.message, stack: e.stack?.split('\n').slice(0, 5).join(' | ') },
       });
       return { success: false, error: 'AUTH_INTERNAL_ERROR' };
     }

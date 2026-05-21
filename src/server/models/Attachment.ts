@@ -148,6 +148,9 @@ export function initAttachmentModel(sequelize: any): typeof AttachmentModel {
     tableName: 'attachments',
     timestamps: true,
     paranoid: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    deletedAt: 'deleted_at',
     indexes: [
       {
         name: 'idx_attachments_draft_id',
