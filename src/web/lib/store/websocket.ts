@@ -90,16 +90,18 @@ export const useWebSocketStore = create<WebSocketStore>()(
 
       const wsUrl = buildWsUrl(token);
 
-      set({
+      set((s: any) => ({
         connection: {
           state: 'connecting',
           latency: null,
-          reconnectAttempts: 0,
-          channels: [],
+          // Preserve existing reconnectAttempts so exponential backoff works.
+          // Only reset to 0 on successful READY message.
+          reconnectAttempts: s.connection?.reconnectAttempts ?? 0,
+          channels: s.connection?.channels ?? [],
           lastPing: null,
           url: wsUrl,
         },
-      });
+      }));
 
       _ws = new WebSocket(wsUrl);
 
@@ -283,7 +285,7 @@ function handleMessage(
       set((s: any) => ({
         isConnected: true,
         connection: s.connection
-          ? { ...s.connection, state: 'connected', lastPing: Date.now() }
+          ? { ...s.connection, state: 'connected', lastPing: Date.now(), reconnectAttempts: 0 }
           : s.connection,
       }));
       // Auto-subscribe to mail channels
