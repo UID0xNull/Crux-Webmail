@@ -281,9 +281,7 @@ async function connectDatabase(): Promise<Sequelize> {
 
   await initModels(sequelize);
 
-  if (config.NODE_ENV === 'development') {
-    await syncModels(sequelize, { force: false });
-  }
+  await syncModels(sequelize, { force: false });
 
   return sequelize;
 }

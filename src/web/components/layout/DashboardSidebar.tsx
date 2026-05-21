@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useMailStore } from '../../lib/store/mail';
+import { useMailStore } from 'lib/store/mail';
 import {
   Inbox,
   Send,
@@ -18,10 +18,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
-import { useAuthStore } from '../../lib/store/auth';
+import { useAuthStore } from 'lib/store/auth';
 import { useRouter } from 'next/navigation';
-import { useNotificationCount } from '../../hooks/useWebSocket';
-import type { Mailbox } from '../../lib/types';
+import { useNotificationCount } from 'hooks/useWebSocket';
+import type { Mailbox } from 'lib/types';
 
 // ------------------------------------------------------------------
 // Mailbox icon mapping
@@ -55,6 +55,11 @@ export function DashboardSidebar() {
   React.useEffect(() => {
     loadMailboxes();
   }, [loadMailboxes]);
+
+  // Check if current user is admin (for admin panel link)
+  const isAdmin = useAuthStore(
+    (s) => Array.isArray(s.user?.roles) && s.user.roles.includes('admin')
+  );
 
   const toggleExpand = (mailboxId: string) => {
     setExpandedMailboxes((prev) => {
@@ -176,21 +181,32 @@ export function DashboardSidebar() {
         </button>
       </div>
 
-      {/* Special mailboxes */}
+      {/* Mailboxes list */}
       <div className="flex-1 overflow-y-auto px-2 space-y-1">
         {specialMailboxes.map((mb) => renderMailboxItem(mb))}
 
-        {/* Divider */}
         {!collapsed && mailboxes.length > 0 && (
           <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
         )}
 
-        {/* Regular mailboxes */}
         {regularMailboxes.map((mb) => renderMailboxItem(mb))}
       </div>
 
-      {/* Bottom: notifications + logout */}
+      {/* Bottom: admin + notifications + settings + logout */}
       <div className="p-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
+        {isAdmin && (
+          <button
+            onClick={() => router.push('/dashboard/admin')}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/30"
+          >
+            <Settings className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && (
+              <span className="flex-1 text-left">Admin</span>
+            )}
+          </button>
+        )}
+
+        {/* Notifications button */}
         <button
           className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
         >
@@ -205,6 +221,7 @@ export function DashboardSidebar() {
           )}
         </button>
 
+        {/* Settings button */}
         <button
           className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
         >
@@ -212,6 +229,7 @@ export function DashboardSidebar() {
           {!collapsed && <span className="flex-1 text-left">Settings</span>}
         </button>
 
+        {/* Logout button */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
