@@ -142,18 +142,16 @@ services:
     restart: always
     volumes:
       - redis_prod_data:/data
+      - type: bind
+        source: "./logs/app/redis"
+        target: /var/log/redis
+        read_only: false
     networks:
       app:
     secrets:
       - redis_password
     command: >-
       sh -c 'exec redis-server --requirepass "$(cat /run/secrets/redis_password)" --loglevel notice --logfile /var/log/redis/redis.log'
-    volumes:
-      - redis_prod_data:/data
-      - type: bind
-        source: "./logs/app/redis"
-        target: /var/log/redis
-        read_only: false
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping | grep -q PONG || exit 1"]
       interval: 5s
