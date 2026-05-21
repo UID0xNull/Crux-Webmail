@@ -52,7 +52,7 @@ interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'passwo
 // ------------------------------------------------------------------
 const BCRYPT_ROUNDS = 12; // ~256ms per hash on modern hardware
 
-async function hashPassword(plainPassword: string): Promise<string> {
+export async function hashPassword(plainPassword: string): Promise<string> {
   return bcrypt.hash(plainPassword, BCRYPT_ROUNDS);
 }
 
@@ -156,20 +156,6 @@ export function initUserModel(sequelize: any): typeof UserModel {
     tableName: 'users',
     timestamps: true,
     paranoid: true,
-    hooks: {
-      beforeCreate: async (user: UserModel) => {
-        const plain = user.getDataValue('password' as any);
-        if (plain) {
-          user.setDataValue('passwordHash', await hashPassword(plain));
-        }
-      },
-      beforeUpdate: async (user: UserModel) => {
-        const plain = user.getDataValue('password' as any);
-        if (plain) {
-          user.setDataValue('passwordHash', await hashPassword(plain));
-        }
-      },
-    },
   });
 
   return UserModel;

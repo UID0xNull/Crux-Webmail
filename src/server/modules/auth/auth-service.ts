@@ -5,7 +5,7 @@
 // Conecta User model, bcrypt hashing, session manager, audit logging.
 // ============================================================================
 
-import { UserModel, comparePassword } from '../../models/User';
+import { UserModel, comparePassword, hashPassword } from '../../models/User';
 import { AuditLogModel } from '../../models/AuditLog';
 import { MFASessionModel } from '../../models/MFASession';
 import { RefreshTokenModel } from '../../models/RefreshToken';
@@ -109,9 +109,10 @@ export class AuthService {
       }
 
       // Create user
+      const passwordHash = await hashPassword(req.password);
       const user = await UserModel.create({
         username: req.username,
-        password: req.password, // Hook will hash it
+        passwordHash,
         display_name: req.display_name || req.username.split('@')[0],
         roles: ['user'],
         is_active: true,
@@ -547,7 +548,7 @@ export class AuthService {
 
       // Update password
       await UserModel.update(
-        { password: newPassword },
+        { passwordHash: await hashPassword(newPassword) },
         { where: { id: userId } }
       );
 
@@ -683,7 +684,7 @@ export class AuthService {
 
       // Update password
       await UserModel.update(
-        { password: args.new_password },
+        { passwordHash: await hashPassword(args.new_password) },
         { where: { id: args.userId } }
       );
 
