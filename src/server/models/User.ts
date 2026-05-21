@@ -90,6 +90,9 @@ export function initUserModel(sequelize: any): typeof UserModel {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    password: {
+      type: DataTypes.VIRTUAL, // transient — hashed in hook, never persisted
+    },
     username: {
       type: DataTypes.STRING(256),
       allowNull: false,
@@ -158,13 +161,15 @@ export function initUserModel(sequelize: any): typeof UserModel {
     paranoid: true,
     hooks: {
       beforeCreate: async (user: UserModel) => {
-        if (user.dataValues.password) {
-          user.passwordHash = await hashPassword(user.dataValues.password);
+        const plain = user.getDataValue('password' as any);
+        if (plain) {
+          user.setDataValue('passwordHash', await hashPassword(plain));
         }
       },
       beforeUpdate: async (user: UserModel) => {
-        if (user.dataValues.password) {
-          user.passwordHash = await hashPassword(user.dataValues.password);
+        const plain = user.getDataValue('password' as any);
+        if (plain) {
+          user.setDataValue('passwordHash', await hashPassword(plain));
         }
       },
     },
