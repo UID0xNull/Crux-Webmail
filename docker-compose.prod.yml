@@ -97,6 +97,16 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_DB: crux_mail
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      # Activar logging a archivo
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    command: >-
+      postgres
+        -c logging_collector=on
+        -c log_directory=/var/log/postgresql
+        -c log_filename=postgresql-%Y-%m-%d.log
+        -c log_rotation_age=1d
+        -c log_min_messages=warning
+        -c log_connections=off
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
       - type: bind
@@ -137,7 +147,13 @@ services:
     secrets:
       - redis_password
     command: >-
-      sh -c 'exec redis-server --requirepass "$(cat /run/secrets/redis_password)" --loglevel notice'
+      sh -c 'exec redis-server --requirepass "$(cat /run/secrets/redis_password)" --loglevel notice --logfile /var/log/redis/redis.log'
+    volumes:
+      - redis_prod_data:/data
+      - type: bind
+        source: "./logs/app/redis"
+        target: /var/log/redis
+        read_only: false
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping | grep -q PONG || exit 1"]
       interval: 5s
@@ -189,6 +205,7 @@ services:
       context: .
       dockerfile: src/server/Dockerfile
     restart: always
+    command: sh -c "node dist/app.js 2>&1 | tee -a /var/log/fastify-backend/app.log"
     depends_on:
       postgres:
         condition: service_healthy
@@ -226,6 +243,11 @@ services:
       - ip_hash_salt
       - minio_access_key
       - minio_secret_key
+    volumes:
+      - type: bind
+        source: "./logs/app/fastify-backend"
+        target: /var/log/fastify-backend
+        read_only: false
     expose:
       - "3000/tcp"
     networks:
@@ -256,6 +278,7 @@ services:
       context: .
       dockerfile: src/server/Dockerfile
     restart: always
+    command: sh -c "node dist/app.js 2>&1 | tee -a /var/log/crux-server/app.log"
     depends_on:
       postgres:
         condition: service_healthy
@@ -293,6 +316,11 @@ services:
       - ip_hash_salt
       - minio_access_key
       - minio_secret_key
+    volumes:
+      - type: bind
+        source: "./logs/app/crux-server"
+        target: /var/log/crux-server
+        read_only: false
     expose:
       - 5678/tcp
     networks:
@@ -320,12 +348,18 @@ services:
       dockerfile: src/web/Dockerfile
     image: "crux-web:${CRUX_VERSION:-latest}"
     restart: always
+    command: sh -c "node src/web/server.js 2>&1 | tee -a /var/log/crux-web/app.log"
     expose:
       - 3000/tcp
     environment:
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - API_INTERNAL_URL=http://fastify-backend:3000
+    volumes:
+      - type: bind
+        source: "./logs/app/crux-web"
+        target: /var/log/crux-web
+        read_only: false
     networks:
       app:
       public:
@@ -538,11 +572,22 @@ services:
   prometheus:
     image: "prom/prometheus:latest"
     restart: always
+    command: >-
+      sh -c "/bin/prometheus
+        --config.file=/etc/prometheus/prometheus.yml
+        --storage.tsdb.path=/prometheus/data
+        --web.console.libraries=/usr/share/prometheus/console_libraries
+        --web.console.templates=/usr/share/prometheus/consoles
+        2>&1 | tee -a /var/log/prometheus/prometheus.log"
     volumes:
       - type: bind
         source: "./infra/monitoring/prometheus"
         target: /etc/prometheus
       - prometheus_data:/prometheus/data
+      - type: bind
+        source: "./logs/app/prometheus"
+        target: /var/log/prometheus
+        read_only: false
     networks:
       monitoring:
     logging:
@@ -601,13 +646,17 @@ services:
   loki:
     image: "grafana/loki:latest"
     restart: always
-    command: "-config.file=/etc/loki/loki-config.yaml"
+    command: sh -c "/usr/bin/loki -config.file=/etc/loki/loki-config.yaml 2>&1 | tee -a /var/log/loki/loki.log"
     volumes:
       - type: bind
         source: "./infra/monitoring/loki/loki-config.yaml"
         target: /etc/loki/loki-config.yaml
         read_only: true
       - loki_data:/loki/data
+      - type: bind
+        source: "./logs/app/loki"
+        target: /var/log/loki
+        read_only: false
     networks:
       monitoring:
     logging:
@@ -626,14 +675,20 @@ services:
     image: "prom/alertmanager:latest"
     restart: always
     command: >-
-      --config.file=/etc/alertmanager/alertmanager.yml
-      --storage.path=/alertmanager
+      sh -c "/bin/alertmanager
+        --config.file=/etc/alertmanager/alertmanager.yml
+        --storage.path=/alertmanager
+        2>&1 | tee -a /var/log/alertmanager/alertmanager.log"
     volumes:
       - type: bind
         source: "./infra/monitoring/alertmanager/alertmanager.yml"
         target: /etc/alertmanager/alertmanager.yml
         read_only: true
       - alertmanager_data:/alertmanager
+      - type: bind
+        source: "./logs/app/alertmanager"
+        target: /var/log/alertmanager
+        read_only: false
     networks:
       monitoring:
     logging:
@@ -651,6 +706,12 @@ services:
   node_exporter:
     image: "quay.io/prometheus/node-exporter:v1.8.2"
     restart: always
+    command: sh -c "/bin/node_exporter 2>&1 | tee -a /var/log/node_exporter/node_exporter.log"
+    volumes:
+      - type: bind
+        source: "./logs/app/node_exporter"
+        target: /var/log/node_exporter
+        read_only: false
     networks:
       monitoring:
     logging:
