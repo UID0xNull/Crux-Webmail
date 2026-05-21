@@ -64,8 +64,8 @@ export class AeadCrypto {
   }
 
   encrypt(plaintext: string): { iv: string; tag: string; ciphertext: string } {
-    const iv = crypto.randomBytes(12); // 96-bit IV para GCM
-    const cipher = crypto.createCipheriv(ALGO, this.key.export({ format: 'jwk' }) as any, iv);
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv(ALGO, this.key, iv);
     let ciphertext = cipher.update(plaintext, 'utf8', 'hex');
     ciphertext += cipher.final('hex');
     const tag = cipher.getAuthTag().toString('hex');
@@ -75,7 +75,7 @@ export class AeadCrypto {
   decrypt(params: { iv: string; tag: string; ciphertext: string }): string {
     const iv = Buffer.from(params.iv, 'hex');
     const tag = Buffer.from(params.tag, 'hex');
-    const decipher = crypto.createDecipheriv(ALGO, this.key.export({ format: 'jwk' }) as any, iv);
+    const decipher = crypto.createDecipheriv(ALGO, this.key, iv);
     decipher.setAuthTag(tag);
     let decrypted = decipher.update(params.ciphertext, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
