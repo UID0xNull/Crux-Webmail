@@ -37,21 +37,21 @@ interface DraftCreationAttributes
 // Model Definition
 // ------------------------------------------------------------------
 export class DraftModel extends Model<DraftAttributes> implements DraftAttributes {
-  public id!: string;
-  public userId!: string;
-  public to!: Array<{ name: string; email: string }>;
-  public cc?: Array<{ name: string; email: string }>;
-  public bcc?: Array<{ name: string; email: string }>;
-  public subject!: string;
-  public body_html!: string;
-  public body_text!: string;
-  public status!: DraftStatus;
-  public encrypt!: boolean;
-  public sign!: boolean;
-  public attachment_count!: number;
-  public created_at!: string;
-  public updated_at!: string;
-  public deleted_at?: string;
+  declare id: string;
+  declare userId: string;
+  declare to: Array<{ name: string; email: string }>;
+  declare cc: Array<{ name: string; email: string }> | undefined;
+  declare bcc: Array<{ name: string; email: string }> | undefined;
+  declare subject: string;
+  declare body_html: string;
+  declare body_text: string;
+  declare status: DraftStatus;
+  declare encrypt: boolean;
+  declare sign: boolean;
+  declare attachment_count: number;
+  declare created_at: string;
+  declare updated_at: string;
+  declare deleted_at: string | undefined;
 }
 
 export function initDraftModel(sequelize: any): typeof DraftModel {

@@ -61,19 +61,19 @@ function computeIntegrityHash(attrs: Partial<AuditLogAttributes>): string {
 // Model Definition
 // ------------------------------------------------------------------
 export class AuditLogModel extends Model<AuditLogAttributes> implements AuditLogAttributes {
-  public id!: string;
-  public event_id!: string;
-  public timestamp!: string;
-  public source!: string;
-  public level!: AuditLevel;
-  public category!: AuditCategory;
-  public message!: string;
-  public actor_id?: string;
-  public session_id?: string;
-  public client_ip?: string;
-  public user_agent?: string;
-  public metadata?: Record<string, unknown>;
-  public integrity_hash!: string;
+  declare id: string;
+  declare event_id: string;
+  declare timestamp: string;
+  declare source: string;
+  declare level: AuditLevel;
+  declare category: AuditCategory;
+  declare message: string;
+  declare actor_id: string | undefined;
+  declare session_id: string | undefined;
+  declare client_ip: string | undefined;
+  declare user_agent: string | undefined;
+  declare metadata: Record<string, unknown> | undefined;
+  declare integrity_hash: string;
 }
 
 export function initAuditLogModel(sequelize: any): typeof AuditLogModel {
@@ -139,7 +139,7 @@ export function initAuditLogModel(sequelize: any): typeof AuditLogModel {
     timestamps: false,
     hooks: {
       beforeCreate: (log: AuditLogModel) => {
-        log.integrity_hash = computeIntegrityHash(log.dataValues);
+        log.setDataValue('integrity_hash', computeIntegrityHash(log.dataValues));
       },
     },
     indexes: [

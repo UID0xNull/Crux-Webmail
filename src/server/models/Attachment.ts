@@ -39,23 +39,23 @@ interface AttachmentCreationAttributes
 // Model Definition
 // ------------------------------------------------------------------
 export class AttachmentModel extends Model<AttachmentAttributes> implements AttachmentAttributes {
-  public id!: string;
-  public draftId!: string;
-  public userId!: string;
-  public filename!: string;
-  public originalName!: string;
-  public contentType!: string;
-  public size!: number;
-  public contentId?: string;
-  public sha256!: string;
-  public scanStatus!: AttachmentScanStatus;
-  public scanMessage?: string;
-  public storagePath!: string;
-  public storageKey!: string;
-  public inline!: boolean;
-  public created_at!: string;
-  public updated_at!: string;
-  public deleted_at?: string;
+  declare id: string;
+  declare draftId: string;
+  declare userId: string;
+  declare filename: string;
+  declare originalName: string;
+  declare contentType: string;
+  declare size: number;
+  declare contentId: string | undefined;
+  declare sha256: string;
+  declare scanStatus: AttachmentScanStatus;
+  declare scanMessage: string | undefined;
+  declare storagePath: string;
+  declare storageKey: string;
+  declare inline: boolean;
+  declare created_at: string;
+  declare updated_at: string;
+  declare deleted_at: string | undefined;
 }
 
 export function initAttachmentModel(sequelize: any): typeof AttachmentModel {

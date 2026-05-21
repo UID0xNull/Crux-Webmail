@@ -32,17 +32,17 @@ interface RefreshTokenCreationAttributes
 // Model Definition
 // ------------------------------------------------------------------
 export class RefreshTokenModel extends Model<RefreshTokenAttributes> implements RefreshTokenAttributes {
-  public id!: string;
-  public userId!: string;
-  public sessionId!: string;
-  public tokenHash!: string;
-  public fingerprint!: string;
-  public ip_hash!: string;
-  public expiresAt!: number;
-  public revoked!: boolean;
-  public revokedAt?: number;
-  public lastUsedAt?: number;
-  public created_at!: string;
+  declare id: string;
+  declare userId: string;
+  declare sessionId: string;
+  declare tokenHash: string;
+  declare fingerprint: string;
+  declare ip_hash: string;
+  declare expiresAt: number;
+  declare revoked: boolean;
+  declare revokedAt: number | undefined;
+  declare lastUsedAt: number | undefined;
+  declare created_at: string;
 }
 
 export function initRefreshTokenModel(sequelize: any): typeof RefreshTokenModel {

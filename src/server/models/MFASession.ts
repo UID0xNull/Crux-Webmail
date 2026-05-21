@@ -36,18 +36,18 @@ interface MFASessionCreationAttributes
 // Model Definition
 // ------------------------------------------------------------------
 export class MFASessionModel extends Model<MFASessionAttributes> implements MFASessionAttributes {
-  public id!: string;
-  public userId!: string;
-  public session_id!: string;
-  public method!: MFAMethod;
-  public status!: MFASessionStatus;
-  public totp_secret?: string;
-  public backup_code_hash?: string;
-  public attempts!: number;
-  public max_attempts!: number;
-  public expires_at!: number;
-  public verified_at?: number;
-  public created_at!: string;
+  declare id: string;
+  declare userId: string;
+  declare session_id: string;
+  declare method: MFAMethod;
+  declare status: MFASessionStatus;
+  declare totp_secret: string | undefined;
+  declare backup_code_hash: string | undefined;
+  declare attempts: number;
+  declare max_attempts: number;
+  declare expires_at: number;
+  declare verified_at: number | undefined;
+  declare created_at: string;
 }
 
 export function initMFASessionModel(sequelize: any): typeof MFASessionModel {
