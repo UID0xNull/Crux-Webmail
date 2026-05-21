@@ -169,18 +169,15 @@ export class AuthService {
       }
 
       // 3. Check brute-force lockout
-      if (user.locked_until && user.locked_until > Date.now()) {
-        const remainingMs = user.locked_until - Date.now();
+      // locked_until is BIGINT — Sequelize returns it as string, cast explicitly
+      const lockedUntil = user.locked_until ? Number(user.locked_until) : null;
+      if (lockedUntil && lockedUntil > Date.now()) {
         auditLogger.warn('Login attempt — account locked', {
           actor_id: user.id,
           client_ip: clientIp,
-          metadata: { locked_until: new Date(user.locked_until).toISOString() },
+          metadata: { locked_until: new Date(lockedUntil).toISOString() },
         });
-        return {
-          success: false,
-          error: 'ACCOUNT_LOCKED',
-          // Don't expose exact time in production
-        };
+        return { success: false, error: 'ACCOUNT_LOCKED' };
       }
 
       // 4. Validate password
