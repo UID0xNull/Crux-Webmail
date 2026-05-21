@@ -142,9 +142,11 @@ export class SecureSessionManager {
         fingerprint: fpHash,
       };
     } catch (err) {
+      const e = err as Error;
       auditLogger.error('Authentication error', {
         actor_id: userId,
         client_ip: clientIp,
+        metadata: { error: e.message, stack: e.stack?.split('\n').slice(0, 4).join(' | ') },
       });
       return { success: false, error: 'AUTH_INTERNAL_ERROR' };
     }
@@ -513,10 +515,8 @@ export class SecureSessionManager {
       mTLS_serial: session.mTLS_cert_serial,
     };
 
-    return jwt.sign(payload, config.JWT_SECRET, {
-      algorithm: 'HS256',
-      expiresIn: `${config.JWT_ACCESS_TTL_MS}ms`,
-    });
+    // exp is already set in payload — don't pass expiresIn to avoid "payload already has exp" error
+    return jwt.sign(payload, config.JWT_SECRET, { algorithm: 'HS256' });
   }
 
   private generateRefreshToken(session: SecureSession): string {
@@ -533,10 +533,7 @@ export class SecureSessionManager {
       refreshNonce: session.refreshNonce,
     };
 
-    return jwt.sign(payload, config.JWT_REFRESH_SECRET, {
-      algorithm: 'HS256',
-      expiresIn: `${config.JWT_REFRESH_TTL_MS}ms`,
-    });
+    return jwt.sign(payload, config.JWT_REFRESH_SECRET, { algorithm: 'HS256' });
   }
 
   private decodeJwt(token: string): JWTPayload | null {
