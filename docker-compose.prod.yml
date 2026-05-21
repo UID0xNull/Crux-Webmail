@@ -284,7 +284,7 @@ services:
     environment:
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      - NEXT_PUBLIC_API_URL=http://backend.local:3000
+      - API_INTERNAL_URL=http://fastify-backend:3000
     networks:
       app:
       public:

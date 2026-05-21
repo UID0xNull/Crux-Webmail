@@ -10,7 +10,7 @@ import { useAuthStore } from '../store/auth';
 // Config
 // ------------------------------------------------------------------
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE = '';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 const TIMEOUT_MS = 15_000;
