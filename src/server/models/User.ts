@@ -64,23 +64,20 @@ export async function comparePassword(plain: string, hashed: string): Promise<bo
 // Model Definition
 // ------------------------------------------------------------------
 export class UserModel extends Model<UserAttributes> implements UserAttributes {
-  public id!: string;
-  public username!: string;
-  public passwordHash!: string;
-  public display_name?: string;
-  public roles!: string[];
-  public is_active!: boolean;
-  public mfa_enabled!: boolean;
-  public mfa_secret?: string;
-  public failed_attempts!: number;
-  public locked_until?: number;
-  public last_login?: string;
-  public created_at!: string;
-  public updated_at!: string;
-  public deleted_at?: string;
-
-  // Hooks
-  public readonly password?: string;
+  declare id: string;
+  declare username: string;
+  declare passwordHash: string;
+  declare display_name: string | undefined;
+  declare roles: string[];
+  declare is_active: boolean;
+  declare mfa_enabled: boolean;
+  declare mfa_secret: string | undefined;
+  declare failed_attempts: number;
+  declare locked_until: number | undefined;
+  declare last_login: string | undefined;
+  declare created_at: string;
+  declare updated_at: string;
+  declare deleted_at: string | undefined;
 }
 
 export function initUserModel(sequelize: any): typeof UserModel {
