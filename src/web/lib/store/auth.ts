@@ -52,9 +52,7 @@ export const useAuthStore = create<AuthStore>()(
           const response = await api.post<AuthToken>('/api/auth/login', {
             username: payload.username,
             password: payload.password,
-            client_fingerprint: payload.client_fingerprint,
-            ip: payload.ip,
-            cert_serial: payload.cert_serial,
+            device_fingerprint: payload.device_fingerprint,
           });
 
           const tokens = response.data;

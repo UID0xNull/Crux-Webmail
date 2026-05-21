@@ -18,9 +18,13 @@ export interface AuthToken {
 export interface LoginPayload {
   username: string;
   password: string;
-  client_fingerprint: string;
-  ip: string;
-  cert_serial: string;
+  device_fingerprint: {
+    browser: string;
+    os: string;
+    screen: string;
+    timezone: string;
+    languages: string[];
+  };
 }
 
 export interface UserProfile {

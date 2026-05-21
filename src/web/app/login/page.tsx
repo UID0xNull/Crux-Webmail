@@ -123,16 +123,23 @@ function LoginForm() {
         setLocalError('Completa todos los campos para continuar.');
         return;
       }
+      if (password.length < 8) {
+        setLocalError('La contraseña debe tener al menos 8 caracteres.');
+        return;
+      }
 
-      const ip = await getPublicIp();
       const fp = useAuthStore.getState().fingerprint;
 
       const success = await login({
         username: username.trim(),
         password,
-        client_fingerprint: fp?.hash ?? '',
-        ip: ip ?? '',
-        cert_serial: '',
+        device_fingerprint: {
+          browser: fp?.browser ?? navigator.userAgent.slice(0, 200),
+          os: fp?.os ?? navigator.platform,
+          screen: fp?.screen ?? `${screen.width}x${screen.height}`,
+          timezone: fp?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+          languages: Array.from(fp?.languages ?? navigator.languages),
+        },
       });
 
       if (success) {
@@ -512,12 +519,3 @@ function generateFingerprint(): string {
   return Math.abs(hash).toString(36);
 }
 
-async function getPublicIp(): Promise<string | null> {
-  try {
-    const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(2000) });
-    const json = await res.json();
-    return json.ip ?? null;
-  } catch {
-    return null;
-  }
-}
