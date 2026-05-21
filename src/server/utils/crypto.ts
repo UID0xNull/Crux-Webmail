@@ -56,11 +56,13 @@ export class AeadCrypto {
   private key: crypto.KeyObject;
 
   constructor(keyMaterial: string | Buffer) {
-    const key = Buffer.from(keyMaterial);
-    if (key.length < 32) {
-      throw new Error('Encryption key must be at least 32 bytes');
+    const raw = Buffer.from(keyMaterial);
+    if (raw.length < 16) {
+      throw new Error('Encryption key material must be at least 16 bytes');
     }
-    this.key = crypto.createSecretKey(key);
+    // Derive exactly 32 bytes (AES-256) via SHA-256 regardless of input length
+    const key32 = crypto.createHash('sha256').update(raw).digest();
+    this.key = crypto.createSecretKey(key32);
   }
 
   encrypt(plaintext: string): { iv: string; tag: string; ciphertext: string } {
