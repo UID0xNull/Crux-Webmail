@@ -1,12 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useAuthStore } from 'lib/store/auth';
-import { apiGet, apiPost } from 'lib/api/client';
-import type {
-  AdminDashboardData,
-  AdminSystemHealth,
-} from 'lib/types';
+import { getAdminDashboard } from 'lib/api/admin';
+import type { AdminDashboardData } from 'lib/types';
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<AdminDashboardData | null>(null);
@@ -18,7 +14,7 @@ export default function AdminDashboardPage() {
 
     (async () => {
       try {
-        const d: AdminDashboardData = await apiGet('/api/admin/dashboard');
+        const d = await getAdminDashboard();
         if (!cancelled) {
           setData(d);
           setLoading(false);
