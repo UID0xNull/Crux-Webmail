@@ -285,10 +285,10 @@ export class AuthService {
 
       return {
         success: true,
-        token: authResult.token,
-        refreshToken: authResult.refreshToken,
+        access_token: authResult.token,
+        refresh_token: authResult.refreshToken,
         session_id: authResult.session_id,
-        fingerprint: authResult.fingerprint,
+        expires_in: Math.floor(config.JWT_ACCESS_TTL_MS / 1000),
       };
     } catch (err) {
       const e = err as Error;
@@ -390,10 +390,10 @@ export class AuthService {
 
       return {
         success: true,
-        token: authResult.token,
-        refreshToken: authResult.refreshToken,
+        access_token: authResult.token,
+        refresh_token: authResult.refreshToken,
         session_id: authResult.session_id,
-        fingerprint: authResult.fingerprint,
+        expires_in: Math.floor(config.JWT_ACCESS_TTL_MS / 1000),
       };
     } catch (err) {
       auditLogger.error('MFA verify error', {

@@ -136,7 +136,7 @@ export class SecureSessionManager {
 
       return {
         success: true,
-        token: accessToken,
+        token: accessToken,        // kept for internal auth-service consumption
         refreshToken,
         session_id: sessionId,
         fingerprint: fpHash,
@@ -459,10 +459,10 @@ export class SecureSessionManager {
 
       return {
         success: true,
-        token: newAccessToken,
-        refreshToken: newRefreshToken,
+        access_token: newAccessToken,
+        refresh_token: newRefreshToken,
         session_id: session.id,
-        fingerprint: session.fingerprint,
+        expires_in: Math.floor(config.JWT_ACCESS_TTL_MS / 1000),
       };
     } catch {
       return { success: false, error: 'ROTATION_ERROR' };
