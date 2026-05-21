@@ -115,6 +115,7 @@ export interface SecureSession {
   mTLS_cert_serial: string;
   ip_hash: string;
   revoked: boolean;
+  refreshNonce?: string;
 }
 
 export interface DeviceFingerprint {
@@ -136,6 +137,7 @@ export interface JWTPayload {
   fingerprint: string;
   scope: string[];
   mTLS_serial: string;
+  refreshNonce?: string;
 }
 
 export interface AuthResult {

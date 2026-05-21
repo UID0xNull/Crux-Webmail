@@ -45,7 +45,7 @@ export class SecureSessionManager {
 
   async init(): Promise<void> {
     this.redis = await getRedis();
-    this.aead = new AeadCrypto(config.JWT_SECRET);
+    this.aead = new AeadCrypto(config.SESSION_ENCRYPTION_KEY);
     await this.redis.ping();
     console.log('[SESSION] SecureSessionManager initialized');
   }
@@ -70,18 +70,8 @@ export class SecureSessionManager {
     const sessionStart = Date.now();
 
     try {
-      // 1. Verificar si el usuario existe y las credenciales son válidas
-      const isValid = await this.validateCredentials(userId, password);
-      if (!isValid) {
-        auditLogger.warn('Invalid login attempt', {
-          actor_id: userId,
-          client_ip: clientIp,
-          metadata: { mtls_serial: mtlsSerial },
-        });
-        return { success: false, error: 'INVALID_CREDENTIALS' };
-      }
-
-      // 2. Verificar máximo de sesiones concurrentes
+      // Credentials already verified by auth-service before calling this.
+      // 1. Verificar máximo de sesiones concurrentes
       const concurrentCount = await this.getActiveSessionCount(userId);
       if (concurrentCount >= MAX_CONCURRENT_SESSIONS) {
         auditLogger.warn('Max concurrent sessions exceeded', {
@@ -114,6 +104,7 @@ export class SecureSessionManager {
         mTLS_cert_serial: mtlsSerial,
         ip_hash: ipHash,
         revoked: false,
+        refreshNonce: generateSecureUuid(),
       };
 
       // Cifrar sesión con AEAD
@@ -429,12 +420,24 @@ export class SecureSessionManager {
         return { success: false, error: 'INVALID_SESSION' };
       }
 
+      // Replay protection: verify the refresh token nonce matches the session's current nonce.
+      // refreshNonce is stored in the session and rotated on every refresh.
+      const tokenNonce = (payload as any).refreshNonce as string | undefined;
+      if (session.refreshNonce !== undefined && tokenNonce !== session.refreshNonce) {
+        auditLogger.warn('Refresh token replay detected', {
+          actor_id: session.userId,
+          session_id: sessionId,
+          client_ip: clientIp,
+        });
+        return { success: false, error: 'TOKEN_REVOKED' };
+      }
+
+      // Rotate the nonce so this refresh token cannot be reused
+      session.refreshNonce = generateSecureUuid();
+
       // 3. Generar nuevo access token + nuevo refresh token (rotation)
       const newAccessToken = this.generateAccessToken(session);
       const newRefreshToken = this.generateRefreshToken(session);
-
-      // 4. Revocar antiguo refresh token
-      await this.redis!.set(`blacklist:${sessionId}`, 'revoked', 'EX', 86400);
 
       // 5. Actualizar lastActive
       session.lastActive = Date.now();
@@ -527,6 +530,7 @@ export class SecureSessionManager {
       fingerprint: session.fingerprint,
       scope: ['session:refresh'],
       mTLS_serial: session.mTLS_cert_serial,
+      refreshNonce: session.refreshNonce,
     };
 
     return jwt.sign(payload, config.JWT_REFRESH_SECRET, {
