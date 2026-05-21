@@ -74,6 +74,7 @@ export const useWebSocketStore = create<WebSocketStore>()(
     // Connect
     // ----------------------------------------------------------------
     connect: () => {
+      wasManual = false; // reset so auto-reconnect works on next close
       const { token, sessionId } = useAuthStore.getState();
       if (!token || !sessionId) {
         set({ isConnected: false });
@@ -279,11 +280,12 @@ function handleMessage(
 
   switch (msgType) {
     case 'READY': {
-      set({
+      set((s: any) => ({
         isConnected: true,
-        connection: (c: any) =>
-          c ? { ...c, state: 'connected', lastPing: Date.now() } : c,
-      });
+        connection: s.connection
+          ? { ...s.connection, state: 'connected', lastPing: Date.now() }
+          : s.connection,
+      }));
       // Auto-subscribe to mail channels
       const currentChannels = get().connection?.channels || [];
       if (currentChannels.length === 0) {

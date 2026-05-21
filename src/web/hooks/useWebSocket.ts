@@ -41,8 +41,6 @@ export function useRealTimeEvents(handlers: RealTimeEventHandlers = {}): void {
     return false;
   });
 
-  const addNotification = useWebSocketStore((s) => s.notifications);
-
   useEffect(() => {
     if (!ws) return;
 
