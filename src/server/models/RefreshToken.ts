@@ -114,11 +114,11 @@ export function initRefreshTokenModel(sequelize: any): typeof RefreshTokenModel 
         fields: ['sessionId'],
       },
       {
-        fields: ['tokenHash'],
+        fields: ['token_hash'],
         unique: true,
       },
       {
-        fields: ['expiresAt'],
+        fields: ['expires_at'],
       },
     ],
   });
