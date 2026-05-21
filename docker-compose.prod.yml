@@ -99,7 +99,6 @@ services:
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
-      # Logs en ./logs/app/postgres dentro del proyecto
       - type: bind
         source: "./logs/app/postgres"
         target: /var/log/postgresql
@@ -108,6 +107,12 @@ services:
       - postgres_password
     networks:
       app:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "postgres"
     deploy:
       resources:
         limits:
@@ -127,22 +132,23 @@ services:
     restart: always
     volumes:
       - redis_prod_data:/data
-      # Logs en ./logs/app/redis
-      - type: bind
-        source: "./logs/app/redis"
-        target: /var/log/redis
-        read_only: false
     networks:
       app:
     secrets:
       - redis_password
     command: >-
-      sh -c 'exec redis-server --requirepass "$(cat /run/secrets/redis_password)"'
+      sh -c 'exec redis-server --requirepass "$(cat /run/secrets/redis_password)" --loglevel notice'
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping | grep -q PONG || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+        tag: "redis"
     deploy:
       resources:
         limits:
@@ -156,11 +162,6 @@ services:
     restart: always
     volumes:
       - minio_data:/data
-      # Logs en ./logs/app/minio
-      - type: bind
-        source: "./logs/app/minio"
-        target: /minio/logs
-        read_only: false
     secrets:
       - minio_access_key
       - minio_secret_key
@@ -171,6 +172,12 @@ services:
         exec minio server /data --console-address=:9001'
     networks:
       - data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "5"
+        tag: "minio"
     deploy:
       resources:
         limits:
@@ -219,12 +226,6 @@ services:
       - ip_hash_salt
       - minio_access_key
       - minio_secret_key
-    volumes:
-      # Logs en ./logs/app/fastify-backend
-      - type: bind
-        source: "./logs/app/fastify-backend"
-        target: /logs/app/fastify-backend
-        read_only: false
     expose:
       - "3000/tcp"
     networks:
@@ -233,6 +234,12 @@ services:
       public:
         aliases:
           - backend.local
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+        tag: "fastify-backend"
     deploy:
       replicas: 2
       resources:
@@ -286,17 +293,17 @@ services:
       - ip_hash_salt
       - minio_access_key
       - minio_secret_key
-    volumes:
-      # Logs en ./logs/app/crux-server (si la app escribe ahí; si no, usa stdout)
-      - type: bind
-        source: "./logs/app/crux-server"
-        target: /logs/app/crux-server
-        read_only: false
     expose:
       - 5678/tcp
     networks:
       app:
       data:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+        tag: "crux-server"
     deploy:
       replicas: 1
       resources:
@@ -319,17 +326,17 @@ services:
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - API_INTERNAL_URL=http://fastify-backend:3000
-    volumes:
-      # Logs en ./logs/app/crux-web (opcional si la app lo usa)
-      - type: bind
-        source: "./logs/app/crux-web"
-        target: /logs/app/crux-web
-        read_only: false
     networks:
       app:
       public:
         aliases:
           - frontend.local
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "crux-web"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').request({host:'127.0.0.1',port:3000,path:'/'}, (r)=>{process.exit(0)}).on('error',()=>process.exit(1)).end()\""]
       interval: 10s
@@ -350,11 +357,16 @@ services:
       - type: bind
         source: "./infra/nginx"
         target: /etc/nginx
-      # Logs de Nginx en ./logs/app/nginx (access/error logs)
       - type: bind
         source: "./logs/app/nginx"
         target: /var/log/nginx
         read_only: false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        tag: "nginx"
     ports:
       - published: "80"
         target: 80
@@ -384,13 +396,18 @@ services:
     volumes:
       - dovecot_mail:/var/vmail/mailboxes
       - dovecot_sieve:/etc/sieve/conf.d
-      # Logs en ./logs/app/dovecot
       - type: bind
         source: "./logs/app/dovecot"
-        target: /logs/app/dovecot
+        target: /var/log/dovecot
         read_only: false
     networks:
       mail:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "dovecot"
     deploy:
       resources:
         limits:
@@ -409,10 +426,9 @@ services:
     volumes:
       - amavis_virus:/var/lib/amavis
       - spamassassin_data:/var/lib/spamassassin
-      # Logs en ./logs/app/amavis
       - type: bind
         source: "./logs/app/amavis"
-        target: /logs/app/amavis
+        target: /var/log/amavis
         read_only: false
       - type: bind
         source: "./infra/amavis/amavis-extra.conf"
@@ -420,6 +436,12 @@ services:
     networks:
       mail:
       security-updates:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "5"
+        tag: "amavis"
     deploy:
       resources:
         limits:
@@ -438,14 +460,19 @@ services:
         target: /etc/clamav/freshclam.conf
       - clamav_database:/var/lib/clamav/db
       - clamav_persistent:/var/lib/clamav/persistent
-      # Logs en ./logs/app/clamdav
       - type: bind
-        source: "./logs/app/clamdav"
-        target: /logs/app/clamdav
+        source: "./logs/app/clamav"
+        target: /var/log/clamav
         read_only: false
     networks:
       mail:
       security-updates:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "5"
+        tag: "clamav"
     deploy:
       resources:
         limits:
@@ -490,13 +517,18 @@ services:
         target: /etc/postfix/sql
       - postfix_data:/var/lib/postfix
       - postfix_queue:/var/spool/postfix
-      # Logs en ./logs/app/postfix
       - type: bind
         source: "./logs/app/postfix"
-        target: /logs/app/postfix
+        target: /var/log/postfix
         read_only: false
     networks:
       mail:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        tag: "postfix"
     deploy:
       resources:
         limits:
@@ -511,13 +543,14 @@ services:
         source: "./infra/monitoring/prometheus"
         target: /etc/prometheus
       - prometheus_data:/prometheus/data
-      # Logs en ./logs/app/prometheus (si usa directorio local)
-      - type: bind
-        source: "./logs/app/prometheus"
-        target: /var/log/prometheus
-        read_only: false
     networks:
       monitoring:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "5"
+        tag: "prometheus"
     deploy:
       resources:
         limits:
@@ -529,7 +562,6 @@ services:
     restart: always
     volumes:
       - grafana_data:/var/lib/grafana
-      # Logs en ./logs/app/grafana (si lo utiliza o configuras ahí)
       - type: bind
         source: "./logs/app/grafana"
         target: /var/log/grafana
@@ -541,11 +573,19 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_LOG_LEVEL: warn
+      GF_LOG_MODE: "console file"
+      GF_LOG_FILE_PATH: /var/log/grafana/grafana.log
     secrets:
       - grafana_admin_password
     networks:
       monitoring:
       app:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "5"
+        tag: "grafana"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:3000/grafana/api/health || exit 1"]
       interval: 30s
@@ -568,13 +608,14 @@ services:
         target: /etc/loki/loki-config.yaml
         read_only: true
       - loki_data:/loki/data
-      # Logs en ./logs/app/loki
-      - type: bind
-        source: "./logs/app/loki"
-        target: /var/log/loki
-        read_only: false
     networks:
       monitoring:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "5"
+        tag: "loki"
     deploy:
       resources:
         limits:
@@ -593,13 +634,14 @@ services:
         target: /etc/alertmanager/alertmanager.yml
         read_only: true
       - alertmanager_data:/alertmanager
-      # Logs en ./logs/app/alertmanager (si se configura)
-      - type: bind
-        source: "./logs/app/alertmanager"
-        target: /var/log/alertmanager
-        read_only: false
     networks:
       monitoring:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+        tag: "alertmanager"
     deploy:
       resources:
         limits:
@@ -611,6 +653,12 @@ services:
     restart: always
     networks:
       monitoring:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "node_exporter"
     deploy:
       resources:
         limits:
