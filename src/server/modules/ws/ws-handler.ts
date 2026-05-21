@@ -84,7 +84,7 @@ async function handleConnection(
 
       let userId: string | null = null;
       try {
-        const sessionManager = (await import('modules/auth/session-manager')).getSessionManager();
+        const sessionManager = await (await import('modules/auth/session-manager')).getSessionManager();
         const result = await sessionManager.verifySession(payload.token);
 
         if (!result.valid || result.session_id !== payload.sessionId) {
