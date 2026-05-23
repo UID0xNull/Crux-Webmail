@@ -50,7 +50,7 @@ export default function AdminSessionsPage() {
     <main className="p-6 space-y-4 max-w-screen-xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Active Sessions</h1>
+          <h1 className="text-xl font-semibold text-slate-900 mb-3">Active Sessions</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {total} active session{total !== 1 ? 's' : ''} across all users.
             {refreshed && <span className="ml-2">Last updated: {refreshed.toLocaleTimeString()}</span>}

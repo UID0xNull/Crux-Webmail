@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   Crux Webmail – Design Token System (v2)
+   Color tokens mapped to CSS custom properties for consistency across all components.
+   
+   Naming convention: --crux-{area}-{name}[-variant]
+     area = base (layout), accent (primary brand), semantic (states), surface, text
+ ======================================== */
+
+:root {
+  /* ---------- Base palette (warm slate + indigo-violet) ---------- */
+  --crux-base-0:    #0a1230;  /* deepest panel bg     */
+  --crux-base-50:   #141b37;  /* sidebar / panels     */
+  --crux-base-100:  #1c2648;  /* secondary panels     */
+  --crux-base-150:  #263360;  /* elevated surfaces    */
+  --crux-base-200:  #313f7a;  /* borders, dividers    */
+
+  /* ---------- Accent / brand (indigo-violet gradient) ---------- */
+  --crux-accent-main: #4d5cff;   /* primary actions       */
+  --crux-accent-light:#6b7aff;   /* subtle highlights     */
+  --crux-accent-dim:  #38309a;   /* active / hover states  */
+
+  /* ---------- Semantic colors (flat, accessible) ---------- */
+  --crux-semantic-primary:  var(--crux-accent-main);
+  --crux-semantic-success:  #27b668;
+  --crux-semantic-warning:  #fbbf24;
+  --crux-semantic-danger:   #ef4444;
+  --crux-semantic-info:     #38bdf8;
+
+  /* ---------- Text colors ---------- */
+  --crux-text-main:        #e8ebff;      /* on dark base             */
+  --crux-text-muted:       rgba(192,204,255,.6);
+  --crux-text-dim:         rgba(163,175,255,.4);
+  --crux-text-on-accent:   #ffffff;
+
+  /* ---------- UI helpers (from Tailwind) ---------- */
+  --tw-ring-opacity:      var(--tw-ring-inset);
+}
+
+.dark {
+  color-scheme: dark;
+  background-color: var(--crux-base-0);
+  color: var(--crux-text-main);
+}
+
+/* ----------------------------------
+   Global utility classes for reuse
+----------------------------------- */
+
+@layer utilities {
+  .bg-crux-sidebar {     background-color: var(--crux-base-50); }
+  .text-accent-muted {    color: var(--crux-text-dim);        }
+}
+
+/* ---------- Subtle transitions on the root ---------- */
+body * {
+  transition-property: color, background-color, border-color, fill, stroke;
+  transition-timing-function: cubic-bezier(.16,.92,.48,.58); /* smooth spring */
+}
+
+/* -----------------------------------
+   Aurora animation for login (refined)
+----------------------------------- */
+@keyframes aurora-a {
+  0%   { transform: translate3d(-25%, -15%) rotate(0deg) scale(1); }
+  33%  { transform: translate3d(5%, -30%) rotate(40deg) scale(1.16); }
+  66%  { transform: translate3d(-15%, -8%) rotate(110deg) scale(1.02); }
+  100% { transform: translate3d(-25%, -15%) rotate(0deg) scale(1); }
+}
+@keyframes aurora-b {
+  0%   { transform: translate3d(20%, 25%) rotate(0deg) scale(1.04); }
+  33%  { transform: translate3d(-18%, 16%) rotate(-40deg) scale(.96); }
+  66%  { transform: translate3d(12%, -15%) rotate(70deg) scale(1.09); }
+  100% { transform: translate3d(20%, 25%) rotate(0deg) scale(1.04); }
+}
+
+/* -----------------------------------
+   Floating particles (login page)
+----------------------------------- */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); opacity: .18; }
+  50%      { transform: translateY(-16px); opacity: .28; }
+}
+
+/* -----------------------------------
+   Notification pulse (Bell badge)
+----------------------------------- */
+@keyframes notif-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.3); }
+  50%      { box-shadow: 0 0 0 4px rgba(239,68,68,0); }
+}
+
+/* -----------------------------------
+   Scrollbar polish (sidebar)
+----------------------------------- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: var(--crux-base-200);
+  border-radius: 100vw;
+}
+
+/* -----------------------------------
+   Focus ring (accessibility)
+----------------------------------- */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--crux-accent-light), 0 0 0 4px rgba(77,92,255,.15);
+}
+
+/* -----------------------------------
+   Selection color (consistency)
+----------------------------------- */
+::selection {
+  background-color: var(--crux-accent-dim);
+  color: var(--crux-text-on-accent);
+}

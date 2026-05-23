@@ -1,0 +1,118 @@
+/* ================================================================== */
+/* Base styles — Crux Webmail                                         */
+/* Designed to work with design-tokens (CSS variables)                */
+/* ================================================================== */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Color tokens from design system */
+  --primary: #505CF0;
+  --primary-hover: #4150D0;
+  --secondary: #3E58DB;
+  --accent: #14A96B;
+
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --text-light: #F8FAFC;
+
+  --bg-page: #F1F5F9;
+  --bg-card: #FFFFFF;
+  --bg-subtle: #E2E8F0;
+  --bg-accent: #EEF2FF;
+
+  --border: #E2E8F0;
+  --border-muted: #EDF2F7;
+
+  /* Semantic colors */
+  --success: #14B8A6;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #3B82F6;
+
+  --red: var(--error);
+
+  /* Radii tokens */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-full: 9999px;
+
+  /* Shadows (refined, modern) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+
+  /* Transitions */
+  --transition-fast: all 0.15s ease-in-out;
+  --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1 { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+h2 { font-size: 24px; font-weight: 600; color: var(--text-primary); }
+h3 { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+h4 { font-size: 18px; font-weight: 500; color: var(--text-primary); }
+
+/* Paragraph */
+p { color: var(--text-secondary); line-height: 1.75; margin-bottom: 0.5em; }
+
+/* Links */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+a:hover {
+  color: var(--primary-hover);
+}
+
+/* Small text utility */
+.text-sm { font-size: 13px !important; }
+
+/* Buttons (native) */
+button, [role='button'] {
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  color: var(--text-primary);
+  outline-offset: -1px;
+}
+
+/* Input focus */
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--bg-accent);
+}
+
+/* Badges and status indicators */
+.badge-success { background: color-mix(in srgb, #14B8A6 15%, white); color: #14B8A6; }
+.badge-warning { background: color-mix(in srgb, #F59E0B 15%, white); color: #D97706; }
+.badge-error   { background: color-mix(in srgb, #EF4444 15%, white); color: #DC2626; }
+.badge-info    { background: color-mix(in srgb, #3B82F6 15%, white); color: var(--primary); }
+
+/* Scrollbar (subtle) */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.15); border-radius: var(--radius-full); }

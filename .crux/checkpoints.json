@@ -1,87 +1,256 @@
 [
   {
-    "loopCount": 21,
-    "completedTodos": 13,
+    "loopCount": 6,
+    "completedTodos": 5,
     "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.yml",
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx"
     ],
-    "timestamp": 1779139408733
-  },
-  {
-    "loopCount": 22,
-    "completedTodos": 13,
-    "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.yml",
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
-    ],
-    "timestamp": 1779139412826
+    "timestamp": 1779485898882
   },
   {
     "loopCount": 9,
-    "completedTodos": 13,
+    "completedTodos": 6,
     "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.yml",
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx"
     ],
-    "timestamp": 1779139536889
-  },
-  {
-    "loopCount": 10,
-    "completedTodos": 13,
-    "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.yml",
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
-    ],
-    "timestamp": 1779139543847
+    "timestamp": 1779485940039
   },
   {
     "loopCount": 22,
-    "completedTodos": 13,
+    "completedTodos": 5,
     "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.yml",
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx"
     ],
-    "timestamp": 1779139958012
+    "timestamp": 1779486303882
   },
   {
-    "loopCount": 28,
-    "completedTodos": 1,
+    "loopCount": 150,
+    "completedTodos": 5,
     "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\inbox\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\message\\[id]\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageSearchBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\hooks\\useAuth.ts"
     ],
-    "timestamp": 1779170400851
+    "timestamp": 1779498501149
   },
   {
-    "loopCount": 31,
-    "completedTodos": 2,
+    "loopCount": 80,
+    "completedTodos": 7,
     "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\inbox\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\message\\[id]\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageSearchBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\hooks\\useAuth.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\badge.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\button.tsx"
     ],
-    "timestamp": 1779170459963
+    "timestamp": 1779501261732
+  },
+  {
+    "loopCount": 86,
+    "completedTodos": 7,
+    "modifiedFiles": [
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\inbox\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\message\\[id]\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageSearchBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\hooks\\useAuth.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\badge.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\button.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\compose\\page.tsx"
+    ],
+    "timestamp": 1779501344715
+  },
+  {
+    "loopCount": 87,
+    "completedTodos": 8,
+    "modifiedFiles": [
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\inbox\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\message\\[id]\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageSearchBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\hooks\\useAuth.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\badge.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\button.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\compose\\page.tsx"
+    ],
+    "timestamp": 1779501354226
   },
   {
     "loopCount": 44,
-    "completedTodos": 1,
+    "completedTodos": 6,
     "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\inbox\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\message\\[id]\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageSearchBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\hooks\\useAuth.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\badge.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\button.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\compose\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageFilters.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\audit\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\health\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\users\\page.tsx"
     ],
-    "timestamp": 1779170585537
+    "timestamp": 1779508386300
   },
   {
-    "loopCount": 76,
-    "completedTodos": 3,
-    "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
-    ],
-    "timestamp": 1779171023822
-  },
-  {
-    "loopCount": 79,
+    "loopCount": 52,
     "completedTodos": 4,
     "modifiedFiles": [
-      "d:\\Github\\Crux-Webmail\\docker-compose.prod.yml"
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\inbox\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\message\\[id]\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageSearchBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\hooks\\useAuth.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\badge.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\button.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\compose\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageFilters.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\audit\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\health\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\users\\page.tsx"
     ],
-    "timestamp": 1779171062616
+    "timestamp": 1779508524686
+  },
+  {
+    "loopCount": 60,
+    "completedTodos": 4,
+    "modifiedFiles": [
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardLayout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\layout\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\auth\\AuthGate.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\login\\layout.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\DashboardSidebar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\design-tokens.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\lib\\tailwind-colors.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\Input.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\dashboard\\DashboardTopBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\inbox\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\message\\[id]\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageSearchBar.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\hooks\\useAuth.ts",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\badge.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\ui\\button.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\compose\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\components\\email\\MessageFilters.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\audit\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\health\\page.tsx",
+      "d:\\Github\\Crux-Webmail\\src\\web\\app\\dashboard\\admin\\users\\page.tsx"
+    ],
+    "timestamp": 1779508669784
   }
 ]

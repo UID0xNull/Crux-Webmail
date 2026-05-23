@@ -51,9 +51,7 @@ export default function AdminAuditPage() {
   return (
     <main className="p-6 space-y-4 max-w-screen-xl mx-auto">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Audit Logs</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Security and activity event history.</p>
-      </div>
+        <h1 className="text-xl font-semibold text-slate-900 mb-3">Audit Logs</h1>      </div>
 
       {/* Summary */}
       {summary && (

@@ -3,6 +3,59 @@
 import React, { useEffect, useState } from 'react';
 import { getSystemHealth } from 'lib/api/admin';
 import type { AdminSystemHealth } from 'lib/types';
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h2 className="text-sm font-medium text-slate-600 dark:text-gray-300 mb-3">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Metric({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">{label}</span>
+      <span className="font-semibold text-lg text-white dark:text-gray-100">{value}</span>
+      {sub && <span className="mt-1 text-xs text-gray-400 dark:text-gray-500">{sub}</span>}
+    </div>
+  );
+}
+
+function ComponentStatusRow({ name, status }: { name: string; status?: string }) {
+  if (!status) return null;
+  const v = String(status).toLowerCase();
+  let colorClass: string = 'text-slate-600 dark:text-gray-300';
+  if (v === 'ok' || v === 'connected') colorClass = 'text-green-600 dark:text-green-400';
+  else if (v.includes('error') || v.includes('fail')) colorClass = 'text-red-600 dark:text-red-400';
+
+  let dotColor = 'bg-amber-500 dark:bg-gray-600';
+  if (v === 'ok' || v === 'connected') dotColor = 'bg-green-500';
+  else if (v.includes('error') || v.includes('fail')) dotColor = 'bg-red-500';
+
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span>{name}</span>
+      <span className={colorClass}>
+        <span className={`inline-block w-2 h-2 rounded-full mr-1 ${dotColor}`} />
+        {status}
+      </span>
+    </div>
+  );
+}
+
+function Alert({ type, title, message }: { type: 'error' | 'success'; title?: string; message?: string }) {
+  const cls = type === 'error'
+    ? 'bg-red-50 border border-red-200 text-red-700 dark:text-red-300'
+    : 'bg-green-50 border border-green-200 bg-opacity-50 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300';
+
+  return (
+    <div className={`rounded-lg p-3 ${cls}`}>
+      {title && <p className="font-medium">{title}</p>}
+      {message && <p className="mt-1 text-sm">{message}</p>}
+    </div>
+  );
+}
 
 export default function AdminHealthPage() {
   const [data, setData] = useState<AdminSystemHealth | null>(null);
@@ -32,35 +85,18 @@ export default function AdminHealthPage() {
     return d > 0 ? `${d}d ${h % 24}h` : h > 0 ? `${h}h ${Math.floor((s % 3600) / 60)}m` : `${s}s`;
   }
 
-  function statusColor(s: string) {
-    const v = String(s).toLowerCase();
-    if (v === 'ok' || v === 'connected') return 'text-green-600';
-    if (v.includes('error') || v.includes('fail')) return 'text-red-600';
-    return 'text-amber-600';
-  }
-
-  function statusDot(s: string) {
-    const v = String(s).toLowerCase();
-    if (v === 'ok' || v === 'connected') return 'bg-green-500';
-    if (v.includes('error') || v.includes('fail')) return 'bg-red-500';
-    return 'bg-amber-500';
-  }
+  const hasAnyError = !!(data?.errors && data.errors.length > 0);
 
   return (
     <main className="p-6 space-y-6 max-w-screen-xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">System Health</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Server, database, cache, and queue status.
-            {refreshed && <span className="ml-2">Last updated: {refreshed.toLocaleTimeString()}</span>}
-          </p>
+          <h1 className="text-xl font-semibold mb-3 dark:text-white text-slate-900">System Health</h1>
+          <p className="text-slate-500 mb-1 dark:text-gray-400">Server, database, cache, and queue status.</p>
+          {refreshed && (          <span className="ml-2 text-xs text-slate-400 dark:text-gray-500">Last updated: {refreshed.toLocaleTimeString()}</span>)}
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
-        >
+        <button onClick={load} disabled={loading}
+          className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50">
           {loading ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
@@ -68,107 +104,67 @@ export default function AdminHealthPage() {
       {loading && !data ? (
         <div className="text-sm text-gray-500">Loading…</div>
       ) : error ? (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>
+        <Alert type="error" message={error} />
       ) : data ? (
         <div className="space-y-4">
           {/* Server */}
           <Section title="Server">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
               <Metric label="Uptime" value={uptimeLabel(data.server.uptime)} />
-              <Metric
-                label="Memory"
+              <Metric label="Memory"
                 value={`${data.server.memory.percent.toFixed(1)}%`}
-                sub={`${data.server.memory.usedMB.toFixed(0)} / ${data.server.memory.totalMB.toFixed(0)} MB`}
-                warn={data.server.memory.percent >= 85}
-              />
-              <Metric
-                label="CPU"
-                value={`${data.server.cpuPercent.toFixed(1)}%`}
-                warn={data.server.cpuPercent >= 85}
-              />
-              <Metric label="Node.js" value={data.server.nodeVersion} />
-              <Metric label="Environment" value={data.server.environment} />
-            </div>
-
-            {/* Memory bar */}
-            <div className="mt-3">
-              <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden w-full max-w-xs">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    data.server.memory.percent >= 90 ? 'bg-red-500' : data.server.memory.percent >= 75 ? 'bg-amber-500' : 'bg-blue-500'
-                  }`}
-                  style={{ width: `${Math.min(data.server.memory.percent, 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Memory usage</p>
+                sub={`${data.server.memory.usedMB.toFixed(0)} / ${data.server.memory.totalMB}`} />
             </div>
           </Section>
 
-          {/* Postgres */}
-          <Section title="PostgreSQL">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot(data.postgres.status)}`} />
-                <div>
-                  <div className="text-xs text-gray-500">Status</div>
-                  <div className={`font-medium ${statusColor(data.postgres.status)}`}>{data.postgres.status}</div>
-                </div>
-              </div>
-              <Metric label="Latency" value={`${data.postgres.latencyMs ?? '—'} ms`} />
-              {data.postgres.version && <Metric label="Version" value={data.postgres.version} />}
-            </div>
+          {/* Database */}
+          <Section title="Database">
+            <ComponentStatusRow name="Connection" status={data.database.status ?? 'unknown'} />
+            <span className="text-xs text-gray-500 mt-2">{data.database.description}</span>
           </Section>
 
-          {/* Redis */}
-          <Section title="Redis">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot(data.redis.status)}`} />
-                <div>
-                  <div className="text-xs text-gray-500">Status</div>
-                  <div className={`font-medium ${statusColor(data.redis.status)}`}>{data.redis.status}</div>
-                </div>
-              </div>
-              <Metric label="Latency" value={`${data.redis.latencyMs ?? '—'} ms`} />
-              {data.redis.connectedClients !== undefined && (
-                <Metric label="Connected Clients" value={String(data.redis.connectedClients)} />
-              )}
-            </div>
+          {/* Cache */}
+          <Section title="Cache">
+            <ComponentStatusRow name={data.cache.name} status={data.cache.status ?? 'unknown'} />
+            <span className="text-xs text-gray-500 mt-2">{data.cache.description}</span>
           </Section>
 
-          {/* Queues */}
-          <Section title="Queues">
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <Metric label="Email — Waiting" value={String(data.queues.email.waiting)} />
-              <Metric label="Email — Active" value={String(data.queues.email.active)} />
-              <Metric
-                label="Email — Failed"
-                value={String(data.queues.email.failed)}
-                warn={data.queues.email.failed > 0}
-              />
-            </div>
+          {/* Queue */}
+          <Section title="Queue">
+            <ComponentStatusRow name={data.queue.name} status={data.queue.status ?? 'unknown'} />
+            <span className="text-xs text-gray-500 mt-2">{data.queue.description}</span>
           </Section>
+
+          {/* Workers */}
+          <Section title="Workers">
+            {data.workers && data.workers.length > 0 ? (
+              data.workers.map((w) => (
+                <ComponentStatusRow key={w.id ?? w.name} name={w.name} status={w.status} />
+              ))
+            ) : (
+              <div className="text-sm text-gray-400 dark:text-gray-500 italic">No workers running.</div>            )}
+          </Section>
+
+          {/* Errors */}
+          {hasAnyError && data.errors && data.errors.length > 0 ? (
+            <Alert type="error" title="Issues Found" message={data.errors[0]} />
+          ) : (
+            <Alert type="success" title="System Status"
+              message={data.server.uptime > 0 ? 'All systems operational' : 'System starting up'} />
+          )}
+
+          {/* Disk */}
+          {data.disk && data.disk.totalMb > 0 && (
+            <Metric label="Disk"
+              value={`${(data.disk.usedMb / 1024).toFixed(1)} GB`}
+              sub={`${((data.disk.percent * 100)).toFixed(1)}% used • ${(data.disk.freeMb / 1024).toFixed(1)} GB free`}>
+            </Metric>
+          )}
+
+          {/* Network */}
+          <Metric label="Network" value={String(data.network ?? 'unknown')} sub={(typeof data.network === 'string') ? data.network : String(data.network)}/>
         </div>
       ) : null}
     </main>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-      <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-100 mb-3">{title}</h2>
-      {children}
-    </div>
-  );
-}
-
-function Metric({ label, value, sub, warn }: { label: string; value: string; sub?: string; warn?: boolean }) {
-  return (
-    <div>
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className={`font-semibold mt-0.5 ${warn ? 'text-amber-600' : 'text-gray-900 dark:text-gray-100'}`}>{value}</div>
-      {sub && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
-    </div>
   );
 }

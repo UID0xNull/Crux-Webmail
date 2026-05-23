@@ -70,7 +70,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100 dark:bg-gray-950">
+    <div className="h-screen flex overflow-hidden bg-white dark:bg-gray-900">
+      {/* Subtle noise overlay */}
+      <div className="pointer-events-none fixed inset-0 z-[1] opacity-[0.02] mix-blend-overlay" aria-hidden>
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <filter id="noise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#noise)" opacity="1" />
+        </svg>
+      </div>
+
       {/* Sidebar */}
       <DashboardSidebar />
 
@@ -123,7 +134,7 @@ function DashboardTopBar({
   onRefresh,
 }: DashboardTopBarProps) {
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+            <header className="bg-white/80 backdrop-blur-sm dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
       {/* Left: breadcrumbs + refresh */}
       <div className="flex items-center gap-3">
         <button

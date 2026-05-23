@@ -109,7 +109,7 @@ export default function AdminUsersPage() {
     <main className="p-6 space-y-4 max-w-screen-xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Users</h1>
+          <h1 className="text-xl font-semibold text-slate-900 mb-3">Users</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage user accounts, roles, and status.</p>
         </div>
         <button

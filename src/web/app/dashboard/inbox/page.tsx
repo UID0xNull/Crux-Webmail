@@ -29,13 +29,8 @@ export default function InboxPage() {
   const observerTarget = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => { loadInbox(); }, [loadInbox]);
-
   useEffect(() => { setFilteredMessages(rawMessages); }, [rawMessages]);
-
-  useEffect(() => {
-    setSelectedIds(new Set());
-    setSelectAll(false);
-  }, [selectedMailbox]);
+  useEffect(() => { setSelectedIds(new Set()); setSelectAll(false); }, [selectedMailbox]);
 
   useEffect(() => {
     if (!observerTarget.current || !hasMore || isLoading) return;
@@ -109,10 +104,10 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="px-4 py-3 border-b dark:border-gray-700 bg-white/90 dark:bg-slate-850 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{mailboxLabel}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{mailboxLabel}</h1>
             <Badge variant="info">{filteredMessages.length}</Badge>
           </div>
           <div className="flex items-center gap-3">
@@ -138,7 +133,7 @@ export default function InboxPage() {
       />
 
       {/* Message list */}
-      <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-800">
+      <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-800">
         {isLoading && filteredMessages.length === 0 ? (
           <MessageListSkeleton />
         ) : filteredMessages.length === 0 ? (
@@ -147,25 +142,19 @@ export default function InboxPage() {
             <p className="text-lg">No hay mensajes en {mailboxLabel}</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            <div className="flex items-center gap-3 px-4 py-2 text-xs text-gray-400">
-              <button onClick={toggleSelectAll} className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+          <>
+            {/* Multi-select row header */}
+            <div className="px-5 py-2.5 bg-gray-50/80 dark:bg-slate-850 border-b border-dashed border-gray-100">
+              <button onClick={toggleSelectAll} className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
                 {selectAll ? <CheckSquare className="w-4 h-4 text-blue-500" /> : <CheckSquare className="w-4 h-4" />}
               </button>
               <span className="flex-1">Remitente</span>
               <span className="text-right">Fecha</span>
             </div>
             {filteredMessages.map((msg) => (
-              <MessageRow
-                key={msg.id}
-                message={msg}
-                isSelected={selectedIds.has(msg.id)}
-                onClick={() => handleSelectMessage(msg)}
-                onToggleFlag={toggleFlag}
-                onToggleSelect={toggleSelectMsg}
-              />
+              <MessageRow key={msg.id} message={msg} isSelected={selectedIds.has(msg.id)} onClick={() => handleSelectMessage(msg)} onToggleFlag={toggleFlag} onToggleSelect={toggleSelectMsg} />
             ))}
-          </div>
+          </>
         )}
         <div ref={observerTarget} className="h-4" />
       </div>
@@ -173,13 +162,7 @@ export default function InboxPage() {
   );
 }
 
-function MessageRow({
-  message,
-  isSelected,
-  onClick,
-  onToggleFlag,
-  onToggleSelect,
-}: {
+function MessageRow({ message, isSelected, onClick, onToggleFlag, onToggleSelect }: {
   message: EmailMessage;
   isSelected: boolean;
   onClick: () => void;
@@ -189,62 +172,29 @@ function MessageRow({
   const sender = message.from[0] ?? { name: 'Unknown', email: 'unknown' };
 
   return (
-    <div
-      onClick={onClick}
-      className={`
-        group flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer
-        ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' :
-          !message.isSeen ? 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-gray-50 dark:hover:bg-gray-750' :
-          'hover:bg-gray-50 dark:hover:bg-gray-750'}
-      `}
-    >
-      {/* Checkbox */}
-      <button
-        onClick={(e) => onToggleSelect(message.id, e)}
-        className="mt-1 flex-shrink-0 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-      >
-        {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <CheckSquare className="w-4 h-4 text-gray-300" />}
+    <div onClick={onClick} className={`group flex items-start gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 cursor-pointer mb-1.5 border ${isSelected ? 'bg-blue-100/60 dark:bg-blue-950/30 shadow-lg' : !message.isSeen ? 'bg-white dark:bg-slate-850 hover:from-blue-50/80 hover:to-transparent bg-gradient-to-r dark:hover:from-blue-950/20 border-gray-100 dark:border-slate-700' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-750'} ${!message.isSeen && 'border-l-[3px] border-l-blue-600 rounded-bl-md'}`}>
+      <button onClick={(e) => onToggleSelect(message.id, e)} className={`mt-1 flex-shrink-0 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 ${isSelected ? 'bg-blue-200/50 hover:bg-blue-300/50' : 'hover:bg-gray-100 dark:hover:bg-slate-700'} text-gray-400`}>
+        {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <CheckSquare className="w-4 h-4" />}
       </button>
-
-      {/* Star */}
-      <button
-        onClick={(e) => onToggleFlag(e, message)}
-        className="mt-1 flex-shrink-0 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-      >
-        <Star className={`w-4 h-4 ${message.isFlagged ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 dark:text-gray-600 group-hover:text-gray-400'}`} />
+      <button onClick={(e) => onToggleFlag(e, message)} className="mt-[1px] flex-shrink-0 p-1.5 rounded-lg transition-all duration-200 hover:bg-yellow-50 dark:hover:bg-yellow-950/30">
+        <Star className={`w-4 h-4 drop-shadow-sm ${message.isFlagged ? 'fill-yellow-400 text-yellow-500 scale-[1.08]' : 'text-gray-200 dark:text-slate-500 group-hover:text-yellow-300'}`} />
       </button>
-
-      {/* Avatar */}
-      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold ${
-        !message.isSeen ? 'bg-blue-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-      }`}>
+      <div className={`relative w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold shadow-md ring-2 ${!message.isSeen ? 'bg-blue-600 text-white dark:bg-blue-700 ring-blue-300 dark:ring-blue-800' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ring-gray-200/60 dark:ring-slate-600/40'}`}>
         {sender.name?.[0]?.toUpperCase() ?? sender.email?.[0]?.toUpperCase() ?? '?'}
       </div>
-
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">
-          <span className={`text-sm truncate ${!message.isSeen ? 'font-bold text-gray-900 dark:text-gray-100' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
-            {sender.name || sender.email}
-          </span>
-          <span className="text-xs text-gray-400 flex-shrink-0">
-            {message.date ? formatDistanceToNow(parseISO(message.date), { addSuffix: true }) : ''}
-          </span>
+          <span className={`text-sm truncate ${message.isFlagged ? 'font-semibold' : !message.isSeen ? 'font-bold text-slate-900 dark:text-slate-100' : 'font-medium text-gray-700 dark:text-slate-300'}`}>{sender.name || sender.email}</span>
+          <span className="text-xs text-gray-400 flex-shrink-0">{message.date ? formatDistanceToNow(parseISO(message.date), { addSuffix: true }) : ''}</span>
         </div>
-        <div className={`text-sm truncate mb-0.5 ${!message.isSeen ? 'font-semibold text-gray-800 dark:text-gray-200' : 'text-gray-600 dark:text-gray-400'}`}>
-          {message.subject || '(Sin asunto)'}
-        </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-          {message.previewText || '(Sin vista previa)'}
-        </p>
+        <div className={`text-sm truncate mb-0.5 ${!message.isSeen ? 'font-medium' : 'text-gray-600 dark:text-slate-400'}`}>{message.subject || '(Sin asunto)'}</div>
+        <p className="text-xs text-gray-400 truncate">{message.previewText || '(Sin vista previa)'}</p>
       </div>
-
-      {/* Indicators */}
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
         {message.hasAttachments && <Paperclip className="w-3.5 h-3.5 text-gray-400" />}
         {message.isEncrypted && <Badge variant="success" className="text-[10px] px-1 py-0">🔒</Badge>}
         {message.quarantine_status === 'suspicious' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-        {message.quarantine_status === 'quarantined' && <Badge variant="error" className="text-[10px] px-1 py-0">Cuarantena</Badge>}
+        {message.quarantine_status === 'quarantined' && <Badge variant="error" className="text-[10px] px-1 py-0">Cuarentena</Badge>}
       </div>
     </div>
   );

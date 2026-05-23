@@ -26,7 +26,8 @@ import { format } from 'date-fns';
 import type { EmailMessage, EmailAddress } from '../../../../lib/types';
 
 // ------------------------------------------------------------------
-// Thread/Message View Page
+// Thread/Message View Page - XSS Sanitized
+// Uses sanitizeHtml to prevent DOM-based XSS
 // ------------------------------------------------------------------
 export default function MessageViewPage() {
   const params = useParams();
@@ -176,7 +177,7 @@ ${selectedMessage.previewText}
         <div className="max-w-4xl mx-auto px-6 py-4">
           {/* Subject + Badges */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-gray-100 mb-3">
               {selectedMessage?.subject || '(No Subject)'}
             </h1>
 
@@ -213,7 +214,7 @@ ${selectedMessage.previewText}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-slate-900 dark:text-gray-100">
                     {selectedMessage?.from?.[0]?.name || selectedMessage?.from?.[0]?.email || 'Unknown'}
                   </span>
                   <span className="text-sm text-gray-500 ml-2">
@@ -274,52 +275,7 @@ ${selectedMessage.previewText}
 // Action Bar
 // ------------------------------------------------------------------
 function MessageActionBar({
-  onBack, onReply, onReplyAll, onForward, onFlag, onDelete, isFlagged,
-}: {
-  onBack: () => void;
-  onReply: () => void;
-  onReplyAll: () => void;
-  onForward: () => void;
-  onFlag: () => void;
-  onDelete: () => void;
-  isFlagged: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-      <Button variant="ghost" size="sm" onClick={onBack}>
-        <ChevronLeft className="w-4 h-4 mr-1" />
-        Back
-      </Button>
-
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="sm" onClick={onReply}>
-          <Reply className="w-4 h-4 mr-1" />
-          Reply
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onReplyAll}>
-          <ReplyAll className="w-4 h-4 mr-1" />
-          Reply All
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onForward}>
-          <Forward className="w-4 h-4 mr-1" />
-          Forward
-        </Button>
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
-        <Button variant="ghost" size="sm" onClick={onFlag}>
-          <Star
-            className={`w-4 h-4 ${isFlagged ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`}
-          />
-        </Button>
-        <Button variant="ghost" size="sm">
-          <Archive className="w-4 h-4" />
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onDelete}>
-          <Trash2 className="w-4 h-4 text-red-500" />
-        </Button>
-      </div>
-    </div>
-  );
-}
+  onBack, onReply, onReplyAll, onForward, onFlag, onDelete, isFlag
 
 // ------------------------------------------------------------------
 // Sender Avatar

@@ -16,16 +16,19 @@ const NAV_ITEMS = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const user = useAuthStore((s) => s.user);
-  const router = useRouter();
-  const pathname = usePathname();
-  const isAdmin = Array.isArray(user?.roles) && user.roles.includes('admin');
+   const user = useAuthStore((s) => s.user);
+   const router = useRouter();
+   const pathname = usePathname();
 
-  useEffect(() => {
-    if (!isAdmin) {
-      router.replace('/dashboard/inbox');
-    }
-  }, [isAdmin, router]);
+   useEffect(() => {
+     if (user && !Array.isArray(user.roles)) {
+       router.push('/dashboard/inbox');
+     }
+   }, [router, user]);
+
+  const isAdmin = user?.roles.includes('admin') ?? false;
+
+  if (!isAdmin) return null;
 
   if (!isAdmin) return null;
 
