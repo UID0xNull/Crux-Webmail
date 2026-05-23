@@ -182,5 +182,3 @@ function Pagination({ items, pageSize, page, onChange }: { items: number; pageSi
   );
 }
 
-// Re-add missing refs:
-import React, { useEffect, useState } from 'react';
