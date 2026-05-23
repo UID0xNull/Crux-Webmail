@@ -103,12 +103,18 @@ export default function ComposePage() {
               value={to}
               onChange={(e) => setTo(e.target.value)}
               placeholder="destinatario@ejemplo.com"
-              className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:indigo-500 transition-all duration-200"
+            <input
+              type="email"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="destinatario@ejemplo.com"
+              className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:[var(--crux-accent-light)] transition-all duration-200"
+            />
             />
           </label>
 
           {/* CC/BCC */}
-          <button type="button" onClick={() => setShowCcBcc((prev) => !prev)} className="text-xs text-gray-500 hover:text-indigo-600 dark:text-gray-400 transition-colors flex items-center gap-1 cursor-pointer select-none">
+          <button type="button" onClick={() => setShowCcBcc((prev) => !prev)} className="text-xs text-gray-500 hover:text-[var(--crux-accent-light)] dark:text-gray-400 transition-colors flex items-center gap-1 cursor-pointer select-none">
             {showCcBcc ? (<MinusIcon className="w-3.5 h-3.5"/>) : (<Plus className="w-3.5 h-3.5"/>) } CC / BCC
           </button>
 

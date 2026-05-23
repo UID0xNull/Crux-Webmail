@@ -81,7 +81,7 @@ export default function AdminAuditPage() {
         <button
           onClick={load}
           disabled={loading}
-          className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-3 py-2 text-sm bg-[var(--crux-accent-light)] text-white dark:text-black rounded-lg hover:bg-[#7DA4E0]"
         >
           {loading ? 'Loading…' : 'Refresh'}
         </button>
@@ -128,7 +128,7 @@ export default function AdminAuditPage() {
 
       {/* Back link */}
       {!loading && (
-        <a href="/admin" className="text-sm text-blue-600 hover:underline">← Admin</a>
+        <a href="/admin" className="text-sm text-[var(--crux-accent-light)] hover:underline">← Admin</a>
       )}
     </main>
   );
@@ -174,7 +174,7 @@ function Pagination({ items, pageSize, page, onChange }: { items: number; pageSi
   return (
     <div className="flex gap-2">
       {Array.from({ length: total }, (_, i) => (
-        <button key={i + 1} onClick={() => onChange(i + 1)} className={`px-3 py-1 text-sm border rounded-lg ${page === i + 1 ? 'bg-blue-600 text-white' : ''}`}>
+        <button key={i + 1} onClick={() => onChange(i + 1)} className={`px-3 py-1 text-sm border rounded-lg ${page === i + 1 ? 'bg-[var(--crux-accent-light)] text-white' : ''}`
           {i + 1}
         </button>
       ))}

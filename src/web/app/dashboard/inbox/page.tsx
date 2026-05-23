@@ -12,6 +12,8 @@ import { MailOpen, Star, Paperclip, AlertTriangle, CheckSquare, Check } from 'lu
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import type { EmailMessage } from '@/lib/types';
 
+const ACCENT_LIGHT = '#5D76ED'; // --crux-accent-light color for inlined use
+
 export default function InboxPage() {
   const router = useRouter();
   const rawMessages = useMailStore((s) => s.messages);
@@ -146,7 +148,7 @@ export default function InboxPage() {
             {/* Multi-select row header */}
             <div className="px-5 py-2.5 bg-gray-50/80 dark:bg-slate-850 border-b border-dashed border-gray-100">
               <button onClick={toggleSelectAll} className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
-                {selectAll ? <CheckSquare className="w-4 h-4 text-blue-500" /> : <CheckSquare className="w-4 h-4" />}
+                {selectAll ? <CheckSquare className="w-4 h-4" style={{ color: ACCENT_LIGHT }} /> : <CheckSquare className="w-4 h-4" />}
               </button>
               <span className="flex-1">Remitente</span>
               <span className="text-right">Fecha</span>
@@ -172,14 +174,14 @@ function MessageRow({ message, isSelected, onClick, onToggleFlag, onToggleSelect
   const sender = message.from[0] ?? { name: 'Unknown', email: 'unknown' };
 
   return (
-    <div onClick={onClick} className={`group flex items-start gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 cursor-pointer mb-1.5 border ${isSelected ? 'bg-blue-100/60 dark:bg-blue-950/30 shadow-lg' : !message.isSeen ? 'bg-white dark:bg-slate-850 hover:from-blue-50/80 hover:to-transparent bg-gradient-to-r dark:hover:from-blue-950/20 border-gray-100 dark:border-slate-700' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-750'} ${!message.isSeen && 'border-l-[3px] border-l-blue-600 rounded-bl-md'}`}>
-      <button onClick={(e) => onToggleSelect(message.id, e)} className={`mt-1 flex-shrink-0 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 ${isSelected ? 'bg-blue-200/50 hover:bg-blue-300/50' : 'hover:bg-gray-100 dark:hover:bg-slate-700'} text-gray-400`}>
-        {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <CheckSquare className="w-4 h-4" />}
+    <div onClick={onClick} className={`group flex items-start gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 cursor-pointer mb-1.5 border ${isSelected ? 'bg-[var(--crux-accent-light)] dark:bg-blue-950/30 shadow-lg' : !message.isSeen ? 'bg-white dark:bg-slate-850 hover:from-transparent hover:to-[var(--crux-accent-light)] bg-gradient-to-r dark:hover:from-blue-950/20 border-gray-100 dark:border-slate-700' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-750'} ${!message.isSeen && 'border-l-[3px] border-l-[var(--crux-accent-light)] rounded-bl-md'}`}>
+      <button onClick={(e) => onToggleSelect(message.id, e)} className={`mt-1 flex-shrink-0 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 ${isSelected ? 'bg-[var(--crux-accent-light)]/30 hover:bg-[#7DA4E0]/30' : 'hover:bg-gray-100 dark:hover:bg-slate-700'} text-gray-400`}>
+        {isSelected ? <CheckSquare className="w-4 h-4" style={{ color: ACCENT_LIGHT }} /> : <CheckSquare className="w-4 h-4" />}
       </button>
       <button onClick={(e) => onToggleFlag(e, message)} className="mt-[1px] flex-shrink-0 p-1.5 rounded-lg transition-all duration-200 hover:bg-yellow-50 dark:hover:bg-yellow-950/30">
         <Star className={`w-4 h-4 drop-shadow-sm ${message.isFlagged ? 'fill-yellow-400 text-yellow-500 scale-[1.08]' : 'text-gray-200 dark:text-slate-500 group-hover:text-yellow-300'}`} />
       </button>
-      <div className={`relative w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold shadow-md ring-2 ${!message.isSeen ? 'bg-blue-600 text-white dark:bg-blue-700 ring-blue-300 dark:ring-blue-800' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ring-gray-200/60 dark:ring-slate-600/40'}`}>
+      <div className={`relative w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold shadow-md ring-2 ${!message.isSeen ? 'bg-[var(--crux-accent-light)] text-white dark:bg-[#5D76ED] ring-[#7DA4E0]/60 dark:ring-[var(--crux-accent-light)]/30' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ring-gray-200/60 dark:ring-slate-600/40'}`}>
         {sender.name?.[0]?.toUpperCase() ?? sender.email?.[0]?.toUpperCase() ?? '?'}
       </div>
       <div className="flex-1 min-w-0">

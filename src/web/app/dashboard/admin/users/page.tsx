@@ -113,9 +113,9 @@ export default function AdminUsersPage() {
           <p className="text-sm text-gray-500 mt-0.5">Manage user accounts, roles, and status.</p>
         </div>
         <button
-          onClick={() => setCreating(true)}
-          className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
+            onClick={() => setCreating(true)}
+            className="px-3 py-1.5 text-white text-sm font-medium rounded-lg bg-[var(--crux-accent-main)] dark:bg-[var(--crux-accent-light)] hover:opacity-90 transition-colors"
+          >
           + New User
         </button>
       </div>
@@ -188,7 +188,7 @@ export default function AdminUsersPage() {
                         {u.roles.map((r) => (
                           <span key={r} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                             r === 'admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                            r === 'moderator' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            r === 'moderator' ? 'text-[var(--color-text-primary)] bg-[var(--crux-accent-light)]' :
                             'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                           }`}>{r}</span>
                         ))}
@@ -216,14 +216,14 @@ export default function AdminUsersPage() {
                         <button
                           disabled={actionLoading === u.id}
                           onClick={() => setEditRoles({ userId: u.id, roles: [...u.roles] })}
-                          className="text-xs text-blue-600 hover:underline disabled:opacity-50"
+                          className="text-xs text-[var(--crux-accent-main)] hover:underline disabled:opacity-50"
                         >
                           Roles
                         </button>
                         <button
                           disabled={actionLoading === u.id}
                           onClick={() => handleToggleStatus(u)}
-                          className="text-xs text-amber-600 hover:underline disabled:opacity-50"
+                          className="text-xs text-orange-600 hover:underline disabled:opacity-50"
                         >
                           {u.is_active ? 'Deactivate' : 'Activate'}
                         </button>
@@ -354,7 +354,7 @@ export default function AdminUsersPage() {
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={() => { setCreating(false); setCreateError(null); }} className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
-              <button type="submit" disabled={createLoading} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+              <button type="submit" disabled={createLoading} className="px-3 py-1.5 text-sm text-white rounded-lg bg-[var(--crux-accent-main)] dark:bg-[var(--crux-accent-light)] hover:opacity-90 disabled:opacity-50">
                 {createLoading ? 'Creating…' : 'Create'}
               </button>
             </div>

@@ -13,20 +13,6 @@ export interface ButtonProps {
   type?: 'button' | 'submit';
 }
 
-'use client';
-
-import { Loader2 } from 'lucide-react';
-export interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  disabled?: boolean;
-  loading?: boolean;
-  children: React.ReactNode;
-  onClick?: () => void;
-  className?: string;
-  type?: 'button' | 'submit';
-}
-
 const variantStyles: Record<ButtonProps['variant'], string> = {
   primary:
     'bg-[#505CF0] text-white hover:bg-[#4150D0] active:bg-[#3647c8] disabled:bg-indigo-300 shadow-sm hover:shadow transition-all',
