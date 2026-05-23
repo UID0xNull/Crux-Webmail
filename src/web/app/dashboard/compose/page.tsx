@@ -103,13 +103,7 @@ export default function ComposePage() {
               value={to}
               onChange={(e) => setTo(e.target.value)}
               placeholder="destinatario@ejemplo.com"
-            <input
-              type="email"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              placeholder="destinatario@ejemplo.com"
               className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:[var(--crux-accent-light)] transition-all duration-200"
-            />
             />
           </label>
 

@@ -174,7 +174,7 @@ function Pagination({ items, pageSize, page, onChange }: { items: number; pageSi
   return (
     <div className="flex gap-2">
       {Array.from({ length: total }, (_, i) => (
-        <button key={i + 1} onClick={() => onChange(i + 1)} className={`px-3 py-1 text-sm border rounded-lg ${page === i + 1 ? 'bg-[var(--crux-accent-light)] text-white' : ''}`
+        <button key={i + 1} onClick={() => onChange(i + 1)} className={`px-3 py-1 text-sm border rounded-lg ${page === i + 1 ? 'bg-[var(--crux-accent-light)] text-white' : ''}`}>
           {i + 1}
         </button>
       ))}

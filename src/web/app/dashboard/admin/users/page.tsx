@@ -230,8 +230,9 @@ export default function AdminUsersPage() {
                         {isLocked(u) && (
                           <button
                             disabled={actionLoading === u.id}
-                            onClick={() => handleUnlock(u)}
-                            className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                          disabled={actionLoading === u.id}
+                          onClick={() => handleUnlock(u)}
+                          className="text-xs text-[var(--crux-danger)] hover:underline disabled:opacity-50"
                           >
                             Unlock
                           </button>
