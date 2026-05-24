@@ -95,7 +95,7 @@ export default function AdminAuditPage() {
       {/* Loading */}
       {loading && !data ? (
         <p>Loading logs…</p>
-      ) : data?.results ? (
+      ) : data?.logs ? (
         <>
           <div className="overflow-auto max-h-[50vh]">
             <table className="w-full text-sm border-collapse border rounded-lg">
