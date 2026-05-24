@@ -224,15 +224,14 @@ export default function AdminUsersPage() {
                           disabled={actionLoading === u.id}
                           onClick={() => handleUnlock(u)}
                           className="text-xs text-[var(--crux-danger)] hover:underline disabled:opacity-50"
-                        />
+                        >
                           {u.is_active ? 'Deactivate' : 'Activate'}
                         </button>
                         {isLocked(u) && (
                           <button
                             disabled={actionLoading === u.id}
-                          disabled={actionLoading === u.id}
-                          onClick={() => handleUnlock(u)}
-                          className="text-xs text-[var(--crux-danger)] hover:underline disabled:opacity-50"
+                            onClick={() => handleUnlock(u)}
+                            className="text-xs text-[var(--crux-danger)] hover:underline disabled:opacity-50"
                           >
                             Unlock
                           </button>
