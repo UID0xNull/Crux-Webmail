@@ -220,11 +220,11 @@ export default function AdminUsersPage() {
                         >
                           Roles
                         </button>
-                        <button
+                    <button
                           disabled={actionLoading === u.id}
-                          onClick={() => handleToggleStatus(u)}
-                          className="text-xs text-orange-600 hover:underline disabled:opacity-50"
-                        >
+                          onClick={() => handleUnlock(u)}
+                          className="text-xs text-[var(--crux-danger)] hover:underline disabled:opacity-50"
+                        />
                           {u.is_active ? 'Deactivate' : 'Activate'}
                         </button>
                         {isLocked(u) && (

@@ -162,11 +162,11 @@ function SummaryCard({ label, value, accent }: { label: string; value: string; a
 }
 
 function DetailModal({ entry, onClose }: { entry: AdminAuditLogEntry; onClose: () => void }) {
-  detailEntries.set(entry.id, entry);
-  useEffect(() => { document.addEventListener('keydown', escHandler); return () => document.removeEventListener('keydown', escHandler); }, []);
-
-  function escHandler(e: KeyboardEvent) { if (e.key === 'Escape') setExpanded(null); }
-  // Note: This component references `expanded` outside — would normally need lifting to parent. Kept for now.
+  React.useEffect(() => {
+    const escHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', escHandler);
+    return () => document.removeEventListener('keydown', escHandler);
+  }, [onClose]);
 }
 
 function Pagination({ items, pageSize, page, onChange }: { items: number; pageSize: number; page: number; onChange: (n: number) => void }) {
