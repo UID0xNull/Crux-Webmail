@@ -108,14 +108,14 @@ export default function AdminAuditPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody>{renderAuditRows(data.results)}</tbody>
+              <tbody>{renderAuditRows(data.logs)}</tbody>
             </table>
           </div>
 
           <Pagination items={data.total || 0} pageSize={params.limit ?? 25} page={(params.page ?? 1)} onChange={(n) => setParams((p) => ({ ...p, page: n }))} />
         </>
       ) : (
-        data?.results && data.results.length === 0 && <p className="text-gray-400">No logs</p>
+        (data.logs && data.logs.length === 0) && <p className="text-gray-400">No logs</p>
       )}
 
       {/* Details Modal */}
