@@ -119,8 +119,7 @@ export default function MessageViewPage() {
           {/* Sanitized Body — optimized for prolonged reading */}
           {selectedMessage && <SanitizedEmailBody message={selectedMessage} />}
         </article>
-      </div>
-    </FocusModeProvider>
+    </div>
   );
 }
 
