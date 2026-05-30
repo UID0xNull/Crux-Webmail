@@ -63,8 +63,9 @@ export default function MessageViewPage() {
             <Button variant="ghost" onClick={goBack} className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-gray-200 transition-all duration-300 ease-[--transition-default]">
               <ChevronLeft className="w-4 h-4 mr-1.5" /> Volver al Inbox
             </Button>
-              {/* Top bar actions — compact, reduced visual weight */}
-            <div className="flex items-center gap-1.5">
+
+            {/* Top bar actions — compact, reduced visual weight */}
+            <div className="flex items-center gap-2">
               {selectedMessage && (
                 <FocusModeToggle />
               )}
@@ -77,25 +78,9 @@ export default function MessageViewPage() {
                   <Star className="w-4 h-4 mr-1.5" />
                 </Button>
               )}
-            </div>lex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => {}} className="text-slate-600 dark:text-slate-300 transition-colors duration-300 hover:bg-[var(--crux-base-150)] dark:hover:bg-[var(--crux-base-800)]">
-              <Reply className="w-4 h-4 mr-1.5" /> Responder
-            </Button>
-            {selectedMessage?.isFlagged ? (
-              <Button variant="ghost" size="sm" onClick={handleToggleFlag} title="Quitar bandera" className="text-amber-500 hover:text-amber-600 dark:text-amber-400 transition-colors duration-300">
-                <Star className="w-4 h-4 mr-1.5 fill-amber-400 text-amber-400" /> Marcado
-              </Button>
-            ) : (
-              <Button variant="ghost" size="sm" onClick={handleToggleFlag} title="Marcar como importante" className="text-slate-600 hover:text-slate-800 dark:text-slate-300 transition-colors duration-300">
-                <Star className="w-4 h-4 mr-1.5" />
-              </Button>
-            )}
-            <Button variant="danger" size="sm" onClick={handleDelete} className="transition-colors duration-300 hover:bg-red-600 dark:hover:bg-red-700">
-              <Trash2 className="w-4 h-4 mr-1.5" /> Eliminar
-            </Button>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Email content — improved readability for prolonged reading */}
       <div className="flex-1 overflow-y-auto">
@@ -136,7 +121,7 @@ export default function MessageViewPage() {
           {selectedMessage && <SanitizedEmailBody message={selectedMessage} />}
         </article>
       </div>
-    </div>
+    </FocusModeProvider>
   );
 }
 
