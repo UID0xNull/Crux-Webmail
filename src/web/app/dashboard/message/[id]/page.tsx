@@ -52,8 +52,7 @@ export default function MessageViewPage() {
   }
 
   return (
-    <FocusModeProvider>
-      <div className={
+    <div className={
         `h-full flex flex-col overflow-hidden bg-[var(--crux-bg-page)] dark:bg-[var(--crux-base-950)] transition-colors duration-300` +
         (selectedMessage?.isFlagged ? ' has-star' : '')
       }>
