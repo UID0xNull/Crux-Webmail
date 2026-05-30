@@ -1,0 +1,37 @@
+// Colors
+$primary-blue: #E1F0FA;
+$primary-gray: #F5F7FA;
+$primary-green: #E8F5E9;
+
+$neutral-white: #FFFFFF;
+$neutral-light-gray: #FAFAFA;
+$neutral-dark-gray: #333333;
+
+// Typography
+$font-family-base: Inter, system-ui, sans-serif;
+$font-family-heading: Merriweather Sans, serif;
+
+$font-size-base: 16px;
+$font-size-h1: 24px;
+$font-size-h2: 20px;
+$font-size-body: 14px;
+$font-size-small: 12px;
+
+$line-height-base: 1.6;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// Spacing
+$spacing-base: 8px;
+$spacing-scale: 1.5;
+
+// Component Variables
+$button-padding: 12px 24px;
+$button-border-radius: 8px;
+$button-transition: all 0.2s ease;
+
+// Accessibility
+$contrast-ratio-text: 4.5;
+$contrast-ratio-ui: 3;

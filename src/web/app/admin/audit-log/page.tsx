@@ -167,6 +167,51 @@ function DetailModal({ entry, onClose }: { entry: AdminAuditLogEntry; onClose: (
     document.addEventListener('keydown', escHandler);
     return () => document.removeEventListener('keydown', escHandler);
   }, [onClose]);
+
+  // Minimal safe display of available fields without assuming all properties exist
+  const metaFields = Object.entries(
+    (entry as AdminAuditLogEntry & Record<string, unknown>) || {}
+  ).filter(([key]) => ['id', 'level', 'timestamp'].includes(key) === false);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop click */}
+      <div className="fixed inset-0 bg-black/60" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="relative z-50 w-full max-w-xl p-5 rounded-lg border shadow-lg bg-white space-y-3">
+        <h2 className="text-lg font-semibold">{entry.action || 'Event Details'}</h2>
+
+        <div className="flex gap-4 text-sm">
+          <div>Level: {String(entry.level)}</div>
+          <div>Timestamp: {new Date(entry.timestamp).toLocaleString()}</div>
+        </div>
+
+        {(entry.actorName || entry.actorId) && (
+          <div className="text-sm">Actor: {entry.actorName || `#${entry.actorId}`}</div>
+        )}
+
+        {entry.message && <p className="text-sm">{entry.message}</p>}
+
+        {/* Additional metadata if present */}
+        {metaFields.length > 0 && (
+          <div className="text-xs text-gray-600">
+            {metaFields.map(([k, v]) => (
+              <p key={k}>
+                {k}: {String(v)}
+              </p>
+            ))}
+          </div>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <button onClick={onClose} className="px-3 py-1 text-sm bg-gray-100 rounded-md hover:bg-gray-200">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Pagination({ items, pageSize, page, onChange }: { items: number; pageSize: number; page: number; onChange: (n: number) => void }) {

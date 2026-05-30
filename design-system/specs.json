@@ -1,0 +1,51 @@
+{
+  "colors": {
+    "primary": {
+      "blue": "#E1F0FA",
+      "gray": "#F5F7FA",
+      "green": "#E8F5E9"
+    },
+    "neutral": {
+      "white": "#FFFFFF",
+      "light-gray": "#FAFAFA",
+      "dark-gray": "#333333"
+    }
+  },
+  "typography": {
+    "font-family": "Inter, system-ui, sans-serif",
+    "heading": "Merriweather Sans, serif",
+    "font-sizes": {
+      "base": "16px",
+      "h1": "24px",
+      "h2": "20px",
+      "body": "14px",
+      "small": "12px"
+    },
+    "line-height": "1.6",
+    "font-weight": {
+      "normal": "400",
+      "medium": "500",
+      "bold": "700"
+    }
+  },
+  "spacing": {
+    "base": "8px",
+    "scales": {
+      "linear": ["8px", "16px", "24px", "32px", "40px", "48px"],
+      "modular": "1.5"
+    }
+  },
+  "components": {
+    "button": {
+      "padding": "12px 24px",
+      "border-radius": "8px",
+      "transition": "all 0.2s ease"
+    }
+  },
+  "accessibility": {
+    "contrast-ratio": {
+      "text": "4.5:1",
+      "ui": "3:1"
+    }
+  }
+}

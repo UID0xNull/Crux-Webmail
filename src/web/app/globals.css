@@ -19,9 +19,11 @@
   --crux-base-200:  #313f7a;  /* borders, dividers    */
 
   /* ---------- Accent / brand (indigo-violet gradient) ---------- */
-  --crux-accent-main: #4d5cff;   /* primary actions       */
-  --crux-accent-light:#6b7aff;   /* subtle highlights     */
-  --crux-accent-dim:  #38309a;   /* active / hover states  */
+  --crux-accent-main:       #4d5cff;   /* primary actions       */
+  --crux-accent-secondary:  #8b5cf6;   /* gradient end / avatar   */
+  --crux-accent-light:      #6b7aff;   /* subtle highlights     */
+  --crux-accent-dim:        #38309a;   /* active / hover states  */
+  --crux-accent-glow:       rgba(77, 92, 255, 0.25); /* glow shadow         */
 
   /* ---------- Semantic colors (flat, accessible) ---------- */
   --crux-semantic-primary:  var(--crux-accent-main);
@@ -38,6 +40,45 @@
 
   /* ---------- UI helpers (from Tailwind) ---------- */
   --tw-ring-opacity:      var(--tw-ring-inset);
+
+  /* ---------- Layout tokens (relaxed flow) ---------- */
+  --crux-layout-max-width: 1400px;
+  --crux-layout-padding:   32px;
+  --crux-layout-gap:       24px;
+  --crux-layout-radius:    16px;
+  --crux-layout-sidebar-width: 260px;
+  --crux-layout-sidebar-collapsed: 64px;
+
+  /* ---------- Typography tokens (optimized for long-form reading) ---------- */
+  --crux-font-sans:       'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --crux-font-mono:       'JetBrains Mono', 'Fira Code', monospace;
+  --crux-text-reading-size:   15.5px;    /* optimal for email body */
+  --crux-text-reading-lineh:  1.72;      /* generous line-height     */
+  --crux-text-body-sm:        13.5px;
+  --crux-text-xs-trim:        12px;
+
+  /* ---------- Reduced contrast variants (eye-friendly) ---------- */
+  --crux-text-soft-main:   rgba(232, 235, 255, .88);
+  --crux-text-soft-muted:  rgba(192, 204, 255, .48);
+  --crux-text-soft-dim:    rgba(163, 175, 255, .32);
+
+  /* ---------- Animation tokens ---------- */
+  --crux-duration-fast:   120ms;
+  --crux-duration-normal: 220ms;
+  --crux-duration-slow:   400ms;
+  --crux-ease-smooth:     cubic-bezier(.16,.92,.48,.58);
+  --crux-ease-soft-out:   cubic-bezier(0, .7,.3,1);
+}
+
+/* Reduced contrast mode (toggleable via data attribute) */
+[data-crux-eye-friendly="true"] {
+  --crux-text-main:        var(--crux-text-soft-main);
+  --crux-text-muted:       var(--crux-text-soft-muted);
+  --crux-text-dim:         var(--crux-text-soft-dim);
+}
+
+.dark[data-crux-eye-friendly="true"] {
+  background-color: #0c132e;
 }
 
 .dark {
