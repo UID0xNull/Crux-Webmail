@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { MessageListSkeleton } from '@/components/ui/skeleton';
 import {
   ChevronLeft, Reply, Star, Trash2, ShieldCheck, Lock, AlertTriangle, FileText,
-  CalendarDays, Paperclip, Mail, Users
+  CalendarDays, Paperclip, Mail, Users, Eye,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -52,14 +52,32 @@ export default function MessageViewPage() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-[var(--crux-bg-page)] dark:bg-[var(--crux-base-950)]">
-      {/* Top bar — glassmorphism, reduced visual weight */}
-      <div className="flex-shrink-0 px-6 py-3 border-b border-[var(--crux-base-200)]/40 dark:border-[var(--crux-base-700)]/40 bg-white/75 dark:bg-[var(--crux-base-900)]/75 backdrop-blur-xl">
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={goBack} className="text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-gray-200 transition-colors duration-300">
-            <ChevronLeft className="w-4 h-4 mr-1.5" /> Volver al Inbox
-          </Button>
-          <div className="flex items-center gap-2">
+    <FocusModeProvider>
+      <div className={
+        `h-full flex flex-col overflow-hidden bg-[var(--crux-bg-page)] dark:bg-[var(--crux-base-950)] transition-colors duration-300` +
+        (selectedMessage?.isFlagged ? ' has-star' : '')
+      }>
+        {/* Top bar — glassmorphism, reduced visual weight */}
+        <div className="flex-shrink-0 px-6 py-4 border-b border-[var(--crux-base-200)]/30 dark:border-[var(--crux-base-700)]/30 bg-white/80 dark:bg-[var(--crux-base-900)]/80 backdrop-blur-xl">
+          <div className="flex items-center justify-between max-w-[1400px] mx-auto">
+            <Button variant="ghost" onClick={goBack} className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-gray-200 transition-all duration-300 ease-[--transition-default]">
+              <ChevronLeft className="w-4 h-4 mr-1.5" /> Volver al Inbox
+            </Button>
+              {/* Top bar actions — compact, reduced visual weight */}
+            <div className="flex items-center gap-1.5">
+              {selectedMessage && (
+                <FocusModeToggle />
+              )}
+              {selectedMessage?.isFlagged ? (
+                <Button variant="secondary" size="sm" onClick={handleToggleFlag} className="transition-all duration-300 text-amber-600 hover:text-amber-700 dark:text-yellow-400">
+                  <Star className="w-4 h-4 mr-1.5 fill-current" />
+                </Button>
+              ) : (
+                <Button variant="secondary" size="sm" onClick={handleToggleFlag} className="transition-all duration-300 text-slate-400 hover:text-slate-600 dark:text-gray-500">
+                  <Star className="w-4 h-4 mr-1.5" />
+                </Button>
+              )}
+            </div>lex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => {}} className="text-slate-600 dark:text-slate-300 transition-colors duration-300 hover:bg-[var(--crux-base-150)] dark:hover:bg-[var(--crux-base-800)]">
               <Reply className="w-4 h-4 mr-1.5" /> Responder
             </Button>
@@ -106,7 +124,9 @@ export default function MessageViewPage() {
             {selectedMessage?.isSigned && (<Badge variant="info"><ShieldCheck className="w-3.5 h-3.5 inline mr-1" /> Firmado</Badge>)}
             {selectedMessage?.quarantine_status === 'suspicious' && (
               <Badge variant="warning"><AlertTriangle className="w-3.5 h-3.5 inline mr-1" /> Sospechoso</Badge>) }
-            {selectedMessage?.quarantine_status === 'quarantined' && (<Badge variant="error">Cuarentena</Badge>)}
+            {selectedMessage?.quarantine_status === 'quarantined' && (
+              <Badge variant="error">Cuarentena</Badge>
+            )}
           </div>
 
           {/* Sender info — warm, approachable */}
@@ -173,66 +193,66 @@ function SanitizedEmailBody({ message }: { message: EmailMessage }) {
           -moz-osx-font-smoothing: grayscale;
         }
         
-        /* Headings — softer weight, comfortable spacing */
-        .email-body h1 { font-size: 1.5rem; font-weight: 600; margin-top: 2em; margin-bottom: 1em; line-height: 1.35; color: var(--crux-text-title); }
-        .email-body h2 { font-size: 1.35rem; font-weight: 600; margin-top: 1.75em; margin-bottom: 0.9em; line-height: 1.4; color: var(--crux-text-title); }
-        .email-body h3 { font-size: 1.2rem; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.75em; line-height: 1.45; color: var(--crux-text-title); }
+        /* Headings — comfortable weight, generous spacing */
+        .email-body h1 { font-size: 1.75rem; font-weight: 600; margin-top: 2em; margin-bottom: 1em; line-height: 1.38; color: #2d293d; }
+        .email-body h2 { font-size: 1.45rem; font-weight: 600; margin-top: 1.75em; margin-bottom: 0.9em; line-height: 1.4; color: #2d293d; }
+        .email-body h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.75em; line-height: 1.45; color: #2d293d; }
 
-        /* Paragraphs — reduced contrast, generous spacing */
+        /* Paragraphs — reduced contrast, generous spacing for prolonged reading */
         .email-body p {
-          margin-bottom: 1.25em;
-          color: var(--crux-text-primary);
-          font-size: 16px;
-          line-height: 1.75;
-          letter-spacing: -0.008em;
+          margin-bottom: 1.5em;
+          color: #6b7280;
+          font-size: 17px;
+          line-height: 1.9;
+          letter-spacing: -0.006em;
         }
 
         /* Links — softer, more readable */
         .email-body a {
-          color: var(--crux-accent-main);
+          color: #5b4fcf;
           text-decoration: underline;
-          text-underline-offset: 2px;
+          text-underline-offset: 3px;
           transition: color 200ms ease;
         }
         
         .email-body a:hover {
-          color: #3730a3;
+          color: #7c6aef;
         }
 
         /* Lists */
         .email-body ul,
         .email-body ol {
           padding-left: 1.5em;
-          margin-bottom: 1.25em;
-          color: var(--crux-text-primary);
+          margin-bottom: 1.5em;
+          color: #6b7280;
         }
 
         .email-body li {
-          margin-bottom: 0.3em;
-          line-height: 1.7;
+          margin-bottom: 0.4em;
+          line-height: 1.8;
         }
 
         /* Blockquote — subtle, elegant */
         .email-body blockquote {
-          border-left: 3px solid var(--crux-accent-main);
+          border-left: 3px solid #a78bfa;
           padding-left: 1.25em;
-          margin: 1.25em 0;
-          color: #64748b;
+          margin: 1.5em 0;
+          color: #7c8da4;
           font-style: italic;
-          background-color: rgba(99, 102, 241, 0.04);
+          background-color: rgba(167, 139, 250, 0.04);
         }
 
         /* Tables */
         .email-body table {
           border-collapse: collapse;
           width: 100%;
-          margin-bottom: 1.25em;
+          margin-bottom: 1.5em;
         }
         
         .email-body th,
         .email-body td {
-          padding: 0.75rem;
-          border: 1px solid var(--crux-base-300);
+          padding: 0.8rem;
+          border: 1px solid #e2e4e9;
         }
 
         /* Images */
@@ -240,7 +260,7 @@ function SanitizedEmailBody({ message }: { message: EmailMessage }) {
           max-width: 100%;
           height: auto;
           border-radius: 8px;
-          margin: 1.25em 0;
+          margin: 1.5em 0;
         }
 
         /* Code blocks — soft background, comfortable reading */
@@ -248,21 +268,21 @@ function SanitizedEmailBody({ message }: { message: EmailMessage }) {
         .email-body code {
           font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
           font-size: 0.85rem;
-          line-height: 1.65;
+          line-height: 1.7;
         }
         
         .email-body pre {
-          background-color: var(--crux-base-150);
+          background-color: #f7f6fc;
           padding: 1em;
           border-radius: 8px;
           overflow-x: auto;
-          border: 1px solid var(--crux-base-200);
+          border: 1px solid #e2e4e9;
         }
 
         .email-body code {
-          background-color: var(--crux-base-150);
-          padding: 0.15em 0.4em;
-          border-radius: 4px;
+          background-color: #f5f4fb;
+          padding: 0.2em 0.45em;
+          border-radius: 5px;
           font-size: 0.875em;
         }
 
@@ -270,33 +290,29 @@ function SanitizedEmailBody({ message }: { message: EmailMessage }) {
         .email-body hr {
           border: none;
           height: 1px;
-          background-color: var(--crux-base-200);
-          margin: 2.5em 0;
+          background-color: #e2e4e9;
+          margin: 3em 0;
         }
 
         /* Strong/bold — slightly softer weight */
-        .email-body strong, .email-body b { font-weight: 600; color: var(--crux-text-title); }
+        .email-body strong, .email-body b { font-weight: 600; color: #4b557a; }
 
         /* Emphasized text — italic */
-        .email-body em, .email-body i { font-style: italic; color: #4b5563; }
+        .email-body em, .email-body i { font-style: italic; color: #6d7891; }
 
-        /* Dark mode overrides — reduced contrast throughout */
-        .dark .email-body {
-          background-color: transparent;
-        }
-        
+        /* Dark mode overrides — reduced contrast throughout for eye comfort */
         .dark .email-body h1,
         .dark .email-body h2,
         .dark .email-body h3 {
-          color: var(--crux-text-title);
+          color: #c4b5fd;
         }
         
         .dark .email-body p {
-          color: #cbd5e1;
+          color: #8b97a6;
         }
 
         .dark .email-body a {
-          color: var(--crux-accent-main);
+          color: #8b9cf7;
         }
         
         .dark .email-body a:hover {
@@ -304,37 +320,48 @@ function SanitizedEmailBody({ message }: { message: EmailMessage }) {
         }
 
         .dark .email-body blockquote {
-          border-left-color: rgba(99, 102, 241, 0.3);
-          background-color: rgba(99, 102, 241, 0.06);
-          color: #94a3b8;
+          border-left-color: rgba(167, 139, 250, 0.3);
+          background-color: rgba(167, 139, 250, 0.04);
+          color: #8d9bb2;
         }
 
         .dark .email-body th,
         .dark .email-body td {
-          border-color: var(--crux-base-700);
+          border-color: #3a4658;
         }
 
         .dark .email-body pre {
-          background-color: rgba(99, 102, 241, 0.06);
-          border-color: var(--crux-base-700);
+          background-color: rgba(167, 139, 250, 0.06);
+          border-color: #3a4658;
         }
 
         .dark .email-body code {
-          background-color: rgba(99, 102, 241, 0.08);
+          background-color: rgba(167, 139, 250, 0.07);
         }
 
         .dark .email-body hr {
-          background-color: var(--crux-base-700);
+          background-color: #3a4658;
         }
 
         .dark .email-body strong,
         .dark .email-body b {
-          color: #e2e8f0;
+          color: #c9d1dc;
         }
 
         .dark .email-body em,
         .dark .email-body i {
-          color: #94a3b8;
+          color: #8d9bb2;
+        }
+
+        /* Print styles — comfortable reading on paper */
+        @media print {
+          .email-body p { line-height: 1.75; font-size: 14pt; color: #1a1a1a; }
+          .email-body h1, .email-body h2, .email-body h3 { color: #0f0f2e; }
+        }
+
+        /* Reduced motion — respect user preference */
+        @media (prefers-reduced-motion) {
+          .email-body a { transition: none; }
         }
       `}</style>
       
