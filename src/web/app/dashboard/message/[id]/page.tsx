@@ -70,6 +70,8 @@ export default function MessageViewPage() {
               )}
               {selectedMessage?.isFlagged ? (
                 <Button variant="secondary" size="sm" onClick={handleToggleFlag} className="transition-all duration-300 text-amber-600 hover:text-amber-700 dark:text-yellow-400">
+{selectedMessage?.isFlagged ? (
+                <Button variant="secondary" size="sm" onClick={handleToggleFlag} className="transition-all duration-300 text-amber-600 hover:text-amber-700 dark:text-yellow-400">
                   <Star className="w-4 h-4 mr-1.5 fill-current" />
                 </Button>
               ) : (
@@ -120,6 +122,10 @@ export default function MessageViewPage() {
           {selectedMessage && <SanitizedEmailBody message={selectedMessage} />}
         </article>
     </div>
+  );
+}
+
+// Sender info with avatar, name and recipient details
   );
 }
 
