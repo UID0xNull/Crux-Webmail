@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Zero-Trust Webmail Enterprise",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "workspaces": [
     "src/server",
     "src/web"
