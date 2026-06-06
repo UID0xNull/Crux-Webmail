@@ -99,8 +99,6 @@ export const TAILWIND_COLORS = [
   { name: 'bg-page',       color: COLORS.bgPage         },
 ] as const;
 
-export { SPACING, SHADOWS, RADIUS };
-
 // -----------------------------------------------------------------
 // TRANSITIONS — micro-animation timing curves (CSS transitions)
 // -----------------------------------------------------------------
