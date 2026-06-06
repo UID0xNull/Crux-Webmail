@@ -55,6 +55,9 @@ function SpinnerIcon() {
   return <span className="login-spinner" />;
 }
 
+/* Validación de correo (alineada con el schema del backend, que exige email) */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /* ─── Suspense fallback ────────────── */
 function LoginFallback() {
   return (
@@ -121,6 +124,10 @@ function LoginForm() {
 
       if (!username.trim() || !password.trim()) {
         setLocalError('Completa todos los campos para continuar.');
+        return;
+      }
+      if (!EMAIL_RE.test(username.trim())) {
+        setLocalError('Ingresa un correo electrónico válido.');
         return;
       }
       if (password.length < 8) {
@@ -419,7 +426,7 @@ function LoginForm() {
           {/* Username / Email */}
           <div>
             <label className="login-field-label" htmlFor="login-user">
-              Usuario o correo
+              Correo electrónico
             </label>
             <div className="login-input-wrap">
               <span className="login-input-icon">
@@ -428,7 +435,8 @@ function LoginForm() {
               <input
                 ref={inputRef}
                 id="login-user"
-                type="text"
+                type="email"
+                inputMode="email"
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
