@@ -113,6 +113,8 @@ Crux-Webmail/
 
 ## 🚀 Quick Start
 
+> 📘 **¿Primera vez desplegando?** Seguí la **[Guía de Instalación APB (Apto Para Boludos)](./docs/GU%C3%8DA_DEPLOY_DOCKER_APB.md)** — cero ambigüedad, cada paso explicado y cada error anticipado. Cubre prerrequisitos, `.env`, secretos, build, levantado del stack (18 servicios) y troubleshooting completo. Si podés copiar y pegar, podés desplegar Crux-Webmail.
+
 ### 1. Preparar variables de entorno
 ```bash
 cp .env.example .env
@@ -162,8 +164,27 @@ chmod +x infra/scripts/healthcheck-suite.sh
 
 ## 📖 Documentación
 
-- [Arquitectura Completa Paso 1](./docs/ARCHITECTURE_STEP1.md) — Topología, políticas ZTA, matriz de amenazas
-- [Plan Maestro](.crux/implementation_plan.md) — Roadmap completo Steps 1–6
+Recorré el proyecto de punta a punta — desde el despliegue hasta la arquitectura interna:
+
+### 🚀 Despliegue e Instalación
+
+| Documento | Qué cubre |
+|-----------|-----------|
+| 📘 [**Guía de Despliegue APB**](./docs/GU%C3%8DA_DEPLOY_DOCKER_APB.md) | Instalación paso a paso "Apto Para Boludos": prerrequisitos, `.env`, secretos, mTLS, build, levantado de los 18 servicios y troubleshooting exhaustivo |
+
+### 🏗️ Arquitectura y Diseño
+
+| Documento | Qué cubre |
+|-----------|-----------|
+| 🛡️ [**Arquitectura Zero-Trust — Paso 1**](./docs/ARCHITECTURE_STEP1.md) | Topología de red, microsegmentación, políticas ZTA (NIST SP 800-207), mTLS y matriz de amenazas |
+| 📐 [**Plan de Arquitectura y Delegación**](./docs/PLAN-webmail-architecture.md) | Principios de arquitectura, capas server/web/shared, flujos críticos y división de workstreams |
+
+### 🗺️ Roadmap e Historial
+
+| Documento | Qué cubre |
+|-----------|-----------|
+| 🧭 [**Plan Maestro**](./.crux/implementation_plan.md) | Roadmap completo Steps 1–6 y rediseño 2026/27 |
+| 📝 [**Changelog**](./CHANGELOG.md) | Historial de cambios versión por versión |
 
 ---
 

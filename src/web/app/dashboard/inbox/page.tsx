@@ -337,7 +337,7 @@ export default function InboxPage() {
         {/* Message list */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
-            <MessageListSkeleton count={5} density="comfortable" />
+            <MessageListSkeleton />
           ) : filteredMessages.length === 0 ? (
             <NoResultsBox mailboxLabel={mailboxLabel} onRefresh={() => loadInbox()} />
           ) : (
