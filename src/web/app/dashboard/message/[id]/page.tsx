@@ -65,12 +65,7 @@ export default function MessageViewPage() {
 
             {/* Top bar actions — compact, reduced visual weight */}
             <div className="flex items-center gap-2">
-              {selectedMessage && (
-                <FocusModeToggle />
-              )}
               {selectedMessage?.isFlagged ? (
-                <Button variant="secondary" size="sm" onClick={handleToggleFlag} className="transition-all duration-300 text-amber-600 hover:text-amber-700 dark:text-yellow-400">
-{selectedMessage?.isFlagged ? (
                 <Button variant="secondary" size="sm" onClick={handleToggleFlag} className="transition-all duration-300 text-amber-600 hover:text-amber-700 dark:text-yellow-400">
                   <Star className="w-4 h-4 mr-1.5 fill-current" />
                 </Button>
@@ -79,6 +74,9 @@ export default function MessageViewPage() {
                   <Star className="w-4 h-4 mr-1.5" />
                 </Button>
               )}
+              <Button variant="secondary" size="sm" onClick={handleDelete} className="transition-all duration-300 text-slate-400 hover:text-rose-600 dark:text-gray-500">
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -121,11 +119,8 @@ export default function MessageViewPage() {
           {/* Sanitized Body — optimized for prolonged reading */}
           {selectedMessage && <SanitizedEmailBody message={selectedMessage} />}
         </article>
+      </div>
     </div>
-  );
-}
-
-// Sender info with avatar, name and recipient details
   );
 }
 

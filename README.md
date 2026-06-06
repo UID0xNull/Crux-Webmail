@@ -1,6 +1,42 @@
-# Crux-Webmail Enterprise
+<div align="center">
+
+# 🛡️ Crux-Webmail Enterprise
 
 > **Arquitectura Zero-Trust Webmail Enterprise**: Integración Postfix/Amavis/ClamAV con infraestructura inmutable, microsegmentación de red, mTLS y cifrado de extremo a extremo.
+
+<br/>
+
+<!-- Project Stats -->
+[![Stars](https://img.shields.io/github/stars/UID0xNull/Crux-Webmail?style=for-the-badge&logo=github&color=yellow)](https://github.com/UID0xNull/Crux-Webmail/stargazers)
+[![Forks](https://img.shields.io/github/forks/UID0xNull/Crux-Webmail?style=for-the-badge&logo=github&color=blue)](https://github.com/UID0xNull/Crux-Webmail/network/members)
+[![Watchers](https://img.shields.io/github/watchers/UID0xNull/Crux-Webmail?style=for-the-badge&logo=github&color=green)](https://github.com/UID0xNull/Crux-Webmail/watchers)
+[![Issues](https://img.shields.io/github/issues/UID0xNull/Crux-Webmail?style=for-the-badge&logo=github&color=red)](https://github.com/UID0xNull/Crux-Webmail/issues)
+
+[![Last Commit](https://img.shields.io/github/last-commit/UID0xNull/Crux-Webmail?style=flat-square&logo=git&color=orange)](https://github.com/UID0xNull/Crux-Webmail/commits)
+[![Repo Size](https://img.shields.io/github/repo-size/UID0xNull/Crux-Webmail?style=flat-square&logo=github)](https://github.com/UID0xNull/Crux-Webmail)
+[![Contributors](https://img.shields.io/github/contributors/UID0xNull/Crux-Webmail?style=flat-square&logo=github)](https://github.com/UID0xNull/Crux-Webmail/graphs/contributors)
+[![License](https://img.shields.io/github/license/UID0xNull/Crux-Webmail?style=flat-square&color=brightgreen)](./LICENSE)
+
+<!-- Tech Stack -->
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+
+<br/>
+
+### 💬 Únete a nuestra comunidad
+
+[![Discord](https://img.shields.io/badge/Discord-%C3%9Anete%20al%20servidor-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Zc2xCSq8yA)
+
+**¿Tienes preguntas, ideas o quieres contribuir?**
+Entra a nuestro [**servidor de Discord**](https://discord.gg/Zc2xCSq8yA) y forma parte de la comunidad de Crux-Webmail.
+
+⭐ **Si te gusta el proyecto, dale una estrella** — ¡nos ayuda a crecer y motiva el desarrollo!
+
+</div>
 
 ---
 

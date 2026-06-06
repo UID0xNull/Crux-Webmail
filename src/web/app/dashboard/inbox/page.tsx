@@ -193,7 +193,7 @@ export default function InboxPage() {
   const toggleFlag = useCallback(
     async (e: React.MouseEvent, msg: EmailMessage) => {
       e.stopPropagation();
-      try { await markAsRead(msg.id, !msg.isFlagged ? 'flag' : null); } catch {}
+      try { await markAsRead(msg.id, !msg.isFlagged); } catch {}
     },
     [markAsRead]
   );
@@ -209,7 +209,14 @@ export default function InboxPage() {
   }, [rawMessages]);
 
   const handleFilterChange = useCallback(
-    async (_filter: string, _value: unknown) => { try {} catch {} },
+    (filtered: EmailMessage[]) => {
+      setFilteredMessages((prev) => {
+        if (prev.length === filtered.length && prev.every((m, i) => m.id === filtered[i]?.id)) {
+          return prev;
+        }
+        return filtered;
+      });
+    },
     []
   );
 
@@ -292,7 +299,7 @@ export default function InboxPage() {
             {selectAll ? <CheckSquare className="w-4 h-4" /> : <CheckSquare className="w-4 h-4" />}
             Seleccionar todo
           </button>
-          <button onClick={() => deleteMessage(Array.from(selectedIds))} disabled={selectedIds.size === 0} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-50 hover:bg-red-100/80 dark:bg-red-950/40 dark:hover:bg-red-900/60 transition-all duration-200 text-sm font-medium text-red-600 disabled:opacity-30">
+          <button onClick={async () => { await Promise.all(Array.from(selectedIds).map((id) => deleteMessage(id))); setSelectedIds(new Set()); setSelectAll(false); }} disabled={selectedIds.size === 0} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-50 hover:bg-red-100/80 dark:bg-red-950/40 dark:hover:bg-red-900/60 transition-all duration-200 text-sm font-medium text-red-600 disabled:opacity-30">
             <AlertTriangle className="w-4 h-4" />
             Eliminar
           </button>
@@ -316,7 +323,7 @@ export default function InboxPage() {
                 onSearchComplete={() => loadInbox()}
               />
               <MessageFilters
-                messages={filteredMessages}
+                messages={rawMessages}
                 onFilterChange={handleFilterChange}
                 onReset={() => loadInbox()}
               />

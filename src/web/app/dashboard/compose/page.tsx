@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Send, Paperclip, FileText, Shield, Lock, Plus, X, Eye, CheckCircle, AlertCircle, MinusIcon } from 'lucide-react';
 import { ChevronLeft } from 'lucide-react';
+import type { EmailAddress, AttachmentData } from '@/lib/types';
 
 interface Attachment { name: string; size: number; file: File }
 
 export default function ComposePage() {
   const router = useRouter();
-  const sendMail = useMailStore((s) => s.sendMail);
+  const composeMessage = useMailStore((s) => s.composeMessage);
+  const sendMessage = useMailStore((s) => s.sendMessage);
   const [to, setTo] = useState('');
   const [cc, setCc] = useState('');
   const [bcc, setBcc] = useState('');
@@ -54,11 +56,38 @@ export default function ComposePage() {
     return bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 ** 2)).toFixed(1)} MB`;
   }
 
+  const parseAddresses = (raw: string): EmailAddress[] =>
+    raw.split(',').map((e) => e.trim()).filter(Boolean).map((email) => ({ name: '', email }));
+
+  const fileToAttachment = (file: File): Promise<AttachmentData> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.includes(',') ? result.split(',')[1] : result;
+        resolve({ name: file.name, mimeType: file.type || 'application/octet-stream', data: base64, size: file.size });
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
   const handleSubmit = async () => {
-    if (!to) setError('Falta destinatario'); return;
+    if (!to) { setError('Falta destinatario'); return; }
     setIsLoading(true); setError('');
     try {
-      await sendMail({ to, cc: cc || undefined, bcc: bcc || undefined, subject, body: useHtmlEditor ? bodyHtml : bodyText, htmlBody: bodyHtml, textBody: bodyText, attachments: attachments.map((a) => a.file), encrypt, sign });
+      const attachmentData = await Promise.all(attachments.map((a) => fileToAttachment(a.file)));
+      composeMessage({
+        to: parseAddresses(to),
+        cc: cc ? parseAddresses(cc) : undefined,
+        bcc: bcc ? parseAddresses(bcc) : undefined,
+        subject,
+        body_html: bodyHtml,
+        body_text: bodyText,
+        attachments: attachmentData,
+        encrypt,
+        sign,
+      });
+      await sendMessage();
       setSuccess(true); setTimeout(() => router.push('/dashboard/inbox'), 1200);
     } catch (err) { setError(err instanceof Error ? err.message : 'Error desconocido'); } finally { setIsLoading(false); }
   };

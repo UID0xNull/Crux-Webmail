@@ -85,7 +85,11 @@ export default function AdminHealthPage() {
     return d > 0 ? `${d}d ${h % 24}h` : h > 0 ? `${h}h ${Math.floor((s % 3600) / 60)}m` : `${s}s`;
   }
 
-  const hasAnyError = !!(data?.errors && data.errors.length > 0);
+  const isErrorStatus = (s?: string) => {
+    const v = String(s ?? '').toLowerCase();
+    return v.includes('error') || v.includes('fail') || v.includes('down') || v === 'unknown';
+  };
+  const hasAnyError = !!data && (isErrorStatus(data.postgres.status) || isErrorStatus(data.redis.status));
 
   return (
     <main className="p-6 space-y-6 max-w-screen-xl mx-auto">
@@ -113,56 +117,46 @@ export default function AdminHealthPage() {
               <Metric label="Uptime" value={uptimeLabel(data.server.uptime)} />
               <Metric label="Memory"
                 value={`${data.server.memory.percent.toFixed(1)}%`}
-                sub={`${data.server.memory.usedMB.toFixed(0)} / ${data.server.memory.totalMB}`} />
+                sub={`${data.server.memory.usedMB.toFixed(0)} / ${data.server.memory.totalMB} MB`} />
+              <Metric label="CPU" value={`${data.server.cpuPercent.toFixed(1)}%`} />
+              <Metric label="Node" value={data.server.nodeVersion} />
+              <Metric label="Environment" value={data.server.environment} />
             </div>
           </Section>
 
-          {/* Database */}
-          <Section title="Database">
-            <ComponentStatusRow name="Connection" status={data.database.status ?? 'unknown'} />
-            <span className="text-xs text-gray-500 mt-2">{data.database.description}</span>
+          {/* PostgreSQL */}
+          <Section title="PostgreSQL">
+            <ComponentStatusRow name="Connection" status={data.postgres.status ?? 'unknown'} />
+            <span className="text-xs text-gray-500 mt-2">
+              Latency: {data.postgres.latencyMs}ms{data.postgres.version ? ` • ${data.postgres.version}` : ''}
+            </span>
           </Section>
 
-          {/* Cache */}
-          <Section title="Cache">
-            <ComponentStatusRow name={data.cache.name} status={data.cache.status ?? 'unknown'} />
-            <span className="text-xs text-gray-500 mt-2">{data.cache.description}</span>
+          {/* Redis */}
+          <Section title="Redis">
+            <ComponentStatusRow name="Connection" status={data.redis.status ?? 'unknown'} />
+            <span className="text-xs text-gray-500 mt-2">
+              Latency: {data.redis.latencyMs}ms{typeof data.redis.connectedClients === 'number' ? ` • ${data.redis.connectedClients} clients` : ''}
+            </span>
           </Section>
 
           {/* Queue */}
-          <Section title="Queue">
-            <ComponentStatusRow name={data.queue.name} status={data.queue.status ?? 'unknown'} />
-            <span className="text-xs text-gray-500 mt-2">{data.queue.description}</span>
-          </Section>
-
-          {/* Workers */}
-          <Section title="Workers">
-            {data.workers && data.workers.length > 0 ? (
-              data.workers.map((w) => (
-                <ComponentStatusRow key={w.id ?? w.name} name={w.name} status={w.status} />
-              ))
-            ) : (
-              <div className="text-sm text-gray-400 dark:text-gray-500 italic">No workers running.</div>            )}
+          <Section title="Email Queue">
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <Metric label="Waiting" value={data.queues.email.waiting} />
+              <Metric label="Active" value={data.queues.email.active} />
+              <Metric label="Failed" value={data.queues.email.failed} />
+            </div>
           </Section>
 
           {/* Errors */}
-          {hasAnyError && data.errors && data.errors.length > 0 ? (
-            <Alert type="error" title="Issues Found" message={data.errors[0]} />
+          {hasAnyError ? (
+            <Alert type="error" title="Issues Found"
+              message="One or more components are reporting errors. Check PostgreSQL and Redis connectivity." />
           ) : (
             <Alert type="success" title="System Status"
               message={data.server.uptime > 0 ? 'All systems operational' : 'System starting up'} />
           )}
-
-          {/* Disk */}
-          {data.disk && data.disk.totalMb > 0 && (
-            <Metric label="Disk"
-              value={`${(data.disk.usedMb / 1024).toFixed(1)} GB`}
-              sub={`${((data.disk.percent * 100)).toFixed(1)}% used • ${(data.disk.freeMb / 1024).toFixed(1)} GB free`}>
-            </Metric>
-          )}
-
-          {/* Network */}
-          <Metric label="Network" value={String(data.network ?? 'unknown')} sub={(typeof data.network === 'string') ? data.network : String(data.network)}/>
         </div>
       ) : null}
     </main>

@@ -42,10 +42,6 @@ export default function AdminAuditPage() {
     void load();
   }, [load]);
 
-  function fmtTimestamp(ts: string): string {
-    try { return new Date(ts).toLocaleString(); } catch { return ts; }
-  }
-
   return (
     <main className="p-6 space-y-4 max-w-screen-xl mx-auto">
       <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-3">Audit Logs</h1>
@@ -134,11 +130,15 @@ export default function AdminAuditPage() {
   );
 }
 
+function fmtTimestamp(ts: string): string {
+  try { return new Date(ts).toLocaleString(); } catch { return ts; }
+}
+
 const detailEntries = new Map<string, AdminAuditLogEntry>();
 function renderAuditRows(items: AdminAuditLogEntry[]): React.ReactNode {
   return items.map((it) => (
     <tr key={it.id} className="cursor-pointer hover:bg-gray-100">
-      <td className="py-2 px-4" title={String(it.action)}>{it.action}</td>
+      <td className="py-2 px-4" title={String(it.message)}>{it.message}</td>
       <td className={`py-2 px-4`}>
         {LEVEL_STYLES[it.level] && (
           <span className={`px-3 py-[2px] rounded-full text-xs font-medium ${LEVEL_STYLES[it.level]}`}>
@@ -147,7 +147,7 @@ function renderAuditRows(items: AdminAuditLogEntry[]): React.ReactNode {
         )}
       </td>
       <td>{fmtTimestamp(it.timestamp)}</td>
-      <td className="max-w-[10vw] overflow-hidden" title={String(it.actorName)}>{String(it.actorName)}</td>
+      <td className="max-w-[10vw] overflow-hidden" title={String(it.actor_id ?? '—')}>{String(it.actor_id ?? '—')}</td>
     </tr>
   ));
 }
@@ -180,15 +180,15 @@ function DetailModal({ entry, onClose }: { entry: AdminAuditLogEntry; onClose: (
 
       {/* Modal */}
       <div className="relative z-50 w-full max-w-xl p-5 rounded-lg border shadow-lg bg-white space-y-3">
-        <h2 className="text-lg font-semibold">{entry.action || 'Event Details'}</h2>
+        <h2 className="text-lg font-semibold">{entry.category || 'Event Details'}</h2>
 
         <div className="flex gap-4 text-sm">
           <div>Level: {String(entry.level)}</div>
           <div>Timestamp: {new Date(entry.timestamp).toLocaleString()}</div>
         </div>
 
-        {(entry.actorName || entry.actorId) && (
-          <div className="text-sm">Actor: {entry.actorName || `#${entry.actorId}`}</div>
+        {entry.actor_id && (
+          <div className="text-sm">Actor: {`#${entry.actor_id}`}</div>
         )}
 
         {entry.message && <p className="text-sm">{entry.message}</p>}
