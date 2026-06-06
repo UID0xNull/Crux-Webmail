@@ -55,8 +55,29 @@ export const useAuthStore = create<AuthStore>()(
             device_fingerprint: payload.device_fingerprint,
           });
 
-          const tokens = response.data;
-          await get().setSession(tokens);
+          const data = response.data as (AuthToken & { requires_mfa?: boolean }) | undefined;
+
+          // Desafío MFA: el backend pide un código TOTP. Aún no hay UI para
+          // completarlo, así que lo señalamos de forma explícita.
+          if (data?.requires_mfa) {
+            set({
+              isAuthenticated: false,
+              isLoading: false,
+              error: 'Tu cuenta requiere verificación en dos pasos (MFA), que aún no está disponible en esta interfaz.',
+            });
+            return false;
+          }
+
+          if (!data?.access_token) {
+            set({
+              isAuthenticated: false,
+              isLoading: false,
+              error: 'No pudimos iniciar sesión. Inténtalo de nuevo.',
+            });
+            return false;
+          }
+
+          await get().setSession(data);
 
           set({
             isAuthenticated: true,

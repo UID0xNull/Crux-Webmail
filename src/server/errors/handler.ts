@@ -14,6 +14,7 @@ import {
   FastifyReply,
   FastifyRequest,
 } from 'fastify';
+import { ZodError } from 'zod';
 import { generateSecureUuid } from 'utils/crypto';
 type ApiError = {
   status: number;
@@ -112,6 +113,7 @@ function resolveCruxError(err: unknown): {
   message: string;
   safeMessage: string;
   statusCode?: number;
+  details?: Record<string, unknown>;
 } {
   if (err instanceof CruxError) {
     return {
@@ -119,6 +121,27 @@ function resolveCruxError(err: unknown): {
       message: err.message,
       safeMessage: err.message,
       statusCode: ERROR_CODE_MAP[err.code],
+      details: err.details,
+    };
+  }
+
+  // Errores de validación Zod: nunca exponer el array JSON crudo.
+  // Se reduce a un mensaje legible y un detalle estructurado por campo.
+  if (err instanceof ZodError) {
+    const fieldErrors = err.errors.map((e) => ({
+      field: e.path.join('.') || '(root)',
+      message: e.message,
+    }));
+    const summary = fieldErrors
+      .map((f) => (f.field === '(root)' ? f.message : `${f.field}: ${f.message}`))
+      .join('; ');
+
+    return {
+      code: 'INVALID_PAYLOAD',
+      message: summary || 'Datos de la solicitud inválidos',
+      safeMessage: 'Datos de la solicitud inválidos',
+      statusCode: 400,
+      details: { fields: fieldErrors },
     };
   }
 
@@ -188,7 +211,7 @@ export function errorHandler(
     code: crux.code,
     message: isProduction ? crux.safeMessage : crux.message,
     correlation_id: correlationId,
-    ...(error instanceof CruxError && !isProduction ? { details: error.details } : {}),
+    ...(!isProduction && crux.details ? { details: crux.details } : {}),
   };
 
   reply.code(httpStatus).send({

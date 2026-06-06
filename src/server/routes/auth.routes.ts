@@ -179,6 +179,15 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         mtlsSerial: 'none',
       });
 
+      // MFA pendiente: no es un fallo de credenciales. Se devuelve un
+      // desafío para que el cliente solicite el código TOTP.
+      if (!result.success && (result as { requiresMFA?: boolean }).requiresMFA) {
+        return sendSuccess(reply, {
+          requires_mfa: true,
+          mfa_session_id: (result as { mfaSessionId?: string }).mfaSessionId,
+        });
+      }
+
       if (!result.success) {
         auditLogger.warn('Login failed', { actor_id: body.username, metadata: { ip: clientIp } });
         return sendError(reply, 401, String(result.error ?? 'AUTH_FAILED'), 'Authentication failed');
