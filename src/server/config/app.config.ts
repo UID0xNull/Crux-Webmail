@@ -79,11 +79,20 @@ const envSchema = z.object({
   DOVECOT_HOST: z.string().min(1).default('172.21.0.11'),
   DOVECOT_PORT: z.coerce.number().int().default(993),
   DOVECOT_LMTP_PORT: z.coerce.number().int().default(24),
+  // Master user de Dovecot: el backend se loguea como `usuario*masteruser`
+  // con esta password, sin necesitar la contraseña de cada usuario.
+  DOVECOT_MASTER_USER: z.string().default(''),
+  DOVECOT_MASTER_PASSWORD: z.string().default(''),
+  DOVECOT_MASTER_SEPARATOR: z.string().default('*'),
 
   // --- Postfix ---
   POSTFIX_HOST: z.string().min(1).default('172.21.0.10'),
   POSTFIX_PORT: z.coerce.number().int().default(587),
   POSTFIX_DOMAIN: z.string().min(1).default('crux.local'),
+  // Cuenta de servicio de submission: el backend se autentica una sola vez con
+  // esta cuenta y envía con el From del usuario (no necesita su contraseña).
+  SMTP_USER: z.string().default('crux_smtp'),
+  SMTP_PASSWORD: z.string().default(''),
 
   // --- Amavis ---
   AMAVIS_HOST: z.string().min(1).default('172.21.0.12'),

@@ -1,0 +1,16 @@
+# ============================================================================
+# Crux-Webmail — Dovecot master users
+# ============================================================================
+# Formato:  <masteruser>:<{SCHEME}password>
+#
+# El backend (email.controller → buildImapAccount) se loguea como
+# `usuario@dominio*<masteruser>` usando esta password. Por eso:
+#
+#   1. <masteruser> debe ser IGUAL a DOVECOT_MASTER_USER del backend.
+#   2. La password debe ser IGUAL a DOVECOT_MASTER_PASSWORD del backend.
+#
+# CAMBIAR la password antes de producción. Para usar un hash en vez de texto
+# plano:  doveadm pw -s SHA512-CRYPT   y reemplazar {PLAIN}... por el hash.
+# Montar este archivo en /etc/dovecot/master-users (modo 0600, dueño dovecot).
+# ============================================================================
+crux_master:{PLAIN}CruxDovecot_2024!mK7nPq#sR2xY

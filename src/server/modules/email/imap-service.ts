@@ -1,10 +1,16 @@
-// Crux-Webmail — IMAP Service (simple-imap)
+// ============================================================================
+// Crux-Webmail — IMAP Service (node-imap + mailparser)
+// ============================================================================
+// Cliente IMAP real contra Dovecot. La autenticación usa un MASTER USER de
+// Dovecot: el `account.username` ya viene como `usuario@dominio*masteruser`
+// y `account.password` es la master password (ver email.controller →
+// buildImapAccount). Pool por usuario + circuit breaker.
+// ============================================================================
 
-import simpleImapModule from 'simple-imap';
+import Imap from 'imap';
+import { simpleParser } from 'mailparser';
 import { auditLogger } from 'utils/audit-logger';
 import { CruxError } from 'errors/handler';
-
-const SimpleImap: any = (simpleImapModule as any).SimpleImap || (simpleImapModule as any).default;
 
 export interface IMAPAccount {
   id: string;
@@ -42,6 +48,16 @@ export interface SearchQuery {
   hasAttachments?: boolean;
 }
 
+export interface FolderInfo {
+  name: string;
+  delimiter: string;
+  flags: string[];
+  specialUse: string[];
+}
+
+// ------------------------------------------------------------------
+// Circuit breaker
+// ------------------------------------------------------------------
 interface CircuitState {
   state: 'closed' | 'open' | 'half-open';
   failures: number;
@@ -79,41 +95,59 @@ function circuitRecordFailure(id: string) {
   }
 }
 
-const connectionPool = new Map<string, { conn: any; status: ConnectionStatus; lastActivity: number }>();
+// ------------------------------------------------------------------
+// Connection pool
+// ------------------------------------------------------------------
+const connectionPool = new Map<string, { conn: Imap; status: ConnectionStatus; lastActivity: number }>();
 
-export async function connectIMAP(account: IMAPAccount): Promise<any> {
+export async function connectIMAP(account: IMAPAccount): Promise<Imap> {
   return new Promise((resolve, reject) => {
-    const conn = new SimpleImap({
+    const conn = new Imap({
       user: account.username,
       password: account.password,
       host: account.host,
       port: account.port,
       tls: account.tls,
+      // Dovecot interno suele usar cert self-signed; validamos host pero no CA.
+      tlsOptions: { rejectUnauthorized: false, servername: account.host },
       authTimeout: 20_000,
       connTimeout: 15_000,
+      keepalive: true,
     });
 
+    let settled = false;
+
     conn.once('ready', () => {
+      if (settled) return;
+      settled = true;
       auditLogger.info('IMAP connected', { actor_id: account.id, metadata: { host: account.host } as any });
       connectionPool.set(account.id, { conn, status: 'connected', lastActivity: Date.now() });
       circuitRecordSuccess(account.id);
       resolve(conn);
     });
 
-    conn.once('error', (err: any) => {
+    conn.once('error', (err: Error) => {
+      if (settled) return;
+      settled = true;
       auditLogger.error('IMAP connection error', { actor_id: account.id, metadata: { host: account.host, error: String(err?.message || err) } as any });
       connectionPool.delete(account.id);
       circuitRecordFailure(account.id);
       reject(err);
     });
 
+    // Limpiar el pool si la conexión se cierra de forma inesperada.
+    conn.once('end', () => {
+      const entry = connectionPool.get(account.id);
+      if (entry && entry.conn === conn) connectionPool.delete(account.id);
+    });
+
     conn.connect();
   });
 }
 
-async function getIMAPConnection(account: IMAPAccount): Promise<any> {
+async function getIMAPConnection(account: IMAPAccount): Promise<Imap> {
   if (!circuitAllow(account.id)) {
-    throw new (CruxError || Error)('IMAP_CIRCUIT_OPEN', 'IMAP service temporarily unavailable');
+    throw new CruxError('IMAP_CIRCUIT_OPEN', 'IMAP service temporarily unavailable');
   }
 
   const entry = connectionPool.get(account.id);
@@ -122,86 +156,158 @@ async function getIMAPConnection(account: IMAPAccount): Promise<any> {
     return entry.conn;
   }
 
+  let lastErr: unknown;
   for (let attempt = 1; attempt <= 3; attempt++) {
-    try { return await connectIMAP(account); } catch (err: any) {
-      circuitRecordFailure(account.id);
-      if (attempt === 3) throw err;
+    try { return await connectIMAP(account); } catch (err) {
+      lastErr = err;
+      if (attempt === 3) break;
       await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
     }
   }
-
-  throw new Error('IMAP connection failed after retries');
+  throw lastErr instanceof Error ? lastErr : new Error('IMAP connection failed after retries');
 }
 
-export async function listFolders(_userId: string, account: IMAPAccount): Promise<any[]> {
-  const conn = await getIMAPConnection(account);
+// ------------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------------
+function openBox(conn: Imap, folder: string, readOnly: boolean): Promise<void> {
   return new Promise((resolve, reject) => {
-    conn.listFolders((err: any, folders: any[]) => (err ? reject(err) : resolve(folders)));
+    conn.openBox(folder || 'INBOX', readOnly, (err) => (err ? reject(err) : resolve()));
   });
 }
 
-function parseAddr(a: any): { address: string; name?: string } | null {
-  if (!a || typeof a === 'string') return a ? { address: a.trim(), name: undefined } : null;
-  const addr = (typeof a.address === 'string' && a.address !== '') ? a.address.trim() : undefined;
-  if (!addr) return null;
-  const name = typeof a.name === 'string' && a.name?.trim() ? a.name.trim() : undefined;
-  return { address: addr, name };
+// Flags de atributos de carpeta que NO son special-use (estructura).
+const STRUCTURAL_ATTRIBS = new Set(['\\HasChildren', '\\HasNoChildren', '\\Noselect', '\\Noinferiors', '\\Marked', '\\Unmarked', '\\Subscribed']);
+
+function flattenBoxes(boxes: Record<string, any> | null, prefix = '', delimiter = '/'): FolderInfo[] {
+  if (!boxes) return [];
+  const out: FolderInfo[] = [];
+  for (const [name, box] of Object.entries(boxes)) {
+    const delim = box?.delimiter || delimiter;
+    const fullName = prefix ? `${prefix}${delim}${name}` : name;
+    const attribs: string[] = Array.isArray(box?.attribs) ? box.attribs : [];
+    out.push({
+      name: fullName,
+      delimiter: delim,
+      flags: attribs,
+      specialUse: attribs.filter((a) => !STRUCTURAL_ATTRIBS.has(a)),
+    });
+    if (box?.children) {
+      out.push(...flattenBoxes(box.children, fullName, delim));
+    }
+  }
+  return out;
 }
 
-function normalizeMsg(msg: any): EmailMessage {
-  const attrs = msg.attributes || {};
-  const parts = Array.isArray(msg.parts) ? msg.parts : [];
-
-  const textPart = parts.find((p: any) => p.which === 'text');
-  const htmlPart = parts.find((p: any) => p.which === 'html');
-
-  return {
-    uid: attrs.uid || 0,
-    subject: attrs.subject || '(No Subject)',
-    from: (attrs.from || []).map(parseAddr).filter(Boolean) as Array<{ address: string; name?: string }>,
-    to:   (attrs.to || []).map(parseAddr).filter(Boolean) as Array<{ address: string; name?: string }>,
-    cc:   (attrs.cc || []).map(parseAddr).filter(Boolean) as Array<{ address: string; name?: string }>,
-    date: attrs.date instanceof Date ? attrs.date.toISOString() : new Date().toISOString(),
-    text: typeof textPart?.source === 'string' ? textPart.source : undefined,
-    html: typeof htmlPart?.source === 'string' ? htmlPart.source : undefined,
-    hasAttachments: Array.isArray(attrs.attachments) && attrs.attachments.length > 0,
-    flags: Array.isArray(attrs.flags) ? attrs.flags : [],
-  };
+function parseAddrList(raw?: string[]): { address: string; name?: string }[] {
+  // Imap.parseHeader devuelve cada campo como array de strings crudos.
+  if (!raw || !raw.length) return [];
+  const joined = raw.join(', ');
+  // Split simple por comas de nivel superior (suficiente para listas estándar).
+  return joined
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const m = part.match(/^\s*"?([^"<]*)"?\s*<([^>]+)>\s*$/);
+      if (m) return { address: m[2].trim(), name: m[1].trim() || undefined };
+      return { address: part.replace(/[<>]/g, '').trim() };
+    });
 }
 
-export async function fetchEmails(
-  _userId: string,
-  account: IMAPAccount,
-  folder = 'INBOX',
-  search?: { since?: string; unread?: boolean }
-): Promise<EmailMessage[]> {
+function mapParsedAddr(v?: { value: { name: string; address: string }[] }): { address: string; name?: string }[] {
+  if (!v?.value) return [];
+  return v.value
+    .filter((a) => a.address)
+    .map((a) => ({ address: a.address, name: a.name || undefined }));
+}
+
+// ------------------------------------------------------------------
+// Folders
+// ------------------------------------------------------------------
+export async function listFolders(_userId: string, account: IMAPAccount): Promise<FolderInfo[]> {
   const conn = await getIMAPConnection(account);
-
-  const query: any[] = [];
-  if (search?.unread) query.push('UNSEEN'); else query.push('ALL');
-  if (search?.since) query.push(`SINCE ${search.since}`);
-
   return new Promise((resolve, reject) => {
-    conn.fetch({ box: folder || 'INBOX', search: query }, { body: true, b: { from: true, to: true, cc: true, subject: true, date: true, flags: true, attachments: true } }, (err: any, msgOrMsgs: any) => {
+    conn.getBoxes((err, boxes) => {
       if (err) return reject(err);
-      const msgs = Array.isArray(msgOrMsgs) ? msgOrMsgs : [msgOrMsgs];
-      resolve(msgs.map(normalizeMsg));
+      resolve(flattenBoxes(boxes as any));
     });
   });
 }
 
-export async function fetchEmailByUID(_userId: string, account: IMAPAccount, folder: string, uid: number): Promise<EmailMessage | null> {
-  const conn = await getIMAPConnection(account);
+// ------------------------------------------------------------------
+// Search + list (cursor por UID, más nuevo primero)
+// ------------------------------------------------------------------
+function buildCriteria(query: SearchQuery): Array<string | (string | number)[]> {
+  const c: Array<string | (string | number)[]> = [];
+  if (query.unread) c.push('UNSEEN'); else c.push('ALL');
+  if (query.flagged) c.push('FLAGGED');
+  if (query.since) c.push(['SINCE', query.since]);
+  if (query.until) c.push(['BEFORE', query.until]);
+  if (query.from) c.push(['FROM', query.from]);
+  if (query.to) c.push(['TO', query.to]);
+  if (query.subject) c.push(['SUBJECT', query.subject]);
+  return c;
+}
 
+function fetchEnvelopes(conn: Imap, uids: number[]): Promise<EmailMessage[]> {
+  if (!uids.length) return Promise.resolve([]);
   return new Promise((resolve, reject) => {
-    conn.fetch({ box: folder || 'INBOX', uid }, { body: true, b: { from: true, to: true, cc: true, subject: true, date: true, flags: true, attachments: true } }, (err: any, msgOrMsgs: any) => {
-      if (err) return reject(err);
-      const msgs = Array.isArray(msgOrMsgs) ? msgOrMsgs : [msgOrMsgs];
-      const first = msgs[0];
-      if (!first || !first.attributes || !first.attributes.uid) return resolve(null);
-      resolve(normalizeMsg(first));
+    const results: EmailMessage[] = [];
+    const f = conn.fetch(uids, {
+      bodies: 'HEADER.FIELDS (FROM TO CC SUBJECT DATE)',
+      struct: true,
     });
+
+    f.on('message', (msg: any) => {
+      const item: EmailMessage = {
+        uid: 0, subject: '(No Subject)', from: [], to: [], cc: [],
+        date: new Date().toISOString(), hasAttachments: false, flags: [],
+      };
+      let headerBuf = '';
+
+      msg.on('body', (stream: NodeJS.ReadableStream) => {
+        stream.on('data', (chunk: Buffer) => { headerBuf += chunk.toString('utf8'); });
+      });
+
+      msg.once('attributes', (attrs: any) => {
+        item.uid = attrs.uid || 0;
+        item.flags = Array.isArray(attrs.flags) ? attrs.flags : [];
+        item.hasAttachments = structHasAttachments(attrs.struct);
+      });
+
+      msg.once('end', () => {
+        try {
+          const h = Imap.parseHeader(headerBuf);
+          item.subject = h.subject?.[0] || '(No Subject)';
+          item.from = parseAddrList(h.from);
+          item.to = parseAddrList(h.to);
+          item.cc = parseAddrList(h.cc);
+          if (h.date?.[0]) {
+            const d = new Date(h.date[0]);
+            if (!isNaN(d.getTime())) item.date = d.toISOString();
+          }
+        } catch { /* deja defaults */ }
+        results.push(item);
+      });
+    });
+
+    f.once('error', reject);
+    f.once('end', () => resolve(results));
   });
+}
+
+function structHasAttachments(struct: any[] | undefined): boolean {
+  if (!Array.isArray(struct)) return false;
+  for (const part of struct) {
+    if (Array.isArray(part)) {
+      if (structHasAttachments(part)) return true;
+    } else if (part && typeof part === 'object') {
+      const disp = part.disposition?.type?.toLowerCase?.();
+      if (disp === 'attachment') return true;
+    }
+  }
+  return false;
 }
 
 export async function searchEmailsWithPagination(
@@ -213,48 +319,111 @@ export async function searchEmailsWithPagination(
 ): Promise<{ items: EmailMessage[]; total: number; nextCursor: string | null; prevCursor: string | null }> {
   const conn = await getIMAPConnection(account);
   const folder = query.folder || 'INBOX';
+  await openBox(conn, folder, true);
 
-  const params: any[] = [];
-  if (query.unread) params.push('UNSEEN'); else params.push('ALL');
-  if (query.flagged) params.push('FLAGGED');
-  if (query.since) params.push(`SINCE ${query.since}`);
-  if (query.until) params.push(`BEFORE ${query.until}`);
-  if (query.from)  params.push(`FROM ${query.from}`);
-  if (query.to)    params.push(`TO ${query.to}`);
-  if (query.subject) params.push(`SUBJECT ${query.subject}`);
+  const criteria = buildCriteria(query);
 
+  const allUids: number[] = await new Promise((resolve, reject) => {
+    conn.search(criteria, (err, uids) => (err ? reject(err) : resolve(uids || [])));
+  });
+
+  // Más nuevo primero (UID mayor = más reciente).
+  const sorted = allUids.slice().sort((a, b) => b - a);
+
+  // Cursor = último UID de la página anterior; tomamos los UID menores que él.
+  let startIdx = 0;
   if (cursor) {
-    const direction = cursor.startsWith('-') ? 'prev' : 'next';
-    const baseUid = parseInt(cursor.replace(/^-/, ''), 10);
-    const filter = direction === 'next'
-      ? `UID ${baseUid + 1}:*`
-      : `UID 1:${Math.max(baseUid - 1, 1)}`;
-    params.push(filter);
+    const cursorUid = parseInt(cursor, 10);
+    const at = sorted.findIndex((u) => u < cursorUid);
+    startIdx = at === -1 ? sorted.length : at;
   }
 
+  const pageUids = sorted.slice(startIdx, startIdx + limit);
+  const items = (await fetchEnvelopes(conn, pageUids))
+    .sort((a, b) => b.uid - a.uid);
+
+  const hasNext = startIdx + limit < sorted.length;
+  const lastUid = pageUids[pageUids.length - 1];
+
+  return {
+    items,
+    total: sorted.length,
+    nextCursor: hasNext && lastUid != null ? String(lastUid) : null,
+    prevCursor: null,
+  };
+}
+
+// Compat: listado simple (usado por sync u otros callers).
+export async function fetchEmails(
+  _userId: string,
+  account: IMAPAccount,
+  folder = 'INBOX',
+  search?: { since?: string; unread?: boolean }
+): Promise<EmailMessage[]> {
+  const res = await searchEmailsWithPagination(_userId, account, {
+    folder,
+    since: search?.since,
+    unread: search?.unread,
+  }, undefined, 50);
+  return res.items;
+}
+
+// ------------------------------------------------------------------
+// Single message (cuerpo completo via mailparser)
+// ------------------------------------------------------------------
+export async function fetchEmailByUID(_userId: string, account: IMAPAccount, folder: string, uid: number): Promise<EmailMessage | null> {
+  const conn = await getIMAPConnection(account);
+  await openBox(conn, folder || 'INBOX', true);
+
   return new Promise((resolve, reject) => {
-    conn.fetch({ box: folder || 'INBOX', search: params }, { body: true, b: { from: true, to: true, cc: true, subject: true, date: true, flags: true, attachments: true } }, (err: any, msgOrMsgs: any) => {
-      if (err) return reject(err);
-      const msgs = Array.isArray(msgOrMsgs) ? msgOrMsgs : [msgOrMsgs];
-      const itemsAll = msgs.map(normalizeMsg).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    let raw = '';
+    let flags: string[] = [];
+    let found = false;
 
-      if (!itemsAll.length) {
-        return resolve({ items: [], total: 0, nextCursor: null, prevCursor: null });
-      }
+    const f = conn.fetch(uid, { bodies: '', struct: true });
 
-      const paginated = itemsAll.slice(0, limit);
-      const firstUid = paginated[0]?.uid ?? null;
-      const lastUid = paginated[paginated.length - 1]?.uid ?? null;
-
-      resolve({
-        items: paginated,
-        total: itemsAll.length,
-        nextCursor: itemsAll.length > limit ? String(firstUid) : null,
-        prevCursor: lastUid != null && lastUid > 1 ? `-${lastUid}` : null,
+    f.on('message', (msg: any) => {
+      found = true;
+      msg.on('body', (stream: NodeJS.ReadableStream) => {
+        stream.on('data', (chunk: Buffer) => { raw += chunk.toString('utf8'); });
       });
+      msg.once('attributes', (attrs: any) => {
+        flags = Array.isArray(attrs.flags) ? attrs.flags : [];
+      });
+    });
+
+    f.once('error', reject);
+    f.once('end', async () => {
+      if (!found || !raw) return resolve(null);
+      try {
+        const parsed = await simpleParser(raw);
+        resolve({
+          uid,
+          subject: parsed.subject || '(No Subject)',
+          from: mapParsedAddr(parsed.from),
+          to: mapParsedAddr(parsed.to),
+          cc: mapParsedAddr(parsed.cc),
+          date: parsed.date instanceof Date ? parsed.date.toISOString() : new Date().toISOString(),
+          text: parsed.text || undefined,
+          html: typeof parsed.html === 'string' ? parsed.html : undefined,
+          hasAttachments: Array.isArray(parsed.attachments) && parsed.attachments.length > 0,
+          flags,
+        });
+      } catch (err) {
+        reject(err);
+      }
     });
   });
 }
+
+// ------------------------------------------------------------------
+// Flags / delete / move
+// ------------------------------------------------------------------
+const FLAG_MAP: Record<string, string> = {
+  SEEN: '\\Seen',
+  FLAGGED: '\\Flagged',
+  DELETED: '\\Deleted',
+};
 
 export async function markEmailFlag(
   _userId: string,
@@ -264,63 +433,47 @@ export async function markEmailFlag(
   flag: 'SEEN' | 'UNSEEN' | 'FLAGGED' | 'UNFLAGGED' | 'DELETED'
 ): Promise<void> {
   const conn = await getIMAPConnection(account);
+  await openBox(conn, folder || 'INBOX', false);
+
+  const remove = flag === 'UNSEEN' || flag === 'UNFLAGGED';
+  const imapFlag = remove
+    ? (flag === 'UNSEEN' ? '\\Seen' : '\\Flagged')
+    : FLAG_MAP[flag];
 
   return new Promise((resolve, reject) => {
-    let mode = '+';
-    let flagValue: string | null = flag;
-
-    if (flag === 'UNSEEN')      { mode = '-';   flagValue = '\\Seen'; }
-    if (flag === 'UNFLAGGED')   { mode = '-';   flagValue = '\\Flagged'; }
-    if (flag === 'DELETED')     { mode = '+';   flagValue = '\\Deleted'; }
-
-    conn.updateFlags(
-      { box: folder || 'INBOX', uid },
-      { [mode + 'Flags']: [flagValue] as any[] },
-      (err: any) => { if (err) reject(err); else resolve(); }
-    );
+    const cb = (err: Error | null) => (err ? reject(err) : resolve());
+    if (remove) conn.delFlags(uid, [imapFlag], cb);
+    else conn.addFlags(uid, [imapFlag], cb);
   });
 }
 
 export async function deleteEmail(_userId: string, account: IMAPAccount, folder: string, uid: number): Promise<void> {
   const conn = await getIMAPConnection(account);
-  return new Promise((resolve, reject) => {
-    // Mark as deleted; many servers handle expunge on logout.
-    conn.updateFlags(
-      { box: folder || 'INBOX', uid },
-      { '+FLAGS': ['\\Deleted'] },
-      (err: any) => { if (err) return reject(err); resolve(); }
-    );
+  await openBox(conn, folder || 'INBOX', false);
+
+  await new Promise<void>((resolve, reject) => {
+    conn.addFlags(uid, ['\\Deleted'], (err) => (err ? reject(err) : resolve()));
+  });
+  await new Promise<void>((resolve, reject) => {
+    conn.expunge(uid, (err) => (err ? reject(err) : resolve()));
   });
 }
 
 export async function moveEmail(_userId: string, account: IMAPAccount, fromFolder: string, toFolder: string, uid: number): Promise<void> {
   const conn = await getIMAPConnection(account);
-  // Fallback: copy then delete if no move.
-  try {
-    return await new Promise((resolve, reject) => {
-      (conn as any).move(
-        { box: fromFolder || 'INBOX', uid },
-        { to: toFolder },
-        (err: any) => { if (!err) return resolve(); reject(err); }
-      );
-    });
-  } catch (_) {
-    // Manual fallback.
-    await new Promise<void>((rs, rj) => {
-      conn.copy(
-        { box: fromFolder || 'INBOX', uid },
-        toFolder || 'INBOX',
-        (err: any) => { if (err) return rj(err); rs(); }
-      );
-    });
-    await deleteEmail(_userId, account, fromFolder || 'INBOX', uid);
-  }
+  await openBox(conn, fromFolder || 'INBOX', false);
+  await new Promise<void>((resolve, reject) => {
+    conn.move(uid, toFolder || 'INBOX', (err) => (err ? reject(err) : resolve()));
+  });
 }
 
+// ------------------------------------------------------------------
+// Lifecycle
+// ------------------------------------------------------------------
 export async function disconnectIMAP(userId: string): Promise<void> {
   const entry = connectionPool.get(userId);
   if (entry) {
-    try { (entry.conn as any).end?.(); } catch {/*ignore*/}
+    try { entry.conn.end(); } catch { /* ignore */ }
     connectionPool.delete(userId);
     auditLogger.info('IMAP disconnected', { actor_id: userId });
   }
@@ -338,7 +491,7 @@ export function startIdleCleanup(): NodeJS.Timeout {
     const now = Date.now();
     for (const [id, entry] of connectionPool.entries()) {
       if (now - entry.lastActivity > IDLE_TIMEOUT_MS) {
-        try { (entry.conn as any).end?.(); } catch {/*ignore*/}
+        try { entry.conn.end(); } catch { /* ignore */ }
         connectionPool.delete(id);
         auditLogger.info('IMAP idle cleanup', { actor_id: id });
       }

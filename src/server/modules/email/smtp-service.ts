@@ -15,25 +15,30 @@ export interface SMTPConfig {
 
 const transporters = new Map<string, nodemailer.Transporter>();
 
-async function getTransporter(accountId: string, config: SMTPConfig): Promise<nodemailer.Transporter> {
-  if (transporters.has(accountId)) {
-    return transporters.get(accountId)!;
-  }
+async function getTransporter(_accountId: string, config: SMTPConfig): Promise<nodemailer.Transporter> {
+  // El transporter se comparte por cuenta de submission (no por usuario), ya
+  // que todos los envíos usan la misma cuenta de servicio.
+  const key = `${config.host}:${config.port}:${config.username}`;
+  const existing = transporters.get(key);
+  if (existing) return existing;
 
   const transporter = nodemailer.createTransport({
     host: config.host,
     port: config.port,
-    secure: config.secure,
+    secure: config.secure,           // true sólo en 465 (TLS implícito)
+    requireTLS: !config.secure,      // 587 → STARTTLS obligatorio
     auth: {
       user: config.username,
       pass: config.password,
     },
+    // Dovecot/Postfix interno suele usar cert self-signed.
+    tls: { rejectUnauthorized: false },
     pool: true,
     maxConnections: 5,
     maxMessages: 100,
   });
 
-  transporters.set(accountId, transporter);
+  transporters.set(key, transporter);
 
   await transporter.verify();
 

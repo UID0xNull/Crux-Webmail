@@ -65,12 +65,19 @@ async function resolveUser(userId: string): Promise<UserModel> {
  * En producción esto vendría de una tabla email_accounts cifrada.
  */
 function buildImapAccount(userId: string, user: UserModel): IMAPAccount {
+  // Auth vía MASTER USER de Dovecot: login como `usuario@dominio*masteruser`
+  // con la master password. No necesitamos la contraseña real del usuario.
+  // Fallback al hash sólo para no romper en entornos sin master configurado.
+  const sep = config.DOVECOT_MASTER_SEPARATOR || '*';
+  const username = config.DOVECOT_MASTER_USER
+    ? `${user.username}${sep}${config.DOVECOT_MASTER_USER}`
+    : user.username;
   return {
     id: userId,
     host: config.DOVECOT_HOST,
     port: config.DOVECOT_PORT,
-    username: user.username,
-    password: user.passwordHash,
+    username,
+    password: config.DOVECOT_MASTER_PASSWORD || user.passwordHash,
     tls: true,
   };
 }
@@ -78,13 +85,16 @@ function buildImapAccount(userId: string, user: UserModel): IMAPAccount {
 /**
  * Construye config SMTP desde el modelo User + env vars.
  */
-function buildSmtpConfig(userId: string, user: UserModel) {
+function buildSmtpConfig(_userId: string, _user: UserModel) {
+  // Submission vía cuenta de servicio (SMTP_USER/SMTP_PASSWORD). El From real
+  // del usuario se setea en queueEmailSend; Postfix debe permitir a esta cuenta
+  // enviar en nombre de los usuarios del dominio.
   return {
     host: config.POSTFIX_HOST,
     port: config.POSTFIX_PORT,
-    secure: false,
-    username: user.username,
-    password: user.passwordHash,
+    secure: config.POSTFIX_PORT === 465,
+    username: config.SMTP_USER,
+    password: config.SMTP_PASSWORD,
   };
 }
 

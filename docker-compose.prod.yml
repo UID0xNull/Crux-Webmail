@@ -232,7 +232,19 @@ services:
       # CORS / Frontend
       FRONTEND_URL: https://mail.cruxhost.com
       WEBSOCKET_URL: wss://mail.cruxhost.com
+      # Dovecot / IMAP — auth vía master user
+      DOVECOT_HOST: dovecot
+      DOVECOT_PORT: "993"
+      DOVECOT_MASTER_USER: ${DOVECOT_MASTER_USER}
+      DOVECOT_MASTER_PASSWORD_FILE: /run/secrets/dovecot_master_password
+      # Postfix / SMTP — cuenta de servicio de submission
+      POSTFIX_HOST: postfix
+      POSTFIX_PORT: "587"
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD_FILE: /run/secrets/postfix_smtp_password
     secrets:
+      - dovecot_master_password
+      - postfix_smtp_password
       - jwt_secret
       - jwt_refresh_secret
       - session_encryption_key
@@ -305,7 +317,19 @@ services:
       # CORS / Frontend
       FRONTEND_URL: https://mail.cruxhost.com
       WEBSOCKET_URL: wss://mail.cruxhost.com
+      # Dovecot / IMAP — auth vía master user
+      DOVECOT_HOST: dovecot
+      DOVECOT_PORT: "993"
+      DOVECOT_MASTER_USER: ${DOVECOT_MASTER_USER}
+      DOVECOT_MASTER_PASSWORD_FILE: /run/secrets/dovecot_master_password
+      # Postfix / SMTP — cuenta de servicio de submission
+      POSTFIX_HOST: postfix
+      POSTFIX_PORT: "587"
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD_FILE: /run/secrets/postfix_smtp_password
     secrets:
+      - dovecot_master_password
+      - postfix_smtp_password
       - postgres_password
       - redis_password
       - jwt_secret

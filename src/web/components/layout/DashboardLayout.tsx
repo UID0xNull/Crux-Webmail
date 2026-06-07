@@ -85,16 +85,14 @@ return;
         </svg>
       </div>
 
-      {/* App shell — CSS Grid with max-width: 1400px and 32px base padding */}
+      {/* App shell — full-width CSS Grid with base padding */}
       <div
         className="
           relative z-[2]
           grid w-full h-full
           grid-cols-[auto_1fr]
           overflow-hidden
-          max-w-[1400px]
-          mx-auto
-          p-[32px]
+          p-[20px]
           gap-[24px]
         "
       >
