@@ -85,16 +85,21 @@ function buildImapAccount(userId: string, user: UserModel): IMAPAccount {
 /**
  * Construye config SMTP desde el modelo User + env vars.
  */
-function buildSmtpConfig(_userId: string, _user: UserModel) {
-  // Submission vía cuenta de servicio (SMTP_USER/SMTP_PASSWORD). El From real
-  // del usuario se setea en queueEmailSend; Postfix debe permitir a esta cuenta
-  // enviar en nombre de los usuarios del dominio.
+function buildSmtpConfig(_userId: string, user: UserModel) {
+  // Submission con IDENTIDAD del usuario real vía master user de Dovecot
+  // (`usuario*masteruser` + master password) — igual que IMAP. Postfix exige
+  // que el From coincida con el login (reject_authenticated_sender_login_mismatch),
+  // así nadie puede enviar en nombre de otro. No hay cuenta de servicio compartida.
+  const sep = config.DOVECOT_MASTER_SEPARATOR || '*';
+  const username = config.DOVECOT_MASTER_USER
+    ? `${user.username}${sep}${config.DOVECOT_MASTER_USER}`
+    : user.username;
   return {
     host: config.POSTFIX_HOST,
     port: config.POSTFIX_PORT,
     secure: config.POSTFIX_PORT === 465,
-    username: config.SMTP_USER,
-    password: config.SMTP_PASSWORD,
+    username,
+    password: config.DOVECOT_MASTER_PASSWORD,
     servername: config.POSTFIX_TLS_SERVERNAME,
   };
 }

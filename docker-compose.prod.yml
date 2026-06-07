@@ -237,18 +237,15 @@ services:
       DOVECOT_PORT: "993"
       DOVECOT_MASTER_USER: ${DOVECOT_MASTER_USER}
       DOVECOT_MASTER_PASSWORD_FILE: /run/secrets/dovecot_master_password
-      # Postfix / SMTP — cuenta de servicio de submission
+      # Postfix / SMTP — submission con identidad del usuario (master user)
       POSTFIX_HOST: postfix
       POSTFIX_PORT: "587"
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASSWORD_FILE: /run/secrets/postfix_smtp_password
       # mTLS — CA interna + cert de cliente del backend
       TLS_CA_PATH: /app/certs/ca-chain.crt
       TLS_CERT_PATH: /app/certs/server.crt
       TLS_KEY_PATH: /app/certs/server.key
     secrets:
       - dovecot_master_password
-      - postfix_smtp_password
       - jwt_secret
       - jwt_refresh_secret
       - session_encryption_key
@@ -331,18 +328,15 @@ services:
       DOVECOT_PORT: "993"
       DOVECOT_MASTER_USER: ${DOVECOT_MASTER_USER}
       DOVECOT_MASTER_PASSWORD_FILE: /run/secrets/dovecot_master_password
-      # Postfix / SMTP — cuenta de servicio de submission
+      # Postfix / SMTP — submission con identidad del usuario (master user)
       POSTFIX_HOST: postfix
       POSTFIX_PORT: "587"
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASSWORD_FILE: /run/secrets/postfix_smtp_password
       # mTLS — CA interna + cert de cliente del backend
       TLS_CA_PATH: /app/certs/ca-chain.crt
       TLS_CERT_PATH: /app/certs/server.crt
       TLS_KEY_PATH: /app/certs/server.key
     secrets:
       - dovecot_master_password
-      - postfix_smtp_password
       - postgres_password
       - redis_password
       - jwt_secret
@@ -470,12 +464,38 @@ services:
     volumes:
       - dovecot_mail:/var/vmail/mailboxes
       - dovecot_sieve:/etc/sieve/conf.d
+      # Config de Dovecot (main + conf.d + SQL passdb/userdb + master users)
+      - type: bind
+        source: "./infra/dovecot/dovecot.conf"
+        target: /etc/dovecot/dovecot.conf
+        read_only: true
+      - type: bind
+        source: "./infra/dovecot/conf.d"
+        target: /etc/dovecot/conf.d
+        read_only: true
+      - type: bind
+        source: "./infra/dovecot/dovecot-sql.conf.ext"
+        target: /etc/dovecot/dovecot-sql.conf.ext
+        read_only: true
+      - type: bind
+        source: "./infra/dovecot/master-users"
+        target: /etc/dovecot/master-users
+        read_only: true
+      # Spool compartido con Postfix (sockets auth SASL + LMTP en /var/spool/postfix/private)
+      - postfix_queue:/var/spool/postfix
+      # Certs internos (CA + cert/key propios de Dovecot, SAN dovecot.crux.local)
+      - type: bind
+        source: "./infra/certs"
+        target: /etc/crux-certs
+        read_only: true
       - type: bind
         source: "./logs/app/dovecot"
         target: /var/log/dovecot
         read_only: false
     networks:
       mail:
+      # `app` para alcanzar Postgres (SQL passdb/userdb)
+      app:
     logging:
       driver: "json-file"
       options:
@@ -587,8 +607,17 @@ services:
         target: /etc/postfix/body_checks
         read_only: true
       - type: bind
+        source: "./infra/postfix/sender_login.pcre"
+        target: /etc/postfix/sender_login.pcre
+        read_only: true
+      - type: bind
         source: "./infra/postfix/sql"
         target: /etc/postfix/sql
+      # Certs internos (CA + cert/key propios de Postfix, SAN postfix.crux.local)
+      - type: bind
+        source: "./infra/certs"
+        target: /etc/crux-certs
+        read_only: true
       - postfix_data:/var/lib/postfix
       - postfix_queue:/var/spool/postfix
       - type: bind

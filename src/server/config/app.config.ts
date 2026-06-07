@@ -89,10 +89,6 @@ const envSchema = z.object({
   POSTFIX_HOST: z.string().min(1).default('172.21.0.10'),
   POSTFIX_PORT: z.coerce.number().int().default(587),
   POSTFIX_DOMAIN: z.string().min(1).default('crux.local'),
-  // Cuenta de servicio de submission: el backend se autentica una sola vez con
-  // esta cuenta y envía con el From del usuario (no necesita su contraseña).
-  SMTP_USER: z.string().default('crux_smtp'),
-  SMTP_PASSWORD: z.string().default(''),
 
   // --- Amavis ---
   AMAVIS_HOST: z.string().min(1).default('172.21.0.12'),

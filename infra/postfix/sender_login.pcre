@@ -1,0 +1,11 @@
+# ============================================================================
+# Crux-Webmail — smtpd_sender_login_maps (identidad)
+# ============================================================================
+# Mapea cada dirección remitente al ÚNICO login SASL autorizado a usarla:
+# el propio remitente. Combinado con reject_authenticated_sender_login_mismatch,
+# un usuario autenticado sólo puede enviar como sí mismo (anti-spoofing).
+#
+# El backend autentica con la identidad real del usuario (master user de
+# Dovecot), por lo que sasl_username == From == esta clave.
+# ============================================================================
+/^(.+)$/    ${1}

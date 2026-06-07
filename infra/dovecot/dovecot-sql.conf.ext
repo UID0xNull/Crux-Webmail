@@ -1,0 +1,39 @@
+# ============================================================================
+# Crux-Webmail — Dovecot SQL passdb/userdb (PostgreSQL)
+# ============================================================================
+# Autenticación de usuarios reales de correo contra la tabla `users` (la misma
+# que usa el backend, creada por Sequelize). El master user (crux_master) NO
+# está acá: se valida por passwd-file (ver 10-auth.conf → /etc/dovecot/master-users).
+#
+# REQUISITOS:
+#   - El servicio `dovecot` debe estar en la red `app` (alcanza a `postgres`).
+#   - Rellenar `password=` con la pass de crux_user (secrets/postgres_password.txt).
+#     Dovecot NO interpola env vars en este archivo: o se hardcodea aquí, o se
+#     templa con un entrypoint al iniciar el contenedor.
+# ============================================================================
+
+driver = pgsql
+
+connect = host=postgres port=5432 dbname=crux_mail user=crux_user password=__SET_POSTGRES_PASSWORD__
+
+# Los password_hash son bcrypt ($2a$12$...) → esquema BLF-CRYPT de Dovecot.
+default_pass_scheme = BLF-CRYPT
+
+# --- passdb: validar credenciales (sólo cuentas activas / no borradas) ---
+password_query = \
+  SELECT username AS user, password_hash AS password \
+  FROM users \
+  WHERE username = '%u' AND is_active = TRUE AND deleted_at IS NULL
+
+# --- userdb: usuarios virtuales con uid/gid fijos (no hay columnas uid/gid) ---
+# Maildir bajo el volumen montado (dovecot_mail → /var/vmail/mailboxes).
+# El uid/gid 5000 debe poder escribir ese volumen (ver doc de despliegue).
+user_query = \
+  SELECT '/var/vmail/mailboxes/%d/%n' AS home, \
+         'maildir:/var/vmail/mailboxes/%d/%n' AS mail, \
+         5000 AS uid, 5000 AS gid \
+  FROM users \
+  WHERE username = '%u' AND is_active = TRUE AND deleted_at IS NULL
+
+# --- iterate: listar usuarios (doveadm) ---
+iterate_query = SELECT username AS user FROM users WHERE is_active = TRUE AND deleted_at IS NULL
