@@ -39,10 +39,17 @@ export async function registerWebSocketRoutes(fastify: FastifyInstance): Promise
     method: 'GET',
     url: '/ws',
     websocket: true,
-    handler: async (request) => {
+    // @fastify/websocket v11: the socket is the FIRST handler argument.
+    handler: (socket, request) => {
+      const ws = socket as unknown as WebSocket;
       const req = request as unknown as WSFastifyRequest;
-      const ws = req.websocket as WebSocket;
-      handleConnection(ws, fastify, req);
+      // handleConnection is async; never let a rejection escape unhandled
+      // (the global unhandledRejection handler calls process.exit()).
+      handleConnection(ws, fastify, req).catch((err: unknown) => {
+        auditLogger.error('[WS] Connection handler rejected', {
+          error: (err as Error).message,
+        });
+      });
     },
   });
 
@@ -57,6 +64,11 @@ async function handleConnection(
   fastifyInstance: FastifyInstance,
   req: RawWSRequest,
 ): Promise<void> {
+  if (!ws) {
+    auditLogger.error('[WS] Upgrade handler received no socket');
+    return;
+  }
+
   let connected = true;
   ws.once('close', () => { connected = false; });
 
