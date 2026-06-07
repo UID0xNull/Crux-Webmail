@@ -4,6 +4,7 @@
 import nodemailer from 'nodemailer';
 import type { SendMailOptions } from 'nodemailer';
 import * as openpgp from 'openpgp';
+import { buildMailTlsOptions } from './mail-tls';
 
 export interface SMTPConfig {
   host: string;
@@ -11,6 +12,9 @@ export interface SMTPConfig {
   secure: boolean;
   username: string;
   password: string;
+  // SAN esperado en el cert de Postfix (validación TLS). Si falta, se valida
+  // contra el host de conexión.
+  servername?: string;
 }
 
 const transporters = new Map<string, nodemailer.Transporter>();
@@ -31,8 +35,8 @@ async function getTransporter(_accountId: string, config: SMTPConfig): Promise<n
       user: config.username,
       pass: config.password,
     },
-    // Dovecot/Postfix interno suele usar cert self-signed.
-    tls: { rejectUnauthorized: false },
+    // Zero-Trust: validar el cert de Postfix contra la CA interna + mTLS.
+    tls: buildMailTlsOptions(config.servername || config.host),
     pool: true,
     maxConnections: 5,
     maxMessages: 100,

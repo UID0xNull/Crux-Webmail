@@ -9,7 +9,7 @@ declare module 'imap' {
     host: string;
     port: number;
     tls?: boolean;
-    tlsOptions?: Record<string, unknown>;
+    tlsOptions?: import('node:tls').ConnectionOptions;
     authTimeout?: number;
     connTimeout?: number;
     keepalive?: boolean | Record<string, unknown>;

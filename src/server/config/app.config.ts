@@ -113,6 +113,10 @@ const envSchema = z.object({
   TLS_CERT_PATH: z.string().min(1).default('./certs/server.crt'),
   TLS_KEY_PATH: z.string().min(1).default('./certs/server.key'),
   TLS_CA_PATH: z.string().min(1).default('./certs/ca-chain.crt'),
+  // Nombres (SAN) a validar en los certs de los servicios de correo. Deben
+  // coincidir con el SAN del cert que sirve cada servicio (ver mtls-setup.sh).
+  DOVECOT_TLS_SERVERNAME: z.string().default('dovecot.crux.local'),
+  POSTFIX_TLS_SERVERNAME: z.string().default('postfix.crux.local'),
 
   // --- Logging ---
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),

@@ -242,6 +242,10 @@ services:
       POSTFIX_PORT: "587"
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD_FILE: /run/secrets/postfix_smtp_password
+      # mTLS — CA interna + cert de cliente del backend
+      TLS_CA_PATH: /app/certs/ca-chain.crt
+      TLS_CERT_PATH: /app/certs/server.crt
+      TLS_KEY_PATH: /app/certs/server.key
     secrets:
       - dovecot_master_password
       - postfix_smtp_password
@@ -258,6 +262,11 @@ services:
         source: "./logs/app/fastify-backend"
         target: /var/log/fastify-backend
         read_only: false
+      # CA interna + cert de cliente del backend (mTLS hacia Dovecot/Postfix)
+      - type: bind
+        source: "./infra/certs"
+        target: /app/certs
+        read_only: true
     expose:
       - "3000/tcp"
     networks:
@@ -327,6 +336,10 @@ services:
       POSTFIX_PORT: "587"
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD_FILE: /run/secrets/postfix_smtp_password
+      # mTLS — CA interna + cert de cliente del backend
+      TLS_CA_PATH: /app/certs/ca-chain.crt
+      TLS_CERT_PATH: /app/certs/server.crt
+      TLS_KEY_PATH: /app/certs/server.key
     secrets:
       - dovecot_master_password
       - postfix_smtp_password
@@ -343,6 +356,11 @@ services:
         source: "./logs/app/crux-server"
         target: /var/log/crux-server
         read_only: false
+      # CA interna + cert de cliente del backend (mTLS hacia Dovecot/Postfix)
+      - type: bind
+        source: "./infra/certs"
+        target: /app/certs
+        read_only: true
     expose:
       - 5678/tcp
     networks:

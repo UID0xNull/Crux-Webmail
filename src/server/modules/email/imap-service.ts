@@ -11,6 +11,8 @@ import Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import { auditLogger } from 'utils/audit-logger';
 import { CruxError } from 'errors/handler';
+import { config } from '../../config/app.config';
+import { buildMailTlsOptions } from './mail-tls';
 
 export interface IMAPAccount {
   id: string;
@@ -108,8 +110,8 @@ export async function connectIMAP(account: IMAPAccount): Promise<Imap> {
       host: account.host,
       port: account.port,
       tls: account.tls,
-      // Dovecot interno suele usar cert self-signed; validamos host pero no CA.
-      tlsOptions: { rejectUnauthorized: false, servername: account.host },
+      // Zero-Trust: validar el cert de Dovecot contra la CA interna + mTLS.
+      tlsOptions: buildMailTlsOptions(config.DOVECOT_TLS_SERVERNAME),
       authTimeout: 20_000,
       connTimeout: 15_000,
       keepalive: true,

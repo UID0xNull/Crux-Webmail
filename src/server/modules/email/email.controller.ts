@@ -95,6 +95,7 @@ function buildSmtpConfig(_userId: string, _user: UserModel) {
     secure: config.POSTFIX_PORT === 465,
     username: config.SMTP_USER,
     password: config.SMTP_PASSWORD,
+    servername: config.POSTFIX_TLS_SERVERNAME,
   };
 }
 
