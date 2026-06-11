@@ -146,7 +146,6 @@ basicConstraints   = critical,CA:FALSE
 keyUsage           = critical,digitalSignature,keyEncipherment
 extendedKeyUsage   = serverAuth,clientAuth
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid:always
 
 [alt_names]
 EOF
