@@ -120,8 +120,9 @@ export default function MessageViewPage() {
           {selectedMessage && <SanitizedEmailBody message={selectedMessage} />}
         </article>
       </div>
-</div>
-  }
+    </div>
+  );
+}
 
   // Sender info with avatar, name and recipient details
   function SenderInfo({ sender, to, cc }: { sender?: EmailAddress; to: EmailAddress[]; cc?: EmailAddress[] }) {
