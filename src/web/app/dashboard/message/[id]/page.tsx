@@ -120,12 +120,11 @@ export default function MessageViewPage() {
           {selectedMessage && <SanitizedEmailBody message={selectedMessage} />}
         </article>
       </div>
-    </div>
-  );
-}
+</div>
+  }
 
-// Sender info with avatar, name and recipient details
-function SenderInfo({ sender, to, cc }: { sender?: EmailAddress; to: EmailAddress[]; cc?: EmailAddress[] }) {
+  // Sender info with avatar, name and recipient details
+  function SenderInfo({ sender, to, cc }: { sender?: EmailAddress; to: EmailAddress[]; cc?: EmailAddress[] }) {
   const name = sender?.name || sender?.email || 'Desconocido';
   return (
     <div className="flex items-start gap-4 mb-8 pb-6 border-b border-[var(--crux-base-200)]/40 dark:border-[var(--crux-base-700)]/40">

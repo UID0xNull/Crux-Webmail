@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageSearchBar } from '@/components/email/MessageSearchBar';
 import { MessageFilters } from '@/components/email/MessageFilters';
 import { MultiSelectBar } from '@/components/email/MultiSelectBar';
-import { MailOpen, Star, Paperclip, AlertTriangle, CheckSquare, Check, Eye, EyeOff, Archive, Trash2, Layers, ListFilter, Settings2 } from 'lucide-react';
+import { MailOpen, Star, Paperclip, AlertTriangle, CheckSquare, Check, Eye, EyeOff, Archive, Trash2, Layers, ListFilter, Settings2, Pencil } from 'lucide-react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import type { EmailMessage } from '@/lib/types';
 
@@ -150,6 +150,7 @@ export default function InboxPage() {
   const isLoading = useMailStore((s) => s.isLoading);
   const hasMore = useMailStore((s) => s.hasMore);
   const selectedMailbox = useMailStore((s) => s.selectedMailbox);
+  const setMailbox = useMailStore((s) => s.setMailbox);
   const loadInbox = useMailStore((s) => s.loadInbox);
   const loadMore = useMailStore((s) => s.loadMore);
   const markAsRead = useMailStore((s) => s.markAsRead);
@@ -259,10 +260,18 @@ export default function InboxPage() {
     <div className="flex h-full overflow-hidden bg-gradient-to-br from-gray-50/80 to-white dark:from-slate-900 dark:to-slate-950">
       {/* Sidebar */}
       <aside className="w-[240px] border-r dark:border-slate-700 flex flex-col bg-gradient-to-b from-gray-50/80 to-white/60 dark:from-slate-850 dark:to-slate-900/60 backdrop-blur-sm">
-        <div className="p-4 border-b dark:border-slate-700">
+        <div className="p-4 border-b dark:border-slate-700 space-y-3">
           <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
             Inbox
           </h2>
+          {/* Botón Redactar */}
+          <button
+            onClick={() => router.push('/dashboard/compose')}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium shadow-md hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
+          >
+            <Pencil className="w-4 h-4" />
+            Redactar
+          </button>
         </div>
 
         {/* Mailboxes */}
@@ -270,7 +279,7 @@ export default function InboxPage() {
           {['$inbox', '$sent', '$drafts', '$trash', '$junk', '$archive'].map((id) => (
             <button
               key={id}
-              onClick={() => router.push(`/${id}`)}
+              onClick={() => setMailbox(id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-left group ${selectedMailbox === id ? 'bg-gradient-to-r from-blue-100/70 to-transparent dark:from-blue-950/40 ring-1 ring-blue-200/50 dark:ring-blue-800/30 shadow-sm' : 'hover:bg-gray-50/80 dark:hover:bg-slate-750/60 hover:shadow-sm border border-transparent'}`}
             >
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${selectedMailbox === id ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'bg-gray-100 dark:bg-slate-700/80 text-gray-600 dark:text-slate-300 group-hover:from-blue-200/40 group-hover:to-transparent'}`}>
