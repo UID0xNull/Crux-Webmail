@@ -101,6 +101,10 @@ function circuitRecordFailure(id: string) {
 // Connection pool
 // ------------------------------------------------------------------
 const connectionPool = new Map<string, { conn: Imap; status: ConnectionStatus; lastActivity: number }>();
+// Conexiones en curso: dedup para que N requests concurrentes (el webmail abre
+// varias carpetas a la vez al cargar) compartan UNA conexión en vez de abrir
+// una cada una (race que saturaba Dovecot y dejaba conexiones huérfanas).
+const connecting = new Map<string, Promise<Imap>>();
 
 export async function connectIMAP(account: IMAPAccount): Promise<Imap> {
   return new Promise((resolve, reject) => {
@@ -152,21 +156,42 @@ async function getIMAPConnection(account: IMAPAccount): Promise<Imap> {
     throw new CruxError('IMAP_CIRCUIT_OPEN', 'IMAP service temporarily unavailable');
   }
 
+  // Reusar sólo si la conexión está REALMENTE viva y autenticada. node-imap
+  // expone `state`: 'authenticated' es el único estado seguro para operar;
+  // si quedó 'disconnected'/'connected' la descartamos (evita "Not authenticated").
   const entry = connectionPool.get(account.id);
-  if (entry && entry.status === 'connected') {
+  if (entry && (entry.conn as any).state === 'authenticated') {
     entry.lastActivity = Date.now();
     return entry.conn;
   }
-
-  let lastErr: unknown;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try { return await connectIMAP(account); } catch (err) {
-      lastErr = err;
-      if (attempt === 3) break;
-      await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
-    }
+  if (entry) {
+    try { entry.conn.end(); } catch { /* ignore */ }
+    connectionPool.delete(account.id);
   }
-  throw lastErr instanceof Error ? lastErr : new Error('IMAP connection failed after retries');
+
+  // Dedup: si ya hay una conexión abriéndose para esta cuenta, esperamos esa
+  // misma promesa en vez de abrir otra (evita la race de N conexiones simultáneas).
+  const inflight = connecting.get(account.id);
+  if (inflight) return inflight;
+
+  const attemptConnect = (async () => {
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try { return await connectIMAP(account); } catch (err) {
+        lastErr = err;
+        if (attempt === 3) break;
+        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error('IMAP connection failed after retries');
+  })();
+
+  connecting.set(account.id, attemptConnect);
+  try {
+    return await attemptConnect;
+  } finally {
+    connecting.delete(account.id);
+  }
 }
 
 // ------------------------------------------------------------------
