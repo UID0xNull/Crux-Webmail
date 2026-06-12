@@ -7,14 +7,14 @@
 #
 # REQUISITOS:
 #   - El servicio `dovecot` debe estar en la red `app` (alcanza a `postgres`).
-#   - Rellenar `password=` con la pass de crux_user (secrets/postgres_password.txt).
-#     Dovecot NO interpola env vars en este archivo: o se hardcodea aquí, o se
-#     templa con un entrypoint al iniciar el contenedor.
+#   - El password lo inyecta infra/scripts/db-mail-setup.sh reemplazando el
+#     placeholder __MAIL_DB_PASSWORD__ (Dovecot NO interpola env vars aquí).
+#     Usa el rol read-only crux_mail_ro (sólo SELECT sobre la DB de correo).
 # ============================================================================
 
 driver = pgsql
 
-connect = host=postgres port=5432 dbname=crux_mail user=crux_user password=__SET_POSTGRES_PASSWORD__
+connect = host=postgres port=5432 dbname=crux_mail user=crux_mail_ro password=__MAIL_DB_PASSWORD__
 
 # Los password_hash son bcrypt ($2a$12$...) → esquema BLF-CRYPT de Dovecot.
 default_pass_scheme = BLF-CRYPT

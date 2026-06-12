@@ -57,10 +57,20 @@ smtp_tls_session_cache_database  = btree:${data_directory}/smtp_tls_session_cach
 smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_tls_session_cache
 
 # ----------------------------------------------------------------------------
-# DELIVERY → Dovecot via LMTP over TCP
-# (entrypoint: postconf -e "virtual_transport = lmtp:inet:[${DOVECOT_HOST}]:24")
+# DOMINIOS Y BUZONES VIRTUALES (PostgreSQL)
+# Sin estos mapas Postfix no sabe qué dominios son propios ni valida buzones,
+# y rechaza el correo entrante. Las cuentas se resuelven contra la tabla `users`
+# del backend; los dominios/alias contra virtual_domains/virtual_aliases.
 # ----------------------------------------------------------------------------
-virtual_transport = lmtp:inet:[dovecot]:24
+virtual_mailbox_domains = pgsql:/etc/postfix/sql/pgsql-virtual-mailbox-domains.cf
+virtual_mailbox_maps    = pgsql:/etc/postfix/sql/pgsql-virtual-mailbox-maps.cf
+virtual_alias_maps      = pgsql:/etc/postfix/sql/pgsql-virtual-alias-maps.cf
+
+# ----------------------------------------------------------------------------
+# DELIVERY → Dovecot via LMTP (socket unix compartido en el spool de Postfix;
+# el inet_listener TCP:24 de Dovecot está deshabilitado a propósito).
+# ----------------------------------------------------------------------------
+virtual_transport = lmtp:unix:private/dovecot-lmtp
 
 lmtp_destination_recipient_limit = 1
 lmtp_connect_timeout             = 60s

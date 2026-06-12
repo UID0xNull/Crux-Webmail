@@ -1,5 +1,7 @@
 hosts = postgres
-user = crux_user
-password =
+user = crux_mail_ro
+password = __MAIL_DB_PASSWORD__
 dbname = crux_mail
-query = SELECT email FROM virtual_users WHERE email='%s'
+# Mapea una dirección de remitente al login SASL autorizado a usarla
+# (identidad: el dueño del buzón = su propio login). Contra `users`.
+query = SELECT username FROM users WHERE username='%s' AND is_active=TRUE AND deleted_at IS NULL

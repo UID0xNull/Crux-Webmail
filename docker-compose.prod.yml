@@ -561,7 +561,7 @@ services:
       - type: bind
         source: "./infra/clamav/conf.d/freshclam.conf"
         target: /etc/clamav/freshclam.conf
-      - clamav_database:/var/lib/clamav/db
+      - clamav_database:/var/lib/clamav
       - clamav_persistent:/var/lib/clamav/persistent
       - type: bind
         source: "./logs/app/clamav"

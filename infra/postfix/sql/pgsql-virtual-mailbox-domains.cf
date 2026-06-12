@@ -1,5 +1,6 @@
 hosts = postgres
-user = crux_user
-password =
+user = crux_mail_ro
+password = __MAIL_DB_PASSWORD__
 dbname = crux_mail
+# ¿Es `%s` un dominio que aceptamos como propio?
 query = SELECT 1 FROM virtual_domains WHERE name='%s'

@@ -1,5 +1,9 @@
 hosts = postgres
-user = crux_user
-password =
+user = crux_mail_ro
+password = __MAIL_DB_PASSWORD__
 dbname = crux_mail
-query = SELECT maildir FROM virtual_users WHERE email='%s'
+# Existencia del buzón: se resuelve contra la tabla `users` del backend
+# (username = email). Devuelve un maildir lógico `<dominio>/<local>/` (no se usa
+# para escribir: la entrega real la hace Dovecot vía LMTP, esto sólo valida que
+# el destinatario existe y está activo).
+query = SELECT split_part(username,'@',2) || '/' || split_part(username,'@',1) || '/' FROM users WHERE username='%s' AND is_active=TRUE AND deleted_at IS NULL

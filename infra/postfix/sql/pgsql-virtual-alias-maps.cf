@@ -1,5 +1,6 @@
 hosts = postgres
-user = crux_user
-password =
+user = crux_mail_ro
+password = __MAIL_DB_PASSWORD__
 dbname = crux_mail
+# Alias/reenvíos opcionales (tabla vacía por defecto).
 query = SELECT destination FROM virtual_aliases WHERE source='%s'
