@@ -1,0 +1,2 @@
+# Qué clave firma cada remitente. Lo (re)genera dkim-genkey.sh según MAIL_DOMAIN.
+*@crux.local default._domainkey.crux.local

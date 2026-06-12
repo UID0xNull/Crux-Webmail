@@ -19,6 +19,9 @@ infra/nginx/certs/*.pem
 infra/nginx/certs/*.key
 infra/nginx/certs/*.crt
 
+# Claves DKIM (privadas) — se generan con infra/scripts/dkim-genkey.sh
+infra/opendkim/keys/
+
 # Secrets directory (all secret files)
 secrets/
 

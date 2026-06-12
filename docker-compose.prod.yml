@@ -590,7 +590,7 @@ services:
       DOMAIN: mail.crux.local
       DOVECOT_HOST: dovecot
       AMAVIS_HOST: amavis-virus
-      OPENDKIM_HOST: "127.0.0.1"
+      OPENDKIM_HOST: "opendkim"
       OPENDMARC_HOST: "127.0.0.1"
       DB_HOST: postgres
       DB_USER: crux_user
@@ -647,6 +647,34 @@ services:
           cpus: "2.0"
           memory: 4G
 
+  opendkim:
+    image: "instrumentisto/opendkim:latest"
+    hostname: opendkim
+    restart: always
+    # root para leer las claves montadas vía bind sin líos de uid host/contenedor
+    user: "0:0"
+    volumes:
+      - type: bind
+        source: "./infra/opendkim/opendkim.conf"
+        target: /etc/opendkim.conf
+        read_only: true
+      - type: bind
+        source: "./infra/opendkim"
+        target: /etc/opendkim
+    networks:
+      mail:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "opendkim"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+
   prometheus:
     image: "prom/prometheus:latest"
     restart: always
@@ -678,6 +706,11 @@ services:
         source: "./logs/app/grafana"
         target: /var/log/grafana
         read_only: false
+      # Provisioning automático de datasources (Loki/Prometheus) y dashboards.
+      - type: bind
+        source: "./infra/monitoring/grafana/provisioning"
+        target: /etc/grafana/provisioning
+        read_only: true
     environment:
       GF_SERVER_ROOT_URL: https://mail.cruxhost.com/grafana
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"

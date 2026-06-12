@@ -1,0 +1,3 @@
+# <selector._domainkey.dominio>  <dominio>:<selector>:<ruta-clave-privada>
+# Lo (re)genera infra/scripts/dkim-genkey.sh según MAIL_DOMAIN.
+default._domainkey.crux.local crux.local:default:/etc/opendkim/keys/crux.local/default.private

@@ -1,0 +1,11 @@
+# Hosts/redes cuyo correo OpenDKIM firma (correo saliente interno).
+# El entrante (de fuera) NO se firma: sólo se valida.
+127.0.0.1
+::1
+localhost
+postfix
+mail.crux.local
+172.20.0.0/24
+172.21.0.0/24
+172.22.0.0/24
+172.23.0.0/24

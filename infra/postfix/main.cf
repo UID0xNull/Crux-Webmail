@@ -114,11 +114,12 @@ content_filter = amavisfeed:[amavis-virus]:10024
 receive_override_options = no_address_mappings
 
 # ----------------------------------------------------------------------------
-# MILTERS — DKIM/DMARC placeholders; milter_default_action=accept means
-# unreachable milters don't block mail delivery
-# (entrypoint: postconf -e "smtpd_milters = inet:[127.0.0.1]:8892, inet:[127.0.0.1]:8893")
+# MILTERS — Firma DKIM del correo saliente vía el servicio opendkim (milter
+# en :8891). milter_default_action=accept: si opendkim no responde, el correo
+# igual sale (sin firmar) en vez de quedar trabado.
 # ----------------------------------------------------------------------------
-smtpd_milters     = inet:[127.0.0.1]:8892, inet:[127.0.0.1]:8893
+smtpd_milters         = inet:[opendkim]:8891
+non_smtpd_milters     = inet:[opendkim]:8891
 milter_default_action = accept
 milter_protocol       = 6
 
