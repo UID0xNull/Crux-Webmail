@@ -195,6 +195,26 @@ async function getIMAPConnection(account: IMAPAccount): Promise<Imap> {
 }
 
 // ------------------------------------------------------------------
+// Serialización por cuenta — node-imap usa UNA conexión y no soporta comandos
+// concurrentes (un SELECT cambia el buzón activo; si dos operaciones corren a
+// la vez se pisan o se cuelgan). El webmail abre varias carpetas al cargar, así
+// que encolamos: cada operación (openBox + search/fetch) corre completa antes
+// de empezar la siguiente sobre la misma conexión.
+// ------------------------------------------------------------------
+const opLocks = new Map<string, Promise<unknown>>();
+
+function withConnection<T>(account: IMAPAccount, fn: (conn: Imap) => Promise<T>): Promise<T> {
+  const prev = (opLocks.get(account.id) ?? Promise.resolve()) as Promise<unknown>;
+  const run = prev.then(
+    () => getIMAPConnection(account).then(fn),
+    () => getIMAPConnection(account).then(fn),
+  );
+  // El siguiente en la cola espera a que éste termine (éxito o error).
+  opLocks.set(account.id, run.then(() => undefined, () => undefined));
+  return run;
+}
+
+// ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
 function openBox(conn: Imap, folder: string, readOnly: boolean): Promise<void> {
@@ -253,13 +273,12 @@ function mapParsedAddr(v?: { value: { name: string; address: string }[] }): { ad
 // Folders
 // ------------------------------------------------------------------
 export async function listFolders(_userId: string, account: IMAPAccount): Promise<FolderInfo[]> {
-  const conn = await getIMAPConnection(account);
-  return new Promise((resolve, reject) => {
+  return withConnection(account, (conn) => new Promise<FolderInfo[]>((resolve, reject) => {
     conn.getBoxes((err, boxes) => {
       if (err) return reject(err);
       resolve(flattenBoxes(boxes as any));
     });
-  });
+  }));
 }
 
 // ------------------------------------------------------------------
@@ -344,7 +363,7 @@ export async function searchEmailsWithPagination(
   cursor?: string,
   limit = 20
 ): Promise<{ items: EmailMessage[]; total: number; nextCursor: string | null; prevCursor: string | null }> {
-  const conn = await getIMAPConnection(account);
+  return withConnection(account, async (conn) => {
   const folder = query.folder || 'INBOX';
   await openBox(conn, folder, true);
 
@@ -378,6 +397,7 @@ export async function searchEmailsWithPagination(
     nextCursor: hasNext && lastUid != null ? String(lastUid) : null,
     prevCursor: null,
   };
+  });
 }
 
 // Compat: listado simple (usado por sync u otros callers).
@@ -399,10 +419,10 @@ export async function fetchEmails(
 // Single message (cuerpo completo via mailparser)
 // ------------------------------------------------------------------
 export async function fetchEmailByUID(_userId: string, account: IMAPAccount, folder: string, uid: number): Promise<EmailMessage | null> {
-  const conn = await getIMAPConnection(account);
+  return withConnection(account, async (conn) => {
   await openBox(conn, folder || 'INBOX', true);
 
-  return new Promise((resolve, reject) => {
+  return new Promise<EmailMessage | null>((resolve, reject) => {
     let raw = '';
     let flags: string[] = [];
     let found = false;
@@ -441,6 +461,7 @@ export async function fetchEmailByUID(_userId: string, account: IMAPAccount, fol
       }
     });
   });
+  });
 }
 
 // ------------------------------------------------------------------
@@ -459,7 +480,7 @@ export async function markEmailFlag(
   uid: number,
   flag: 'SEEN' | 'UNSEEN' | 'FLAGGED' | 'UNFLAGGED' | 'DELETED'
 ): Promise<void> {
-  const conn = await getIMAPConnection(account);
+  return withConnection(account, async (conn) => {
   await openBox(conn, folder || 'INBOX', false);
 
   const remove = flag === 'UNSEEN' || flag === 'UNFLAGGED';
@@ -467,15 +488,16 @@ export async function markEmailFlag(
     ? (flag === 'UNSEEN' ? '\\Seen' : '\\Flagged')
     : FLAG_MAP[flag];
 
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const cb = (err: Error | null) => (err ? reject(err) : resolve());
     if (remove) conn.delFlags(uid, [imapFlag], cb);
     else conn.addFlags(uid, [imapFlag], cb);
   });
+  });
 }
 
 export async function deleteEmail(_userId: string, account: IMAPAccount, folder: string, uid: number): Promise<void> {
-  const conn = await getIMAPConnection(account);
+  return withConnection(account, async (conn) => {
   await openBox(conn, folder || 'INBOX', false);
 
   await new Promise<void>((resolve, reject) => {
@@ -484,13 +506,15 @@ export async function deleteEmail(_userId: string, account: IMAPAccount, folder:
   await new Promise<void>((resolve, reject) => {
     conn.expunge(uid, (err) => (err ? reject(err) : resolve()));
   });
+  });
 }
 
 export async function moveEmail(_userId: string, account: IMAPAccount, fromFolder: string, toFolder: string, uid: number): Promise<void> {
-  const conn = await getIMAPConnection(account);
+  return withConnection(account, async (conn) => {
   await openBox(conn, fromFolder || 'INBOX', false);
   await new Promise<void>((resolve, reject) => {
     conn.move(uid, toFolder || 'INBOX', (err) => (err ? reject(err) : resolve()));
+  });
   });
 }
 
