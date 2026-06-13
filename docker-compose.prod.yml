@@ -635,6 +635,9 @@ services:
         read_only: false
     networks:
       mail:
+      # El backend (red `app`) hace submission a postfix:587; sin esto no lo
+      # alcanza y el envío falla con "SMTP connection failed".
+      app:
     logging:
       driver: "json-file"
       options:
