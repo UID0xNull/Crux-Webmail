@@ -89,15 +89,25 @@ async function initWorkers(connection: any): Promise<void> {
   // Email Send Worker
   new Worker(QUEUES.EMAIL_SEND, async (job: Job) => {
     const { accountId, smtpConfig, emailOptions } = job.data;
-    
-    const result = await sendEmail(accountId, smtpConfig, emailOptions);
-    
-    auditLogger.info('Email queued and sent', {
-      actor_id: accountId,
-      metadata: { message_id: result.messageId },
-    });
 
-    return result;
+    try {
+      const result = await sendEmail(accountId, smtpConfig, emailOptions);
+
+      auditLogger.info('Email queued and sent', {
+        actor_id: accountId,
+        metadata: { message_id: result.messageId },
+      });
+
+      return result;
+    } catch (err) {
+      // El error de envío lo tragaba BullMQ y quedaba invisible. Logueado para
+      // poder diagnosticar fallos de SMTP (TLS/SASL/conexión a Postfix).
+      auditLogger.error('Email send failed in worker', {
+        actor_id: accountId,
+        metadata: { error: String((err as Error)?.message || err) } as any,
+      });
+      throw err;
+    }
   }, { connection, limiter: { max: 10, duration: 1000 } });
 
   // PGP Process Worker
