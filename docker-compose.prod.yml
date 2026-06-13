@@ -583,7 +583,10 @@ services:
           memory: 4G
 
   postfix:
-    image: "vednil/postfix:latest"
+    build:
+      context: ./infra/postfix
+      dockerfile: Dockerfile
+    image: "crux-postfix:latest"
     hostname: mail.crux.local
     restart: always
     environment:
