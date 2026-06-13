@@ -119,7 +119,10 @@ export async function connectIMAP(account: IMAPAccount): Promise<Imap> {
       authTimeout: 20_000,
       connTimeout: 15_000,
       keepalive: true,
-    });
+      // DIAGNÓSTICO TEMPORAL: loguea el protocolo IMAP crudo para ver dónde
+      // se cuelga (quitar una vez resuelto).
+      debug: (m: string) => auditLogger.info('[IMAP proto]', { actor_id: account.id, metadata: { m } as any }),
+    } as any);
 
     let settled = false;
 
