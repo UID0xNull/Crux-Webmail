@@ -6,7 +6,7 @@
 # =========================================================================
 # SMTP INBOUND — Port 25 (standard)
 # =========================================================================
-smtp      inet  n       -       y       -       -       smtpd
+smtp      inet  n       -       n       -       -       smtpd
     -o syslog_name=postfix/smtp
     -o smtpd_tls_security_level=may
     -o smtpd_tls_ask_ccert=yes
@@ -14,7 +14,7 @@ smtp      inet  n       -       y       -       -       smtpd
 # =========================================================================
 # SUBMISSION — Port 587 (authenticated clients)
 # =========================================================================
-submission inet  n       -       y       -       -       smtpd
+submission inet  n       -       n       -       -       smtpd
     -o syslog_name=postfix/submission
     -o smtpd_tls_security_level=encrypt
     -o smtpd_sasl_auth_enable=yes
@@ -25,7 +25,7 @@ submission inet  n       -       y       -       -       smtpd
 # =========================================================================
 # SMTPS — Port 465 (legacy TLS-wrapped SMTP)
 # =========================================================================
-smtps     inet  n       -       y       -       -       smtpd
+smtps     inet  n       -       n       -       -       smtpd
     -o syslog_name=postfix/smtps
     -o smtpd_tls_wrappermode=yes
     -o smtpd_sasl_auth_enable=yes
@@ -36,7 +36,7 @@ smtps     inet  n       -       y       -       -       smtpd
 # =========================================================================
 # AMAVIS FORWARD — Send mail to Amavis for scanning
 # =========================================================================
-amavisfeed unix  -       -       y       -       2       smtp
+amavisfeed unix  -       -       n       -       2       smtp
     -o smtp_data_done_timeout=1200
     -o smtp_send_xforward_command=yes
     -o max_use=20
@@ -45,7 +45,7 @@ amavisfeed unix  -       -       y       -       2       smtp
 # AMAVIS RETURN — Filtered mail returns on 10025 (listen on all interfaces
 #                  so the amavis container can reach postfix over Docker network)
 # =========================================================================
-0.0.0.0:10025 inet n  -       y       -       -       smtpd
+0.0.0.0:10025 inet n  -       n       -       -       smtpd
     -o syslog_name=postfix/amavis-return
     -o content_filter=
     -o smtpd_authorized_xforward_hosts=127.0.0.0/8
