@@ -118,11 +118,11 @@ export async function connectIMAP(account: IMAPAccount): Promise<Imap> {
       tlsOptions: buildMailTlsOptions(config.DOVECOT_TLS_SERVERNAME),
       authTimeout: 20_000,
       connTimeout: 15_000,
-      keepalive: true,
-      // DIAGNÓSTICO TEMPORAL: loguea el protocolo IMAP crudo para ver dónde
-      // se cuelga (quitar una vez resuelto).
-      debug: (m: string) => auditLogger.info('[IMAP proto]', { actor_id: account.id, metadata: { m } as any }),
-    } as any);
+      // keepalive=true hacía que node-imap entrara en IDLE apenas conectaba y
+      // los comandos reales (LIST/SELECT/SEARCH) nunca se enviaban -> cuelgue.
+      // Estas conexiones son request-response, no necesitan IDLE.
+      keepalive: false,
+    });
 
     let settled = false;
 
