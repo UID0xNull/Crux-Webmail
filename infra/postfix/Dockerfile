@@ -11,10 +11,10 @@
 FROM vednil/postfix:latest
 
 USER root
+# Sin fijar versión: apt instala postfix-pgsql/pcre de la versión disponible y,
+# si hace falta, actualiza postfix al mismo punto-release de focal (seguro).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      "postfix-pgsql=$(dpkg-query -W -f='${Version}' postfix 2>/dev/null || echo '*')" \
-      "postfix-pcre=$(dpkg-query -W -f='${Version}' postfix 2>/dev/null || echo '*')" \
+ && apt-get install -y --no-install-recommends postfix-pgsql postfix-pcre \
  && rm -rf /var/lib/apt/lists/* \
  && postconf -m | grep -q pgsql \
  && postconf -m | grep -q pcre
